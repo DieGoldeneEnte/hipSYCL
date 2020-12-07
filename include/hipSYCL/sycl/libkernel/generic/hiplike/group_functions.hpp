@@ -105,13 +105,13 @@ template<typename Group, typename T, typename BinaryOperation,
 HIPSYCL_KERNEL_TARGET
 T group_reduce(Group g, T x, BinaryOperation binary_op, T *scratch) {
 
-  auto lid               = g.get_local_linear_id();
-  size_t lrange          = 1;
-  auto group_local_range = g.get_local_range();
-  for (int i = 0; i < g.dimensions; ++i)
-    lrange *= group_local_range[i];
+  auto lid      = g.get_local_linear_id();
+  size_t lrange = g.get_local_range().size() / warpSize;
+  sub_group sg{};
 
-  scratch[lid] = x;
+  x = group_reduce(sg, x, binary_op);
+  if (sg.leader())
+    scratch[lid / warpSize] = x;
   group_barrier(g);
 
   for (size_t i = lrange / 2; i > 0; i /= 2) {
@@ -127,13 +127,13 @@ template<typename Group, typename T, int N, typename BinaryOperation,
          typename std::enable_if_t<!std::is_same_v<Group, sub_group>, int> = 0>
 HIPSYCL_KERNEL_TARGET
 vec<T, N> group_reduce(Group g, vec<T, N> x, BinaryOperation binary_op, T *scratch) {
-  auto lid               = g.get_local_linear_id();
-  size_t lrange          = 1;
-  auto group_local_range = g.get_local_range();
-  for (int i = 0; i < g.dimensions; ++i)
-    lrange *= group_local_range[i];
+  auto lid      = g.get_local_linear_id();
+  size_t lrange = g.get_local_range().size() / warpSize;
+  sub_group sg{};
 
-  detail::writeToMemory(scratch + lid * N, x);
+  x = group_reduce(sg, x, binary_op);
+  if (sg.leader())
+    detail::writeToMemory(scratch + (lid / warpSize) * N, x);
   group_barrier(g);
 
   for (size_t i = lrange / 2; i > 0; i /= 2) {
@@ -430,8 +430,7 @@ template<typename Group, typename T, typename BinaryOperation,
          typename std::enable_if_t<!std::is_same_v<Group, sub_group>, int> = 0>
 HIPSYCL_KERNEL_TARGET
 T group_reduce(Group g, T x, BinaryOperation binary_op) {
-  __shared__ T scratch[1024];
-
+  __shared__ T scratch[1024 / warpSize];
   return detail::group_reduce(g, x, binary_op, scratch);
 }
 
@@ -439,7 +438,7 @@ template<typename Group, typename T, int N, typename BinaryOperation,
          typename std::enable_if_t<!std::is_same_v<Group, sub_group>, int> = 0>
 HIPSYCL_KERNEL_TARGET
 vec<T, N> group_reduce(Group g, vec<T, N> x, BinaryOperation binary_op) {
-  __shared__ T scratch[1024 * N];
+  __shared__ T scratch[1024 / warpSize * N];
 
   return detail::group_reduce(g, x, binary_op, scratch);
 }
