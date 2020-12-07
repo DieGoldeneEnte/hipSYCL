@@ -32,7 +32,7 @@
 BOOST_FIXTURE_TEST_SUITE(group_functions_tests, reset_device_fixture)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(group_reduce, T, test_types) {
-  const size_t local_size     = 500;
+  const size_t local_size     = 512;
   const size_t global_size    = 1024;
   const size_t local_size_x   = 16;
   const size_t local_size_y   = 16;
