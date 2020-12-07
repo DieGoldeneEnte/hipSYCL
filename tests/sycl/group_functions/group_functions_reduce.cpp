@@ -58,14 +58,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(group_reduce_mul, T, test_types) {
         for (size_t j = 1; j < local_size; ++j)
           expected = expected * vOrig[i * local_size + j];
 
-        T computed = vIn[i * local_size];
-        BOOST_TEST(detail::compare_type(expected, computed),
-                   detail::type_to_string(computed)
-                       << " at position " << i << " instead of "
-                       << detail::type_to_string(expected)
-                       << " for case: no init multiplication");
-        if (!detail::compare_type(expected, computed))
-          break;
+        for (size_t j = 0; j < local_size; ++j) {
+          T computed = vIn[i * local_size + j];
+          BOOST_TEST(detail::compare_type(expected, computed),
+                     detail::type_to_string(computed)
+                         << " at position " << j << " instead of "
+                         << detail::type_to_string(expected) << " for group " << i
+                         << " for case: no init");
+          if (!detail::compare_type(expected, computed))
+            break;
+        }
       }
     };
 
@@ -108,13 +110,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(group_reduce, T, test_types) {
         for (size_t j = 0; j < local_size; ++j)
           expected = expected + vOrig[i * local_size + j];
 
-        T computed = vIn[i * local_size];
-        BOOST_TEST(detail::compare_type(expected, computed),
-                   detail::type_to_string(computed)
-                       << " at position " << i << " instead of "
-                       << detail::type_to_string(expected) << " for case: no init");
-        if (!detail::compare_type(expected, computed))
-          break;
+        for (size_t j = 0; j < local_size; ++j) {
+          T computed = vIn[i * local_size + j];
+          BOOST_TEST(detail::compare_type(expected, computed),
+                     detail::type_to_string(computed)
+                         << " at position " << j << " instead of "
+                         << detail::type_to_string(expected) << " for group " << i
+                         << " for case: no init multiplication");
+          if (!detail::compare_type(expected, computed))
+            break;
+        }
       }
     };
 
@@ -142,13 +147,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(group_reduce, T, test_types) {
         for (size_t j = 0; j < local_size; ++j)
           expected = expected + vOrig[i * local_size + j];
 
-        T computed = vIn[i * local_size];
-        BOOST_TEST(detail::compare_type(expected, computed),
-                   detail::type_to_string(computed)
-                       << " at position " << i << " instead of "
-                       << detail::type_to_string(expected) << " for case: init");
-        if (!detail::compare_type(expected, computed))
-          break;
+        for (size_t j = 0; j < local_size; ++j) {
+          T computed = vIn[i * local_size + j];
+          BOOST_TEST(detail::compare_type(expected, computed),
+                     detail::type_to_string(computed)
+                         << " at position " << j << " instead of "
+                         << detail::type_to_string(expected) << " for group " << i
+                         << " for case: init");
+          if (!detail::compare_type(expected, computed))
+            break;
+        }
       }
     };
 
