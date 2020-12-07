@@ -1,0 +1,33 @@
+#   http://releases.llvm.org/8.0.0/tools/clang/docs/ClangFormatStyleOptions.html
+# Refer to the following link for the explanation of each params:
+---
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: 'true'
+AlignConsecutiveDeclarations: 'false'
+AlignConsecutiveMacros: 'true'
+AlignEscapedNewlines: Left
+AlignOperands: 'true'
+AllowShortFunctionsOnASingleLine: InlineOnly
+AlwaysBreakTemplateDeclarations: 'Yes'
+BasedOnStyle: LLVM
+ColumnLimit: 90
+CompactNamespaces: 'false'
+ConstructorInitializerAllOnOneLineOrOnePerLine: 'true'
+Cpp11BracedListStyle: 'true'
+FixNamespaceComments: 'true'
+IndentWidth: 2
+Language: Cpp
+MaxEmptyLinesToKeep: 2
+PenaltyBreakBeforeFirstCallParameter: 200
+PenaltyExcessCharacter: 10
+PointerAlignment: Right
+ReflowComments: 'false'
+SpaceAfterTemplateKeyword: 'false'
+SpaceBeforeParens: ControlStatements
+Standard: Cpp11
+UseTab: Never
+
+StatementMacros:
+  - HIPSYCL_KERNEL_TARGET
+  - HIPSYCL_UNIVERSAL_TARGET
+  - __device__

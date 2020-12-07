@@ -115,10 +115,8 @@ T group_reduce(Group g, T x, BinaryOperation binary_op, T *scratch) {
   group_barrier(g);
 
   for (size_t i = lrange / 2; i > 0; i /= 2) {
-    if (lid < i){
+    if (lid < i)
       scratch[lid] = binary_op(scratch[lid], scratch[lid + i]);
-      printf("%lu: %lu\n", i, scratch[lid]);
-    }
     group_barrier(g);
   }
 
