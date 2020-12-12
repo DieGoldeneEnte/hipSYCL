@@ -114,9 +114,19 @@ T group_reduce(Group g, T x, BinaryOperation binary_op, T *scratch) {
     scratch[lid / warpSize] = x;
   group_barrier(g);
 
-  for (size_t i = lrange / 2; i > 0; i /= 2) {
-    if (lid < i)
-      scratch[lid] = binary_op(scratch[lid], scratch[lid + i]);
+  if (lrange != warpSize) {
+    for (size_t i = lrange / 2; i > 0; i /= 2) {
+      if (lid < i)
+        scratch[lid] = binary_op(scratch[lid], scratch[lid + i]);
+      group_barrier(g);
+    }
+  } else {
+    if (lid < warpSize)
+      x = group_reduce(sg, scratch[lid], binary_op);
+
+    if (lid == 0)
+      scratch[0] = x;
+
     group_barrier(g);
   }
 
@@ -136,16 +146,30 @@ vec<T, N> group_reduce(Group g, vec<T, N> x, BinaryOperation binary_op, T *scrat
     detail::writeToMemory(scratch + (lid / warpSize) * N, x);
   group_barrier(g);
 
-  for (size_t i = lrange / 2; i > 0; i /= 2) {
+  if (lrange != warpSize) {
+    for (size_t i = lrange / 2; i > 0; i /= 2) {
 
-    if (lid < i) {
-      vec<T, N> v1, v2;
+      if (lid < i) {
+        vec<T, N> v1, v2;
 
-      detail::readFromMemory(scratch + lid * N, v1);
-      detail::readFromMemory(scratch + (lid + i) * N, v2);
+        detail::readFromMemory(scratch + lid * N, v1);
+        detail::readFromMemory(scratch + (lid + i) * N, v2);
 
-      detail::writeToMemory(scratch + lid * N, binary_op(v1, v2));
+        detail::writeToMemory(scratch + lid * N, binary_op(v1, v2));
+      }
+
+      group_barrier(g);
     }
+  } else {
+    if (lid < warpSize){
+      vec<T, N> v;
+
+      detail::readFromMemory(scratch + lid * N, v);
+      x = group_reduce(sg, v, binary_op);
+    }
+
+    if (lid == 0)
+      detail::writeToMemory(scratch, x);
 
     group_barrier(g);
   }
