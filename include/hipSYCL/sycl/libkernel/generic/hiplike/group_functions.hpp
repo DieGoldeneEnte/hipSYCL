@@ -114,9 +114,19 @@ T group_reduce(Group g, T x, BinaryOperation binary_op, T *scratch) {
     scratch[lid / warpSize] = x;
   group_barrier(g);
 
-  for (size_t i = lrange / 2; i > 0; i /= 2) {
-    if (lid < i)
-      scratch[lid] = binary_op(scratch[lid], scratch[lid + i]);
+  if (lrange != warpSize) {
+    for (size_t i = lrange / 2; i > 0; i /= 2) {
+      if (lid < i)
+        scratch[lid] = binary_op(scratch[lid], scratch[lid + i]);
+      group_barrier(g);
+    }
+  } else {
+    if (lid < warpSize)
+      x = group_reduce(sg, scratch[lid], binary_op);
+
+    if (lid == 0)
+      scratch[0] = x;
+
     group_barrier(g);
   }
 
