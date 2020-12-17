@@ -7,22 +7,23 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
  *    and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  */
 
 #ifdef SYCL_DEVICE_ONLY
@@ -45,38 +46,39 @@ namespace detail {
 constexpr unsigned int AllMask = 0xFFFFFFFF;
 
 // shuffle_impl implemented based on ShuffleIndex in cub
-template<typename T,
-         typename std::enable_if_t<(sizeof(T) == sizeof(unsigned char)), int> = 0>
-__device__
-T shuffle_impl(T x, int id) {
+template <typename T, typename std::enable_if_t<
+                          (sizeof(T) == sizeof(unsigned char)), int> = 0>
+__device__ T shuffle_impl(T x, int id) {
   return __shfl_sync(AllMask, static_cast<unsigned char>(x), id);
 }
 
-template<typename T,
-         typename std::enable_if_t<(sizeof(T) == sizeof(unsigned short)), int> = 0>
-__device__
-T shuffle_impl(T x, int id) {
+template <typename T, typename std::enable_if_t<
+                          (sizeof(T) == sizeof(unsigned short)), int> = 0>
+__device__ T shuffle_impl(T x, int id) {
   return __shfl_sync(AllMask, static_cast<unsigned short>(x), id);
 }
 
-template<typename T,
-         typename std::enable_if_t<(sizeof(T) == sizeof(unsigned int)), int> = 0>
-__device__
-T shuffle_impl(T x, int id) {
+template <typename T, typename std::enable_if_t<
+                          (sizeof(T) == sizeof(unsigned int)), int> = 0>
+__device__ T shuffle_impl(T x, int id) {
   return __shfl_sync(AllMask, static_cast<unsigned int>(x), id);
 }
 
-template<typename T>
-__device__
-T shuffle_impl(T x, int id) {
-  constexpr int words_no = (sizeof(T) + sizeof(unsigned int) - 1) / sizeof(unsigned int);
+template <typename T,
+          typename std::enable_if_t<(sizeof(T) != sizeof(unsigned char) &&
+                                     sizeof(T) != sizeof(unsigned short) &&
+                                     sizeof(T) != sizeof(unsigned int)),
+                                    int> = 0>
+__device__ T shuffle_impl(T x, int id) {
+  constexpr int words_no =
+      (sizeof(T) + sizeof(unsigned int) - 1) / sizeof(unsigned int);
 
   unsigned int words[words_no];
   memcpy(words, &x, sizeof(T));
 
 #pragma unroll
-  for(int i = 0; i < words_no; i++)
-    words[i] = __shfl(words[i], id);
+  for (int i = 0; i < words_no; i++)
+    words[i] = __shfl_sync(AllMask, words[i], id);
 
   T output;
   memcpy(&output, words, sizeof(T));
@@ -87,34 +89,32 @@ T shuffle_impl(T x, int id) {
 } // namespace detail
 
 // broadcast
-template<typename T>
-HIPSYCL_KERNEL_TARGET
-T group_broadcast(sub_group g, T x,
-                  typename sub_group::linear_id_type local_linear_id = 0) {
+template <typename T>
+HIPSYCL_KERNEL_TARGET T group_broadcast(
+    sub_group g, T x, typename sub_group::linear_id_type local_linear_id = 0) {
   return detail::shuffle_impl(x, local_linear_id);
 }
 
-template<typename T, int N>
-HIPSYCL_KERNEL_TARGET
-sycl::vec<T, N> group_broadcast(sub_group g, sycl::vec<T, N> x,
-                                typename sub_group::linear_id_type local_linear_id = 0) {
+template <typename T, int N>
+HIPSYCL_KERNEL_TARGET sycl::vec<T, N>
+group_broadcast(sub_group g, sycl::vec<T, N> x,
+                typename sub_group::linear_id_type local_linear_id = 0) {
   return detail::shuffle_impl(x, local_linear_id);
 }
-
 
 // barrier
-template<typename Group>
-HIPSYCL_KERNEL_TARGET
-inline void group_barrier(Group g, memory_scope fence_scope = Group::fence_scope) {
+template <typename Group>
+HIPSYCL_KERNEL_TARGET inline void
+group_barrier(Group g, memory_scope fence_scope = Group::fence_scope) {
   if (fence_scope == memory_scope::device) {
     __threadfence_system();
   }
   __syncthreads();
 }
 
-template<>
-HIPSYCL_KERNEL_TARGET
-inline void group_barrier(sub_group g, memory_scope fence_scope) {
+template <>
+HIPSYCL_KERNEL_TARGET inline void group_barrier(sub_group g,
+                                                memory_scope fence_scope) {
   if (fence_scope == memory_scope::device) {
     __threadfence_system();
   } else if (fence_scope == memory_scope::work_group) {
@@ -123,38 +123,31 @@ inline void group_barrier(sub_group g, memory_scope fence_scope) {
   __syncwarp(); // not necessarily needed, but might improve performance
 }
 
-
 // any_of
-template<>
-HIPSYCL_KERNEL_TARGET
-inline bool group_any_of(sub_group g, bool pred) {
+template <>
+HIPSYCL_KERNEL_TARGET inline bool group_any_of(sub_group g, bool pred) {
   return __any_sync(detail::AllMask, pred);
 }
 
-
 // all_of
-template<>
-HIPSYCL_KERNEL_TARGET
-inline bool group_all_of(sub_group g, bool pred) {
+template <>
+HIPSYCL_KERNEL_TARGET inline bool group_all_of(sub_group g, bool pred) {
   return __all_sync(detail::AllMask, pred);
 }
 
-
 // none_of
-template<>
-HIPSYCL_KERNEL_TARGET
-inline bool group_none_of(sub_group g, bool pred) {
+template <>
+HIPSYCL_KERNEL_TARGET inline bool group_none_of(sub_group g, bool pred) {
   return !__any_sync(detail::AllMask, pred);
 }
 
-
 // reduce
-template<typename T, typename BinaryOperation>
-HIPSYCL_KERNEL_TARGET
-T group_reduce(sub_group g, T x, BinaryOperation binary_op) {
+template <typename T, typename BinaryOperation>
+HIPSYCL_KERNEL_TARGET T group_reduce(sub_group g, T x,
+                                     BinaryOperation binary_op) {
   auto lid = g.get_local_linear_id();
 
-  size_t lrange          = 1;
+  size_t lrange = 1;
   auto group_local_range = g.get_local_range();
   for (int i = 0; i < g.dimensions; ++i)
     lrange *= group_local_range[i];
@@ -171,12 +164,11 @@ T group_reduce(sub_group g, T x, BinaryOperation binary_op) {
   return detail::shuffle_impl(local_x, 0);
 }
 
-
 // exclusive_scan
-template<typename V, typename T, typename BinaryOperation>
-HIPSYCL_KERNEL_TARGET
-T group_exclusive_scan(sub_group g, V x, T init, BinaryOperation binary_op) {
-  auto lid      = g.get_local_linear_id();
+template <typename V, typename T, typename BinaryOperation>
+HIPSYCL_KERNEL_TARGET T group_exclusive_scan(sub_group g, V x, T init,
+                                             BinaryOperation binary_op) {
+  auto lid = g.get_local_linear_id();
   size_t lrange = g.get_local_linear_range();
 
   auto local_x = x;
@@ -203,12 +195,11 @@ T group_exclusive_scan(sub_group g, V x, T init, BinaryOperation binary_op) {
   return binary_op(return_value, init);
 }
 
-
 // inclusive_scan
-template<typename T, typename BinaryOperation>
-HIPSYCL_KERNEL_TARGET
-T group_inclusive_scan(sub_group g, T x, BinaryOperation binary_op) {
-  auto lid      = g.get_local_linear_id();
+template <typename T, typename BinaryOperation>
+HIPSYCL_KERNEL_TARGET T group_inclusive_scan(sub_group g, T x,
+                                             BinaryOperation binary_op) {
+  auto lid = g.get_local_linear_id();
   size_t lrange = g.get_local_linear_range();
 
   auto local_x = x;
@@ -226,11 +217,10 @@ T group_inclusive_scan(sub_group g, T x, BinaryOperation binary_op) {
   return local_x;
 }
 
-
 } // namespace sycl
 } // namespace hipsycl
 
-#endif //HIPSYCL_LIBKERNEL_CUDA_GROUP_FUNCTIONS_HPP
+#endif // HIPSYCL_LIBKERNEL_CUDA_GROUP_FUNCTIONS_HPP
 
-#endif //HIPSYCL_PLATFORM_CUDA
-#endif //SYCL_DEVICE_ONLY
+#endif // HIPSYCL_PLATFORM_CUDA
+#endif // SYCL_DEVICE_ONLY
