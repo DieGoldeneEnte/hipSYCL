@@ -42,66 +42,23 @@ namespace sycl {
 
 namespace detail {
 
-template<typename T,
-         typename std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+// implemented based on warp_shuffle_op in rocm_prim
+template<typename T>
 __device__
 T shuffle_impl(T x, int id) {
-  if constexpr (std::is_signed_v<T>) {
-    return __shfl(x, id);
-  } else {
-    return static_cast<T>(__shfl(static_cast<std::make_signed_t<T>>(x), id));
-  }
-}
+  constexpr int words_no = (sizeof(T) + sizeof(int) - 1) / sizeof(int);
 
-template<>
-__device__
-char shuffle_impl(char x, int id) {
-  return static_cast<char>(__shfl(static_cast<int>(x), id));
-}
+  int words[words_no];
+  __builtin_memcpy(words, &x, sizeof(T));
 
-template<>
-__device__
-unsigned char shuffle_impl(unsigned char x, int id) {
-  return static_cast<unsigned char>(__shfl(static_cast<int>(x), id));
-}
+#pragma unroll
+  for(int i = 0; i < words_no; i++)
+    words[i] = __shfl(words[i], id);
 
-template<>
-__device__
-bool shuffle_impl(bool x, int id) {
-  return static_cast<bool>(__shfl(static_cast<int>(x), id));
-}
+  T output;
+  __builtin_memcpy(&output, words, sizeof(T));
 
-template<typename T, int N>
-__device__
-sycl::vec<T, N> shuffle_impl(sycl::vec<T, N> x, int id) {
-  sycl::vec<T, N> ret{};
-
-  if constexpr (1 <= N)
-    ret.s0() = shuffle_impl(x.s0(), id);
-  if constexpr (2 <= N)
-    ret.s1() = shuffle_impl(x.s1(), id);
-  if constexpr (3 <= N)
-    ret.s2() = shuffle_impl(x.s2(), id);
-  if constexpr (4 <= N)
-    ret.s3() = shuffle_impl(x.s3(), id);
-  if constexpr (8 <= N) {
-    ret.s4() = shuffle_impl(x.s4(), id);
-    ret.s5() = shuffle_impl(x.s5(), id);
-    ret.s6() = shuffle_impl(x.s6(), id);
-    ret.s7() = shuffle_impl(x.s7(), id);
-  }
-  if constexpr (16 <= N) {
-    ret.s8() = shuffle_impl(x.s8(), id);
-    ret.s9() = shuffle_impl(x.s9(), id);
-    ret.sA() = shuffle_impl(x.sA(), id);
-    ret.sB() = shuffle_impl(x.sB(), id);
-    ret.sC() = shuffle_impl(x.sC(), id);
-    ret.sD() = shuffle_impl(x.sD(), id);
-    ret.sE() = shuffle_impl(x.sE(), id);
-    ret.sF() = shuffle_impl(x.sF(), id);
-  }
-
-  return ret;
+  return output;
 }
 
 } // namespace detail
