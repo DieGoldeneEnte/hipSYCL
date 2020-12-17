@@ -49,19 +49,28 @@ constexpr unsigned int AllMask = 0xFFFFFFFF;
 template <typename T, typename std::enable_if_t<
                           (sizeof(T) == sizeof(unsigned char)), int> = 0>
 __device__ T shuffle_impl(T x, int id) {
-  return __shfl_sync(AllMask, static_cast<unsigned char>(x), id);
+  T data = x;
+  unsigned char* data_ptr = reinterpret_cast<unsigned char*>(&data);
+  *data_ptr = __shfl_sync(AllMask, *data_ptr, id);
+  return data;
 }
 
 template <typename T, typename std::enable_if_t<
                           (sizeof(T) == sizeof(unsigned short)), int> = 0>
 __device__ T shuffle_impl(T x, int id) {
-  return __shfl_sync(AllMask, static_cast<unsigned short>(x), id);
+  T data = x;
+  unsigned short* data_ptr = reinterpret_cast<unsigned short*>(&data);
+  *data_ptr = __shfl_sync(AllMask, *data_ptr, id);
+  return data;
 }
 
 template <typename T, typename std::enable_if_t<
                           (sizeof(T) == sizeof(unsigned int)), int> = 0>
 __device__ T shuffle_impl(T x, int id) {
-  return __shfl_sync(AllMask, static_cast<unsigned int>(x), id);
+  T data = x;
+  unsigned int* data_ptr = reinterpret_cast<unsigned int*>(&data);
+  *data_ptr = __shfl_sync(AllMask, *data_ptr, id);
+  return data;
 }
 
 template <typename T,
