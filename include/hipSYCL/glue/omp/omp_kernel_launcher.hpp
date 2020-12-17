@@ -192,7 +192,8 @@ inline void parallel_for_ndrange_kernel(
     sycl::detail::host_local_memory::request_from_threadprivate_pool(
         num_local_mem_bytes);
 
-    void* group_shared_memory_ptr = nullptr;
+    // 128 kiB as local memory for group algorithms
+    char* group_shared_memory_ptr[128*1024];
 
     host::static_range_decomposition<Dim> group_decomposition{
           num_groups, omp_get_num_threads()};
