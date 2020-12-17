@@ -44,50 +44,44 @@ namespace detail {
 
 constexpr unsigned int AllMask = 0xFFFFFFFF;
 
+// shuffle_impl implemented based on ShuffleIndex in cub
 template<typename T,
-         typename std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+         typename std::enable_if_t<(sizeof(T) == sizeof(unsigned char)), int> = 0>
 __device__
 T shuffle_impl(T x, int id) {
-  return __shfl_sync(detail::AllMask, x, id);
+  return __shfl_sync(AllMask, static_cast<unsigned char>(x), id);
 }
 
-template<>
+template<typename T,
+         typename std::enable_if_t<(sizeof(T) == sizeof(unsigned short)), int> = 0>
 __device__
-char shuffle_impl(char x, int id) {
-  return static_cast<char>(shuffle_impl(static_cast<int>(x), id));
+T shuffle_impl(T x, int id) {
+  return __shfl_sync(AllMask, static_cast<unsigned short>(x), id);
 }
 
-template<typename T, int N>
+template<typename T,
+         typename std::enable_if_t<(sizeof(T) == sizeof(unsigned int)), int> = 0>
 __device__
-sycl::vec<T, N> shuffle_impl(sycl::vec<T, N> x, int id) {
-  sycl::vec<T, N> ret{};
+T shuffle_impl(T x, int id) {
+  return __shfl_sync(AllMask, static_cast<unsigned int>(x), id);
+}
 
-  if constexpr (1 <= N)
-    ret.s0() = shuffle_impl(x.s0(), id);
-  if constexpr (2 <= N)
-    ret.s1() = shuffle_impl(x.s1(), id);
-  if constexpr (3 <= N)
-    ret.s2() = shuffle_impl(x.s2(), id);
-  if constexpr (4 <= N)
-    ret.s3() = shuffle_impl(x.s3(), id);
-  if constexpr (8 <= N) {
-    ret.s4() = shuffle_impl(x.s4(), id);
-    ret.s5() = shuffle_impl(x.s5(), id);
-    ret.s6() = shuffle_impl(x.s6(), id);
-    ret.s7() = shuffle_impl(x.s7(), id);
-  }
-  if constexpr (16 <= N) {
-    ret.s8() = shuffle_impl(x.s8(), id);
-    ret.s9() = shuffle_impl(x.s9(), id);
-    ret.sA() = shuffle_impl(x.sA(), id);
-    ret.sB() = shuffle_impl(x.sB(), id);
-    ret.sC() = shuffle_impl(x.sC(), id);
-    ret.sD() = shuffle_impl(x.sD(), id);
-    ret.sE() = shuffle_impl(x.sE(), id);
-    ret.sF() = shuffle_impl(x.sF(), id);
-  }
+template<typename T>
+__device__
+T shuffle_impl(T x, int id) {
+  constexpr int words_no = (sizeof(T) + sizeof(unsigned int) - 1) / sizeof(unsigned int);
 
-  return ret;
+  unsigned int words[words_no];
+  memcpy(words, &x, sizeof(T));
+
+#pragma unroll
+  for(int i = 0; i < words_no; i++)
+    words[i] = __shfl(words[i], id);
+
+  T output;
+  memcpy(&output, words, sizeof(T));
+
+  return output;
 }
 
 } // namespace detail
