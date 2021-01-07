@@ -36,7 +36,6 @@
 #include "../backend.hpp"
 #include "../id.hpp"
 #include "../sub_group.hpp"
-#include "../vec.hpp"
 #include <type_traits>
 
 namespace hipsycl {
@@ -47,13 +46,6 @@ template <typename T>
 HIPSYCL_KERNEL_TARGET T group_broadcast(
     sub_group g, T x, typename sub_group::linear_id_type local_linear_id = 0) {
   return detail::shuffle_impl(x, static_cast<int>(local_linear_id));
-}
-
-template <typename T, int N>
-HIPSYCL_KERNEL_TARGET sycl::vec<T, N>
-group_broadcast(sub_group g, sycl::vec<T, N> x,
-                typename sub_group::linear_id_type local_linear_id = 0) {
-  return detail::shuffle_impl<T, N>(x, static_cast<int>(local_linear_id));
 }
 
 // barrier
@@ -148,7 +140,8 @@ HIPSYCL_KERNEL_TARGET T group_exclusive_scan(sub_group g, V x, T init,
 
   auto local_x = x;
   auto lid = g.get_local_linear_id();
-  auto row_id = lid % warpSize;
+  auto row_id = lid % 16;
+  auto lane_id = lid % warpSize;
 
   if (__ballot(1) == 0xFFFFFFFFFFFFFFFF) {
     // adaption of rocprim dpp_scan
@@ -175,13 +168,13 @@ HIPSYCL_KERNEL_TARGET T group_exclusive_scan(sub_group g, V x, T init,
 
     // row_bcast15
     tmp = binary_op(detail::warp_move_dpp<T, 0x142>(local_x), local_x);
-    if (row_id % 32 >= 16)
+    if (lane_id % 32 >= 16)
       local_x = tmp;
 
     if (warpSize > 32) {
       // row_bcast31
       tmp = binary_op(detail::warp_move_dpp<T, 0x143>(local_x), local_x);
-      if (row_id >= 32)
+      if (lane_id >= 32)
         local_x = tmp;
     }
   } else {
@@ -201,7 +194,7 @@ HIPSYCL_KERNEL_TARGET T group_exclusive_scan(sub_group g, V x, T init,
   local_x = detail::shuffle_up_impl(local_x, 1);
   if (lid == 0)
     return init;
-  return local_x;
+  return binary_op(init, local_x);
 }
 
 // inclusive_scan
@@ -210,7 +203,8 @@ HIPSYCL_KERNEL_TARGET T group_inclusive_scan(sub_group g, T x,
                                              BinaryOperation binary_op) {
   auto local_x = x;
   auto lid = g.get_local_linear_id();
-  auto row_id = lid % warpSize;
+  auto row_id = lid % 16;
+  auto lane_id = lid % warpSize;
 
   if (__ballot(1) == 0xFFFFFFFFFFFFFFFF) {
     // adaption of rocprim dpp_scan
@@ -237,13 +231,13 @@ HIPSYCL_KERNEL_TARGET T group_inclusive_scan(sub_group g, T x,
 
     // row_bcast15
     tmp = binary_op(detail::warp_move_dpp<T, 0x142>(local_x), local_x);
-    if (row_id % 32 >= 16)
+    if (lane_id % 32 > 15)
       local_x = tmp;
 
-    if (warpSize > 32) {
+    if constexpr (warpSize > 32) {
       // row_bcast31
       tmp = binary_op(detail::warp_move_dpp<T, 0x143>(local_x), local_x);
-      if (row_id >= 32)
+      if (lane_id > 31)
         local_x = tmp;
     }
 

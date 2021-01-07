@@ -37,67 +37,12 @@
 #include "../../detail/thread_hierarchy.hpp"
 #include "../../id.hpp"
 #include "../../sub_group.hpp"
-#include "../../vec.hpp"
 #include <type_traits>
 
 namespace hipsycl {
 namespace sycl {
 
 namespace detail {
-
-template <typename T, int N> void writeToMemory(T *scratch, vec<T, N> v) {
-  if constexpr (1 <= N)
-    scratch[0] = v.s0();
-  if constexpr (2 <= N)
-    scratch[1] = v.s1();
-  if constexpr (3 <= N)
-    scratch[2] = v.s2();
-  if constexpr (4 <= N)
-    scratch[3] = v.s3();
-  if constexpr (8 <= N) {
-    scratch[4] = v.s4();
-    scratch[5] = v.s5();
-    scratch[6] = v.s6();
-    scratch[7] = v.s7();
-  }
-  if constexpr (16 <= N) {
-    scratch[8] = v.s8();
-    scratch[9] = v.s9();
-    scratch[10] = v.sA();
-    scratch[11] = v.sB();
-    scratch[12] = v.sC();
-    scratch[13] = v.sD();
-    scratch[14] = v.sE();
-    scratch[15] = v.sF();
-  }
-}
-
-template <typename T, int N> void readFromMemory(T *scratch, vec<T, N> &v) {
-  if constexpr (1 <= N)
-    v.s0() = scratch[0];
-  if constexpr (2 <= N)
-    v.s1() = scratch[1];
-  if constexpr (3 <= N)
-    v.s2() = scratch[2];
-  if constexpr (4 <= N)
-    v.s3() = scratch[3];
-  if constexpr (8 <= N) {
-    v.s4() = scratch[4];
-    v.s5() = scratch[5];
-    v.s6() = scratch[6];
-    v.s7() = scratch[7];
-  }
-  if constexpr (16 <= N) {
-    v.s8() = scratch[8];
-    v.s9() = scratch[9];
-    v.sA() = scratch[10];
-    v.sB() = scratch[11];
-    v.sC() = scratch[12];
-    v.sD() = scratch[13];
-    v.sE() = scratch[14];
-    v.sF() = scratch[15];
-  }
-}
 
 // reduce implementation
 template <typename Group, typename T, typename BinaryOperation,
@@ -131,52 +76,6 @@ HIPSYCL_KERNEL_TARGET T group_reduce(Group g, T x, BinaryOperation binary_op,
   }
 
   return scratch[0];
-}
-
-template <typename Group, typename T, int N, typename BinaryOperation,
-          typename std::enable_if_t<!std::is_same_v<Group, sub_group>, int> = 0>
-HIPSYCL_KERNEL_TARGET vec<T, N>
-group_reduce(Group g, vec<T, N> x, BinaryOperation binary_op, T *scratch) {
-  auto lid = g.get_local_linear_id();
-  size_t lrange = g.get_local_range().size() / warpSize;
-  sub_group sg{};
-
-  x = group_reduce(sg, x, binary_op);
-  if (sg.leader())
-    detail::writeToMemory(scratch + (lid / warpSize) * N, x);
-  group_barrier(g);
-
-  if (lrange != warpSize) {
-    for (size_t i = lrange / 2; i > 0; i /= 2) {
-
-      if (lid < i) {
-        vec<T, N> v1, v2;
-
-        detail::readFromMemory(scratch + lid * N, v1);
-        detail::readFromMemory(scratch + (lid + i) * N, v2);
-
-        detail::writeToMemory(scratch + lid * N, binary_op(v1, v2));
-      }
-
-      group_barrier(g);
-    }
-  } else {
-    if (lid < warpSize) {
-      vec<T, N> v;
-
-      detail::readFromMemory(scratch + lid * N, v);
-      x = group_reduce(sg, v, binary_op);
-    }
-
-    if (lid == 0)
-      detail::writeToMemory(scratch, x);
-
-    group_barrier(g);
-  }
-
-  vec<T, N> v;
-  detail::readFromMemory(scratch, v);
-  return v;
 }
 
 // any_of
@@ -376,7 +275,8 @@ HIPSYCL_KERNEL_TARGET T *inclusive_scan(Group g, V *first, V *last, T *result,
 template <typename Group, typename T>
 HIPSYCL_KERNEL_TARGET T group_broadcast(
     Group g, T x, typename Group::linear_id_type local_linear_id = 0) {
-  __shared__ T scratch[1];
+  __shared__ char scratch_char[sizeof(T)];
+  T* scratch = reinterpret_cast<T*>(scratch_char);
   auto lid = g.get_local_linear_id();
 
   if (lid == local_linear_id)
@@ -384,22 +284,6 @@ HIPSYCL_KERNEL_TARGET T group_broadcast(
   group_barrier(g);
 
   return scratch[0];
-}
-
-template <typename Group, typename T, int N>
-HIPSYCL_KERNEL_TARGET vec<T, N>
-group_broadcast(Group g, vec<T, N> x,
-                typename Group::linear_id_type local_linear_id = 0) {
-  __shared__ T scratch[N];
-  auto lid = g.get_local_linear_id();
-
-  if (lid == local_linear_id)
-    detail::writeToMemory(scratch, x);
-  group_barrier(g);
-
-  detail::readFromMemory(scratch, x);
-
-  return x;
 }
 
 template <typename Group, typename T>
@@ -433,16 +317,8 @@ HIPSYCL_KERNEL_TARGET inline bool group_none_of(Group g, bool pred) {
 template <typename Group, typename T, typename BinaryOperation,
           typename std::enable_if_t<!std::is_same_v<Group, sub_group>, int> = 0>
 HIPSYCL_KERNEL_TARGET T group_reduce(Group g, T x, BinaryOperation binary_op) {
-  __shared__ T scratch[1024 / warpSize];
-  return detail::group_reduce(g, x, binary_op, scratch);
-}
-
-template <typename Group, typename T, int N, typename BinaryOperation,
-          typename std::enable_if_t<!std::is_same_v<Group, sub_group>, int> = 0>
-HIPSYCL_KERNEL_TARGET vec<T, N> group_reduce(Group g, vec<T, N> x,
-                                             BinaryOperation binary_op) {
-  __shared__ T scratch[1024 / warpSize * N];
-
+  __shared__ char scratch_char[1024 / warpSize * sizeof(T)];
+  T* scratch = reinterpret_cast<T*>(scratch_char);
   return detail::group_reduce(g, x, binary_op, scratch);
 }
 
@@ -451,13 +327,36 @@ template <typename Group, typename V, typename T, typename BinaryOperation,
           typename std::enable_if_t<!std::is_same_v<Group, sub_group>, int> = 0>
 HIPSYCL_KERNEL_TARGET T group_exclusive_scan(Group g, V x, T init,
                                              BinaryOperation binary_op) {
+  __shared__ char scratch_char[1024 / warpSize * sizeof(T)];
+  T* scratch = reinterpret_cast<T*>(scratch_char);
   auto lid = g.get_local_linear_id();
-  auto local_x = group_inclusive_scan(g, x, binary_op);
+  auto wid = lid / warpSize;
+  size_t lrange = 1;
+  auto group_local_range = g.get_local_range();
+  for (int i = 0; i < g.dimensions; ++i)
+    lrange *= group_local_range[i];
+
+  sub_group sg{};
+
+  auto local_x = group_inclusive_scan(sg, x, binary_op);
+  auto last_wid = (wid + 1) * warpSize - 1;
+  if (lid == (lrange < last_wid ? lrange - 1 : last_wid))
+    scratch[wid] = local_x;
+  group_barrier(g);
+
+  if (lid < (lrange + warpSize - 1) / warpSize)
+    scratch[lid] = group_inclusive_scan(sg, scratch[lid], binary_op);
+  group_barrier(g);
+
+  auto prefix = init;
+  if (wid != 0)
+    prefix = binary_op(init, scratch[wid - 1]);
+  local_x = binary_op(prefix, local_x);
 
   local_x = detail::shuffle_up_impl(local_x, 1);
-  if (lid == 0)
-    return init;
-  return binary_op(init, local_x);
+  if (lid % warpSize == 0)
+    return prefix;
+  return local_x;
 }
 
 // inclusive_scan
@@ -465,7 +364,8 @@ template <typename Group, typename T, typename BinaryOperation,
           typename std::enable_if_t<!std::is_same_v<Group, sub_group>, int> = 0>
 HIPSYCL_KERNEL_TARGET T group_inclusive_scan(Group g, T x,
                                              BinaryOperation binary_op) {
-  __shared__ T scratch[1024 / warpSize];
+  __shared__ char scratch_char[1024 / warpSize * sizeof(T)];
+  T* scratch = reinterpret_cast<T*>(scratch_char);
   auto lid = g.get_local_linear_id();
   auto wid = lid / warpSize;
   size_t lrange = 1;
@@ -488,42 +388,6 @@ HIPSYCL_KERNEL_TARGET T group_inclusive_scan(Group g, T x,
   if (wid == 0)
     return local_x;
   return binary_op(scratch[wid - 1], local_x);
-}
-
-template <typename Group, typename T, int N, typename BinaryOperation,
-          typename std::enable_if_t<!std::is_same_v<Group, sub_group>, int> = 0>
-HIPSYCL_KERNEL_TARGET vec<T, N>
-group_inclusive_scan(Group g, vec<T, N> x, BinaryOperation binary_op) {
-  __shared__ T scratch[1024 * N / warpSize];
-  auto lid = g.get_local_linear_id();
-  auto wid = lid / warpSize;
-  size_t lrange = 1;
-  auto group_local_range = g.get_local_range();
-  for (int i = 0; i < g.dimensions; ++i)
-    lrange *= group_local_range[i];
-
-  sub_group sg{};
-
-  auto local_x = group_inclusive_scan(sg, x, binary_op);
-  auto last_wid = (wid + 1) * warpSize - 1;
-  if (lid == (lrange < last_wid ? lrange - 1 : last_wid))
-    detail::writeToMemory(scratch + wid * N, local_x);
-  group_barrier(g);
-
-  if (lid < (lrange + warpSize - 1) / warpSize) {
-    vec<T, N> v;
-    detail::readFromMemory(scratch + lid * N, v);
-    v = group_inclusive_scan(sg, v, binary_op);
-    detail::writeToMemory(scratch + lid * N, v);
-  }
-  group_barrier(g);
-
-  if (wid == 0)
-    return local_x;
-
-  vec<T, N> v;
-  detail::readFromMemory(scratch + (wid - 1) * N, v);
-  return binary_op(v, local_x);
 }
 
 } // namespace sycl
