@@ -548,30 +548,27 @@ HIPSYCL_KERNEL_TARGET
 T group_inclusive_scan(Group g, T x, BinaryOperation binary_op) {
   __shared__ T scratch[1024];
   auto lid               = g.get_local_linear_id();
+  auto wid               = lid / warpSize;
   size_t lrange          = 1;
   auto group_local_range = g.get_local_range();
   for (int i = 0; i < g.dimensions; ++i)
     lrange *= group_local_range[i];
 
-  scratch[lid] = x;
+  sub_group sg{};
+
+  auto local_x = group_inclusive_scan(sg, x, binary_op);
+  auto last_wid = (wid+1)*warpSize - 1;
+  if (lid == (lrange < last_wid ? lrange - 1 : last_wid))
+    scratch[wid] = local_x;
   group_barrier(g);
 
-  for (size_t i = 1; i < lrange; i *= 2) {
-    size_t next_id = lid - i;
-    T local_x;
-    T other_x;
-    if (i <= lid && lid < lrange) {
-      local_x = scratch[lid];
-      other_x = scratch[next_id];
-    }
+  if (lid < (lrange+warpSize-1)/warpSize)
+    scratch[lid] = group_inclusive_scan(sg, scratch[lid], binary_op);
+  group_barrier(g);
 
-    group_barrier(g);
-    if (i <= lid && lid < lrange)
-      scratch[lid] = binary_op(local_x, other_x);
-    group_barrier(g);
-  }
-
-  return scratch[lid];
+  if (wid == 0)
+    return local_x;
+  return binary_op(scratch[wid - 1], local_x);
 }
 
 template<typename Group, typename T, int N, typename BinaryOperation,
@@ -580,31 +577,34 @@ HIPSYCL_KERNEL_TARGET
 vec<T, N> group_inclusive_scan(Group g, vec<T, N> x, BinaryOperation binary_op) {
   __shared__ T scratch[1024 * N];
   auto lid               = g.get_local_linear_id();
+  auto wid               = lid / warpSize;
   size_t lrange          = 1;
   auto group_local_range = g.get_local_range();
   for (int i = 0; i < g.dimensions; ++i)
     lrange *= group_local_range[i];
 
-  detail::writeToMemory(scratch + lid * N, x);
+  sub_group sg{};
+
+  auto local_x = group_inclusive_scan(sg, x, binary_op);
+  auto last_wid = (wid+1)*warpSize - 1;
+  if (lid == (lrange < last_wid ? lrange - 1 : last_wid))
+    detail::writeToMemory(scratch + wid * N, local_x);
   group_barrier(g);
 
-  for (size_t i = 1; i < lrange; i *= 2) {
-    size_t next_id = lid - i;
-    vec<T, N> v1, v2;
-    if (i <= lid && lid < lrange) {
-      detail::readFromMemory(scratch + lid * N, v1);
-      detail::readFromMemory(scratch + next_id * N, v2);
-    }
-    group_barrier(g);
-    if (i <= lid && lid < lrange) {
-      detail::writeToMemory(scratch + lid * N, binary_op(v1, v2));
-    }
-    group_barrier(g);
+  if (lid < (lrange+warpSize-1)/warpSize){
+    vec<T, N> v;
+    detail::readFromMemory(scratch + lid * N, v);
+    v = group_inclusive_scan(sg, v, binary_op);
+    detail::writeToMemory(scratch + lid * N, v);
   }
+  group_barrier(g);
+
+  if (wid == 0)
+    return local_x;
 
   vec<T, N> v;
-  detail::readFromMemory(scratch + lid * N, v);
-  return v;
+  detail::readFromMemory(scratch + (wid - 1) * N, v);
+  return binary_op(v, local_x);
 }
 
 
