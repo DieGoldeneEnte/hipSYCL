@@ -32,6 +32,7 @@
 #ifndef HIPSYCL_LIBKERNEL_HIP_GROUP_FUNCTIONS_HPP
 #define HIPSYCL_LIBKERNEL_HIP_GROUP_FUNCTIONS_HPP
 
+#include "../detail/warp_shuffle.hpp"
 #include "../backend.hpp"
 #include "../id.hpp"
 #include "../sub_group.hpp"
@@ -40,43 +41,6 @@
 
 namespace hipsycl {
 namespace sycl {
-
-namespace detail {
-
-template <typename T, typename operation>
-__device__ T apply_on_data(T x, operation op) {
-  constexpr int words_no = (sizeof(T) + sizeof(int) - 1) / sizeof(int);
-
-  int words[words_no];
-  __builtin_memcpy(words, &x, sizeof(T));
-
-#pragma unroll
-  for (int i = 0; i < words_no; i++)
-    words[i] = op(words[i]);
-
-  T output;
-  __builtin_memcpy(&output, words, sizeof(T));
-
-  return output;
-}
-
-// implemented based on warp_shuffle_op in rocPRIM
-template <typename T> __device__ T shuffle_impl(T x, int id) {
-  return apply_on_data(x, [id](int data) { return __shfl(data, id); });
-}
-
-// dpp sharing instruction abstraction based on rocPRIM
-// the dpp_ctrl can be found in the GCN3 ISA manual
-template <typename T, int dpp_ctrl, int row_mask = 0xf, int bank_mask = 0xf,
-          bool bound_ctrl = false>
-__device__ T warp_move_dpp(T x) {
-  return apply_on_data(x, [=](int data) {
-    return __builtin_amdgcn_update_dpp(0, data, dpp_ctrl, row_mask, bank_mask,
-                                       bound_ctrl);
-  });
-}
-
-} // namespace detail
 
 // broadcast
 template <typename T>
@@ -177,34 +141,67 @@ HIPSYCL_KERNEL_TARGET T group_reduce(sub_group g, T x,
 }
 
 // exclusive_scan
+// Use inlusive-scan and shift it up by one using init as first element
 template <typename V, typename T, typename BinaryOperation>
 HIPSYCL_KERNEL_TARGET T group_exclusive_scan(sub_group g, V x, T init,
                                              BinaryOperation binary_op) {
-  auto lid = g.get_local_linear_id();
-  size_t lrange = g.get_local_linear_range();
 
   auto local_x = x;
+  auto lid = g.get_local_linear_id();
+  auto row_id = lid % warpSize;
 
-  for (size_t i = 1; i < lrange; i *= 2) {
-    size_t next_id = lid - i;
-    if (i > lid)
-      next_id = 0;
+  if (__ballot(1) == 0xFFFFFFFFFFFFFFFF) {
+    // adaption of rocprim dpp_scan
+    T tmp;
+    // row_sr:1
+    tmp = binary_op(detail::warp_move_dpp<T, 0x111>(local_x), local_x);
+    if (row_id > 0)
+      local_x = tmp;
 
-    auto other_x = detail::shuffle_impl(local_x, next_id);
-    if (i <= lid && lid < lrange)
-      local_x = binary_op(local_x, other_x);
+    // row_sr:2
+    tmp = binary_op(detail::warp_move_dpp<T, 0x112>(local_x), local_x);
+    if (row_id > 1)
+      local_x = tmp;
+
+    // row_sr:4
+    tmp = binary_op(detail::warp_move_dpp<T, 0x114>(local_x), local_x);
+    if (row_id > 3)
+      local_x = tmp;
+
+    // row_sr:8
+    tmp = binary_op(detail::warp_move_dpp<T, 0x118>(local_x), local_x);
+    if (row_id > 7)
+      local_x = tmp;
+
+    // row_bcast15
+    tmp = binary_op(detail::warp_move_dpp<T, 0x142>(local_x), local_x);
+    if (row_id % 32 >= 16)
+      local_x = tmp;
+
+    if (warpSize > 32) {
+      // row_bcast31
+      tmp = binary_op(detail::warp_move_dpp<T, 0x143>(local_x), local_x);
+      if (row_id >= 32)
+        local_x = tmp;
+    }
+  } else {
+    size_t lrange = g.get_local_linear_range();
+
+    for (size_t i = 1; i < lrange; i *= 2) {
+      size_t next_id = lid - i;
+      if (i > lid)
+        next_id = 0;
+
+      auto other_x = detail::shuffle_impl(local_x, next_id);
+      if (i <= lid && lid < lrange)
+        local_x = binary_op(local_x, other_x);
+    }
   }
 
-  size_t next_id = lid - 1;
-  if (g.leader())
-    next_id = 0;
-
-  auto return_value = detail::shuffle_impl(local_x, lid - 1);
-
-  if (g.leader())
+  local_x = detail::shuffle_up_impl(local_x, 1);
+  if (lid == 0)
     return init;
-
-  return binary_op(return_value, init);
+  return local_x;
 }
 
 // inclusive_scan
@@ -253,8 +250,6 @@ HIPSYCL_KERNEL_TARGET T group_inclusive_scan(sub_group g, T x,
     return local_x;
   } else {
     size_t lrange = g.get_local_linear_range();
-
-    auto local_x = x;
 
     for (size_t i = 1; i < lrange; i *= 2) {
       size_t next_id = lid - i;
