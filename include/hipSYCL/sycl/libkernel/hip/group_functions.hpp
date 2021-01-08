@@ -92,8 +92,10 @@ template <typename T, typename BinaryOperation>
 HIPSYCL_KERNEL_TARGET T group_reduce(sub_group g, T x,
                                      BinaryOperation binary_op) {
   auto local_x = x;
+  uint64_t activemask;
+  asm ( "s_mov_b64 %0, exec" : "=r" (activemask));
 
-  if (__ballot(1) == 0xFFFFFFFFFFFFFFFF) {
+  if ( ~activemask == 0) {
     // adaption of rocprim dpp_reduce
     // quad_perm: add 0+1, 2+3
     local_x = binary_op(detail::warp_move_dpp<T, 0xb1>(local_x), local_x);
@@ -106,7 +108,7 @@ HIPSYCL_KERNEL_TARGET T group_reduce(sub_group g, T x,
     // row_bcast15: add 0+15
     local_x = binary_op(detail::warp_move_dpp<T, 0x142>(local_x), local_x);
 
-    if (warpSize > 32) {
+    if constexpr (warpSize > 32) {
       // row_bcast31: add 0+31
       local_x = binary_op(detail::warp_move_dpp<T, 0x143>(local_x), local_x);
     }
@@ -140,10 +142,14 @@ HIPSYCL_KERNEL_TARGET T group_exclusive_scan(sub_group g, V x, T init,
 
   auto local_x = x;
   auto lid = g.get_local_linear_id();
-  auto row_id = lid % 16;
-  auto lane_id = lid % warpSize;
 
-  if (__ballot(1) == 0xFFFFFFFFFFFFFFFF) {
+  uint64_t activemask;
+  asm ( "s_mov_b64 %0, exec" : "=r" (activemask));
+
+  if ( ~activemask == 0) {
+    auto row_id = lid % 16;
+    auto lane_id = lid % warpSize;
+
     // adaption of rocprim dpp_scan
     T tmp;
     // row_sr:1
@@ -203,10 +209,13 @@ HIPSYCL_KERNEL_TARGET T group_inclusive_scan(sub_group g, T x,
                                              BinaryOperation binary_op) {
   auto local_x = x;
   auto lid = g.get_local_linear_id();
-  auto row_id = lid % 16;
-  auto lane_id = lid % warpSize;
 
-  if (__ballot(1) == 0xFFFFFFFFFFFFFFFF) {
+  uint64_t activemask;
+  asm ( "s_mov_b64 %0, exec" : "=r" (activemask));
+
+  if ( ~activemask == 0) {
+    auto row_id = lid % 16;
+    auto lane_id = lid % warpSize;
     // adaption of rocprim dpp_scan
     T tmp;
     // row_sr:1
