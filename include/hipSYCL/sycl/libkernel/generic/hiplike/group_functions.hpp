@@ -33,8 +33,8 @@
 
 #include "../../backend.hpp"
 #include "../../detail/data_layout.hpp"
-#include "../../detail/warp_shuffle.hpp"
 #include "../../detail/thread_hierarchy.hpp"
+#include "../../detail/warp_shuffle.hpp"
 #include "../../id.hpp"
 #include "../../sub_group.hpp"
 #include <type_traits>
@@ -51,7 +51,7 @@ HIPSYCL_KERNEL_TARGET T group_reduce(Group g, T x, BinaryOperation binary_op,
                                      T *scratch) {
 
   auto lid = g.get_local_linear_id();
-  size_t lrange = g.get_local_range().size() / warpSize;
+  size_t lrange = (g.get_local_range().size() + warpSize -1) / warpSize;
   sub_group sg{};
 
   x = group_reduce(sg, x, binary_op);
@@ -190,35 +190,60 @@ HIPSYCL_KERNEL_TARGET bool none_of(Group g, T *first, T *last, Predicate pred) {
 }
 
 // reduce
-template <typename Group, typename V, typename T, typename BinaryOperation>
-HIPSYCL_KERNEL_TARGET T reduce(Group g, V *first, V *last, T init,
-                               BinaryOperation binary_op) {
-  size_t group_range = g.get_local_range().size();
-  auto elements_per_group = (last - first + group_range - 1) / group_range;
-  T *start_ptr = first + elements_per_group * g.get_local_linear_id();
-  T *end_prt = start_ptr + elements_per_group;
-
-  if (end_prt > last)
-    end_prt = last;
-
-  if (end_prt == start_ptr + 1) { // only one element
-    return group_reduce(g, *start_ptr, init, binary_op);
-  } else if (end_prt > start_ptr + 1) { // more than 1 element
-    auto local = binary_op(*start_ptr, *(start_ptr + 1));
-
-    for (T *p = start_ptr + 2; p < end_prt; ++p)
-      local = binary_op(local, *p);
-
-    return group_reduce(g, local, init, binary_op);
-  } else { // no element
-    return group_reduce(g, init, binary_op);
-  }
-}
-
 template <typename Group, typename T, typename BinaryOperation>
 HIPSYCL_KERNEL_TARGET T reduce(Group g, T *first, T *last,
                                BinaryOperation binary_op) {
-  return reduce(g, first, last, T{}, binary_op);
+  __shared__ char scratch_char[1024 / warpSize * sizeof(T)];
+  T *scratch = reinterpret_cast<T *>(scratch_char);
+
+  const size_t group_range = g.get_local_range().size();
+  const size_t num_elements = last - first;
+  const size_t elements_per_thread = (num_elements + group_range - 1) / group_range;
+  const size_t lid = g.get_local_linear_id();
+
+  T *start_ptr = first + lid;
+
+  if (num_elements >= group_range) {
+    auto local = *start_ptr;
+
+    for (T *p = start_ptr + group_range; p < last; p+=group_range)
+      local = binary_op(local, *p);
+
+    return detail::group_reduce(g, local, binary_op, scratch);
+  } else {
+    const size_t warp_id = lid / warpSize;
+    const size_t num_warps = group_range / warpSize;
+    const size_t elements_per_warp = (num_elements + num_warps - 1) / num_warps;
+
+    if (warp_id < num_warps) {
+      const size_t active_threads = num_warps * warpSize;
+
+      auto local = *start_ptr;
+
+      for (T *p = start_ptr + active_threads; p < last; p+=active_threads)
+        local = binary_op(local, *p);
+
+      sub_group sg{};
+
+      local = group_reduce(sg, local, binary_op);
+      if (sg.leader())
+        scratch[warp_id] = local;
+      group_barrier(g);
+
+      for (size_t i = num_warps / 2; i > 0; i /= 2) {
+        if (lid < i)
+          scratch[lid] = binary_op(scratch[lid], scratch[lid + i]);
+        group_barrier(g);
+      }
+    }
+    return scratch[0];
+  }
+}
+
+template <typename Group, typename V, typename T, typename BinaryOperation>
+HIPSYCL_KERNEL_TARGET T reduce(Group g, V *first, V *last, T init,
+                               BinaryOperation binary_op) {
+  return binary_op(reduce(g, first, last, binary_op), init);
 }
 
 template<typename Group, typename V, typename T, typename BinaryOperation>
@@ -289,7 +314,7 @@ template <typename Group, typename T>
 HIPSYCL_KERNEL_TARGET T group_broadcast(
     Group g, T x, typename Group::linear_id_type local_linear_id = 0) {
   __shared__ char scratch_char[sizeof(T)];
-  T* scratch = reinterpret_cast<T*>(scratch_char);
+  T *scratch = reinterpret_cast<T *>(scratch_char);
   auto lid = g.get_local_linear_id();
 
   if (lid == local_linear_id)
@@ -331,7 +356,7 @@ template <typename Group, typename T, typename BinaryOperation,
           typename std::enable_if_t<!std::is_same_v<Group, sub_group>, int> = 0>
 HIPSYCL_KERNEL_TARGET T group_reduce(Group g, T x, BinaryOperation binary_op) {
   __shared__ char scratch_char[1024 / warpSize * sizeof(T)];
-  T* scratch = reinterpret_cast<T*>(scratch_char);
+  T *scratch = reinterpret_cast<T *>(scratch_char);
   return detail::group_reduce(g, x, binary_op, scratch);
 }
 
@@ -341,7 +366,7 @@ template <typename Group, typename V, typename T, typename BinaryOperation,
 HIPSYCL_KERNEL_TARGET T group_exclusive_scan(Group g, V x, T init,
                                              BinaryOperation binary_op) {
   __shared__ char scratch_char[1024 / warpSize * sizeof(T)];
-  T* scratch = reinterpret_cast<T*>(scratch_char);
+  T *scratch = reinterpret_cast<T *>(scratch_char);
   auto lid = g.get_local_linear_id();
   auto wid = lid / warpSize;
   size_t lrange = 1;
@@ -378,7 +403,7 @@ template <typename Group, typename T, typename BinaryOperation,
 HIPSYCL_KERNEL_TARGET T group_inclusive_scan(Group g, T x,
                                              BinaryOperation binary_op) {
   __shared__ char scratch_char[1024 / warpSize * sizeof(T)];
-  T* scratch = reinterpret_cast<T*>(scratch_char);
+  T *scratch = reinterpret_cast<T *>(scratch_char);
   auto lid = g.get_local_linear_id();
   auto wid = lid / warpSize;
   size_t lrange = 1;
