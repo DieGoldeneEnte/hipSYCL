@@ -114,20 +114,19 @@ HIPSYCL_KERNEL_TARGET T group_reduce(sub_group g, T x,
     }
 
     // get the result from last thead
-    return detail::shuffle_impl(local_x, 63);
+    return detail::shuffle_impl(local_x, warpSize-1);
   } else {
     auto lid = g.get_local_linear_id();
 
-    size_t lrange = 1;
-    auto group_local_range = g.get_local_range();
-    for (int i = 0; i < g.dimensions; ++i)
-      lrange *= group_local_range[i];
+    size_t lrange = g.get_local_range().size();
 
     group_barrier(g);
 
     for (size_t i = lrange / 2; i > 0; i /= 2) {
       auto other_x = detail::shuffle_impl(local_x, lid + i);
-      if (lid < i)
+
+      // check if target thread exists/is active
+      if (activemask & (1l <<(lid+i)))
         local_x = binary_op(local_x, other_x);
     }
     return detail::shuffle_impl(local_x, 0);
@@ -192,7 +191,7 @@ HIPSYCL_KERNEL_TARGET T group_exclusive_scan(sub_group g, V x, T init,
         next_id = 0;
 
       auto other_x = detail::shuffle_impl(local_x, next_id);
-      if (i <= lid && lid < lrange)
+      if (activemask & (1l <<(next_id)) && i <= lid && lid < lrange)
         local_x = binary_op(local_x, other_x);
     }
   }
@@ -260,7 +259,7 @@ HIPSYCL_KERNEL_TARGET T group_inclusive_scan(sub_group g, T x,
         next_id = 0;
 
       auto other_x = detail::shuffle_impl(local_x, next_id);
-      if (i <= lid && lid < lrange)
+      if (activemask & (1l <<(next_id)) && i <= lid && lid < lrange)
         local_x = binary_op(local_x, other_x);
     }
 
