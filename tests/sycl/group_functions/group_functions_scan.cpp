@@ -282,11 +282,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sub_group_exclusive_scan, T, test_types) {
 
       for (size_t i = 0; i < global_size / local_size; ++i) {
         expected[i * local_size] = T{};
-        for (size_t j = 1; j < min(local_size, warpSize); ++j)
+        auto actual_warp_size = local_size < warpSize ? local_size : warpSize;
+        for (size_t j = 1; j < actual_warp_size; ++j)
           expected[i * local_size + j] =
               expected[i * local_size + j - 1] + vOrig[i * local_size + j - 1];
 
-        for (size_t j = i * local_size; j < (i + 1) * min(local_size, warpSize); ++j) {
+        for (size_t j = i * local_size; j < (i + 1) * actual_warp_size; ++j) {
           T computed = vIn[j];
           BOOST_TEST(detail::compare_type(expected[j], computed),
                      detail::type_to_string(computed)
@@ -318,11 +319,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sub_group_exclusive_scan, T, test_types) {
 
       for (size_t i = 0; i < global_size / local_size; ++i) {
         expected[i * local_size] = detail::initialize_type<T>(10);
-        for (size_t j = 1; j < min(local_size, warpSize); ++j)
+        auto actual_warp_size = local_size < warpSize ? local_size : warpSize;
+        for (size_t j = 1; j < actual_warp_size; ++j)
           expected[i * local_size + j] =
               expected[i * local_size + j - 1] + vOrig[i * local_size + j - 1];
 
-        for (size_t j = i * local_size; j < (i + 1) * min(local_size, warpSize); ++j) {
+        for (size_t j = i * local_size; j < (i + 1) * actual_warp_size; ++j) {
           T computed = vIn[j];
           BOOST_TEST(detail::compare_type(expected[j], computed),
                      detail::type_to_string(computed)
@@ -590,11 +592,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sub_group_inclusive_scan, T, test_types) {
 
       for (size_t i = 0; i < global_size / local_size; ++i) {
         expected[i * local_size] = vOrig[i * local_size];
-        for (size_t j = 1; j < min(local_size, warpSize); ++j)
+        auto actual_warp_size = local_size < warpSize ? local_size : warpSize;
+        for (size_t j = 1; j < actual_warp_size; ++j)
           expected[i * local_size + j] =
               expected[i * local_size + j - 1] + vOrig[i * local_size + j];
 
-        for (size_t j = i * local_size; j < (i + 1) * min(local_size, warpSize); ++j) {
+        for (size_t j = i * local_size; j < (i + 1) * actual_warp_size; ++j) {
           T computed = vIn[j];
           BOOST_TEST(detail::compare_type(expected[j], computed),
                      detail::type_to_string(computed)
@@ -625,11 +628,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sub_group_inclusive_scan, T, test_types) {
 
       for (size_t i = 0; i < global_size / local_size; ++i) {
         expected[i * local_size] = vOrig[i * local_size] + detail::initialize_type<T>(10);
-        for (size_t j = 1; j < min(local_size, warpSize); ++j)
+        auto actual_warp_size = local_size < warpSize ? local_size : warpSize;
+        for (size_t j = 1; j < actual_warp_size; ++j)
           expected[i * local_size + j] =
               expected[i * local_size + j - 1] + vOrig[i * local_size + j];
 
-        for (size_t j = i * local_size; j < (i + 1) * min(local_size, warpSize); ++j) {
+        for (size_t j = i * local_size; j < (i + 1) * actual_warp_size; ++j) {
           T computed = vIn[j];
           BOOST_TEST(detail::compare_type(expected[j], computed),
                      detail::type_to_string(computed)

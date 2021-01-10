@@ -243,7 +243,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sub_group_broadcast, T, test_types) {
   {
     const auto tested_function = [](auto acc, size_t global_linear_id,
                                     sycl::sub_group sg, auto g, T local_value) {
-      acc[global_linear_id] = sycl::group_broadcast(sg, local_value, 10);
+        acc[global_linear_id] = sycl::group_broadcast(sg, local_value, 10);
     };
     const auto validation_function = [](const std::vector<T> &vIn,
                                         const std::vector<T> &vOrig,
@@ -274,8 +274,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sub_group_broadcast, T, test_types) {
   {
     const auto tested_function = [](auto acc, size_t global_linear_id,
                                     sycl::sub_group sg, auto g, T local_value) {
-      acc[global_linear_id] =
-          sycl::group_broadcast(sg, local_value, sycl::id<1>(10));
+        acc[global_linear_id] =
+            sycl::group_broadcast(sg, local_value, sycl::id<1>(10));
     };
     const auto validation_function = [](const std::vector<T> &vIn,
                                         const std::vector<T> &vOrig,

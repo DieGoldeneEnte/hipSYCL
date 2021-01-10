@@ -259,7 +259,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sub_group_reduce, T, test_types) {
                                         size_t local_size, size_t global_size) {
       for (size_t i = 0; i < global_size / local_size; ++i) {
         T expected = T{};
-        for (size_t j = 0; j < min(local_size, warpSize); ++j)
+        auto actual_warp_size = local_size < warpSize ? local_size : warpSize;
+        for (size_t j = 0; j < actual_warp_size; ++j)
           expected = expected + vOrig[i * local_size + j];
 
         T computed = vIn[i * local_size];
@@ -288,7 +289,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(sub_group_reduce, T, test_types) {
                                         size_t local_size, size_t global_size) {
       for (size_t i = 0; i < global_size / local_size; ++i) {
         T expected = detail::initialize_type<T>(10);
-        for (size_t j = 0; j < min(local_size, warpSize); ++j)
+        auto actual_warp_size = local_size < warpSize ? local_size : warpSize;
+        for (size_t j = 0; j < actual_warp_size; ++j)
           expected = expected + vOrig[i * local_size + j];
 
         T computed = vIn[i * local_size];
