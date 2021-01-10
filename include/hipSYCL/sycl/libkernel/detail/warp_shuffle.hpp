@@ -89,7 +89,7 @@ template <
 __device__ T apply_on_data(T x, Operation op) {
   T data = x;
   unsigned char *data_ptr = reinterpret_cast<unsigned char *>(&data);
-  *data_ptr = op(AllMask, *data_pt);
+  *data_ptr = op(*data_ptr);
   return data;
 }
 
@@ -99,27 +99,27 @@ template <
 __device__ T apply_on_data(T x, Operation op) {
   T data = x;
   unsigned short *data_ptr = reinterpret_cast<unsigned short *>(&data);
-  *data_ptr = op(AllMask, *data_pt);
+  *data_ptr = op(*data_ptr);
   return data;
 }
 
 template <
     typename T, typename Operation,
     typename std::enable_if_t<(sizeof(T) == sizeof(unsigned int)), int> = 0>
-__device__ T shuffle_impl(T x, Operation op) {
+__device__ T apply_on_data(T x, Operation op) {
   T data = x;
   unsigned int *data_ptr = reinterpret_cast<unsigned int *>(&data);
-  *data_ptr = op(AllMask, *data_ptr);
+  *data_ptr = op(*data_ptr);
   return data;
 }
 
 template <typename T,
-          typename Operation.
+          typename Operation,
           typename std::enable_if_t<(sizeof(T) != sizeof(unsigned char) &&
                                      sizeof(T) != sizeof(unsigned short) &&
                                      sizeof(T) != sizeof(unsigned int)),
                                     int> = 0>
-__device__ T shuffle_impl(T x, Operation op) {
+__device__ T apply_on_data(T x, Operation op) {
   constexpr int words_no =
       (sizeof(T) + sizeof(unsigned int) - 1) / sizeof(unsigned int);
 
@@ -128,7 +128,7 @@ __device__ T shuffle_impl(T x, Operation op) {
 
 #pragma unroll
   for (int i = 0; i < words_no; i++)
-    words[i] = op(AllMask, words[i]);
+    words[i] = op(words[i]);
 
   T output;
   memcpy(&output, words, sizeof(T));
@@ -137,15 +137,15 @@ __device__ T shuffle_impl(T x, Operation op) {
 }
 
 template <typename T> __device__ T shuffle_impl(T x, int id) {
-  return apply_on_data(x, [id](int data) { return __shfl(data, id); });
+  return apply_on_data(x, [id](int data) { return __shfl_sync(AllMask, data, id); });
 }
 template <typename T> __device__ T shuffle_up_impl(T x, int offset) {
   return apply_on_data(x,
-                       [offset](int data) { return __shfl_up(data, offset); });
+                       [offset](int data) { return __shfl_up_sync(AllMask, data, offset); });
 }
 template <typename T> __device__ T shuffle_down_impl(T x, int offset) {
   return apply_on_data(
-      x, [offset](int data) { return __shfl_down(data, offset); });
+      x, [offset](int data) { return __shfl_down_sync(AllMask, data, offset); });
 }
 
 #endif // HIPSYCL_PLATFORM_CUDA

@@ -263,8 +263,8 @@ template <int CallingLine, typename T, typename DataGenerator,
           typename TestedFunction, typename ValidationFunction>
 void test_nd_group_function_1d(size_t elements_per_thread, DataGenerator dg,
                                TestedFunction f, ValidationFunction vf) {
-  std::vector<size_t> local_sizes = {25, 225, 256};
-  std::vector<size_t> global_sizes = {100, 900, 1024};
+  std::vector<size_t> local_sizes = {25, 144, 256};
+  std::vector<size_t> global_sizes = {100, 576, 1024};
   for (int i = 0; i < local_sizes.size(); ++i) {
     size_t local_size = local_sizes[i];
     size_t global_size = global_sizes[i];
@@ -304,8 +304,8 @@ template <int CallingLine, typename T, typename DataGenerator,
           typename TestedFunction, typename ValidationFunction>
 void test_nd_group_function_2d(size_t elements_per_thread, DataGenerator dg,
                                TestedFunction f, ValidationFunction vf) {
-  std::vector<size_t> local_sizes = {5, 15, 16};
-  std::vector<size_t> global_sizes = {10, 30, 32};
+  std::vector<size_t> local_sizes = {5, 12, 16};
+  std::vector<size_t> global_sizes = {10, 24, 32};
   for (int i = 0; i < local_sizes.size(); ++i) {
     size_t local_size = local_sizes[i];
     size_t global_size = global_sizes[i];
