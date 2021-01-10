@@ -51,7 +51,7 @@ HIPSYCL_KERNEL_TARGET T group_reduce(Group g, T x, BinaryOperation binary_op,
                                      T *scratch) {
 
   auto lid = g.get_local_linear_id();
-  size_t lrange = (g.get_local_range().size() + warpSize -1) / warpSize;
+  size_t lrange = (g.get_local_range().size() + warpSize - 1) / warpSize;
   sub_group sg{};
 
   x = group_reduce(sg, x, binary_op);
@@ -59,7 +59,7 @@ HIPSYCL_KERNEL_TARGET T group_reduce(Group g, T x, BinaryOperation binary_op,
     scratch[lid / warpSize] = x;
   group_barrier(g);
 
-  if (lrange != warpSize) {
+  if (g.get_local_range().size() / warpSize != warpSize) {
     for (size_t i = lrange / 2; i > 0; i /= 2) {
       if (lid < i)
         scratch[lid] = binary_op(scratch[lid], scratch[lid + i]);
