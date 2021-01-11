@@ -510,7 +510,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(group_inclusive_scan_ptr, T, test_types) {
                      detail::type_to_string(computed)
                          << " at position " << j << " instead of "
                          << detail::type_to_string(expected[j])
-                         << " for case: init in group " << i);
+                         << " for local_size " << local_size << " and case: no init in group " << i);
           if (!detail::compare_type(expected[j], computed))
             break;
         }
@@ -554,7 +554,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(group_inclusive_scan_ptr, T, test_types) {
                      detail::type_to_string(computed)
                          << " at position " << j << " instead of "
                          << detail::type_to_string(expected[j])
-                         << " for case: init in group " << i);
+                         << " for local_size " << local_size << " and case: init in group " << i);
           if (!detail::compare_type(expected[j], computed))
             break;
         }
