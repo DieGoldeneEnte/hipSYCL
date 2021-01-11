@@ -47,6 +47,11 @@ T *get_local_memory_ptr(Group g, size_t number_elements = 1) {
   return static_cast<T *>(g.get_local_memory_ptr());
 }
 
+// forward declaration of implementation below
+template<typename Group, typename T, typename BinaryOperation>
+HIPSYCL_KERNEL_TARGET
+T reduce(Group g, T *first, T *last, BinaryOperation binary_op);
+
 // reduce implementation
 template<typename Group, typename T, typename BinaryOperation>
 HIPSYCL_KERNEL_TARGET
@@ -56,20 +61,7 @@ T group_reduce(Group g, T x, BinaryOperation binary_op, T *scratch) {
   scratch[lid] = x;
   group_barrier(g);
 
-  if (g.leader()) {
-    T result = binary_op(scratch[0], scratch[1]);
-
-    for (int i = 2; i < g.get_local_range().size(); ++i)
-      result = binary_op(result, scratch[i]);
-
-    scratch[0] = result;
-  }
-
-  group_barrier(g);
-  T tmp = scratch[0];
-  group_barrier(g);
-
-  return tmp;
+  return reduce(g, scratch, scratch + g.get_local_range().size(), binary_op);
 }
 
 
@@ -81,8 +73,8 @@ bool any_of(Group g, Ptr first, Ptr last) {
   bool result = false;
 
   if (g.leader()) {
-    while (first < last) {
-      if (*(first++)) {
+    for(Ptr i = first; i < last; ++i) {
+      if (*i) {
         result = true;
         break;
       }
@@ -97,8 +89,8 @@ bool any_of(Group g, Ptr first, Ptr last, Predicate pred) {
   bool result = false;
 
   if (g.leader()) {
-    while (first != last) {
-      if (pred(*(first++))) {
+    for(Ptr i = first; i < last; ++i) {
+      if (pred(*i)) {
         result = true;
         break;
       }
@@ -115,8 +107,8 @@ bool all_of(Group g, Ptr first, Ptr last) {
   bool result = true;
 
   if (g.leader()) {
-    while (first != last) {
-      if (!*(first++)) {
+    for(Ptr i = first; i < last; ++i) {
+      if (!*i) {
         result = false;
         break;
       }
@@ -131,8 +123,8 @@ bool all_of(Group g, Ptr first, Ptr last, Predicate pred) {
   bool result = true;
 
   if (g.leader()) {
-    while (first != last) {
-      if (!pred(*(first++))) {
+    for(Ptr i = first; i < last; ++i) {
+      if (!pred(*i)) {
         result = false;
         break;
       }
@@ -149,8 +141,8 @@ bool none_of(Group g, Ptr first, Ptr last) {
   bool result = true;
 
   if (g.leader()) {
-    while (first != last) {
-      if (*(first++)) {
+    for(Ptr i = first; i < last; ++i) {
+      if (*i) {
         result = false;
         break;
       }
@@ -165,8 +157,8 @@ bool none_of(Group g, Ptr first, Ptr last, Predicate pred) {
   bool result = true;
 
   if (g.leader()) {
-    while (first != last) {
-      if (pred(*(first++))) {
+    for(Ptr i = first; i < last; ++i) {
+      if (pred(*i)) {
         result = false;
         break;
       }
@@ -188,8 +180,9 @@ T leader_reduce(Group g, T *first, T *last, BinaryOperation binary_op) {
 
   if (g.leader()) {
     result = *(first++);
-    while (first != last)
-      result = binary_op(result, *(first++));
+#pragma omp simd
+    for(T* i = first; i < last; ++i)
+      result = binary_op(result, *i);
   }
   return result;
 }
@@ -227,9 +220,13 @@ T *exclusive_scan(Group g, V *first, V *last, T *result, T init,
                   BinaryOperation binary_op) {
 
   if (g.leader()) {
-    *(result++) = init;
-    while (first != last - 1) {
-      *result = binary_op(*(result - 1), *(first++));
+
+    V previous = init;
+    *(result++) = previous;
+#pragma omp simd
+    for(V* i = first; i < last; ++i) {
+      previous = binary_op(previous, *i);
+      *result = previous;
       result++;
     }
   }
@@ -252,9 +249,11 @@ T *inclusive_scan(Group g, V *first, V *last, T *result, T init,
     return result;
 
   if (g.leader()) {
-    *(result++) = binary_op(init, *(first++));
-    while (first != last) {
-      *result = binary_op(*(result - 1), *(first++));
+    V previous = init;
+#pragma omp simd
+    for(V* i = first; i < last; ++i) {
+      previous = binary_op(previous, *i);
+      *result = previous;
       result++;
     }
   }
