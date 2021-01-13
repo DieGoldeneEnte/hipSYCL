@@ -92,45 +92,25 @@ template <typename T, typename BinaryOperation>
 HIPSYCL_KERNEL_TARGET T group_reduce(sub_group g, T x,
                                      BinaryOperation binary_op) {
   auto local_x = x;
-  uint64_t activemask;
-  asm ( "s_mov_b64 %0, exec" : "=r" (activemask));
+  // adaption of rocprim dpp_reduce
+  // quad_perm: add 0+1, 2+3
+  local_x = binary_op(detail::warp_move_dpp<T, 0xb1>(local_x), local_x);
+  // quad_perm: add 0+2
+  local_x = binary_op(detail::warp_move_dpp<T, 0x4e>(local_x), local_x);
+  // row_sr: add 0+4
+  local_x = binary_op(detail::warp_move_dpp<T, 0x114>(local_x), local_x);
+  // row_sr: add 0+8
+  local_x = binary_op(detail::warp_move_dpp<T, 0x118>(local_x), local_x);
+  // row_bcast15: add 0+15
+  local_x = binary_op(detail::warp_move_dpp<T, 0x142>(local_x), local_x);
 
-  if ( ~activemask == 0) {
-    // adaption of rocprim dpp_reduce
-    // quad_perm: add 0+1, 2+3
-    local_x = binary_op(detail::warp_move_dpp<T, 0xb1>(local_x), local_x);
-    // quad_perm: add 0+2
-    local_x = binary_op(detail::warp_move_dpp<T, 0x4e>(local_x), local_x);
-    // row_sr: add 0+4
-    local_x = binary_op(detail::warp_move_dpp<T, 0x114>(local_x), local_x);
-    // row_sr: add 0+8
-    local_x = binary_op(detail::warp_move_dpp<T, 0x118>(local_x), local_x);
-    // row_bcast15: add 0+15
-    local_x = binary_op(detail::warp_move_dpp<T, 0x142>(local_x), local_x);
-
-    if constexpr (warpSize > 32) {
-      // row_bcast31: add 0+31
-      local_x = binary_op(detail::warp_move_dpp<T, 0x143>(local_x), local_x);
-    }
-
-    // get the result from last thead
-    return detail::shuffle_impl(local_x, warpSize-1);
-  } else {
-    auto lid = g.get_local_linear_id();
-
-    size_t lrange = g.get_local_range().size();
-
-    group_barrier(g);
-
-    for (size_t i = lrange / 2; i > 0; i /= 2) {
-      auto other_x = detail::shuffle_impl(local_x, lid + i);
-
-      // check if target thread exists/is active
-      if (activemask & (1l <<(lid+i)))
-        local_x = binary_op(local_x, other_x);
-    }
-    return detail::shuffle_impl(local_x, 0);
+  if constexpr (warpSize > 32) {
+    // row_bcast31: add 0+31
+    local_x = binary_op(detail::warp_move_dpp<T, 0x143>(local_x), local_x);
   }
+
+  // get the result from last thead
+  return detail::shuffle_impl(local_x, warpSize-1);
 }
 
 // exclusive_scan
@@ -141,59 +121,41 @@ HIPSYCL_KERNEL_TARGET T group_exclusive_scan(sub_group g, V x, T init,
 
   auto local_x = x;
   auto lid = g.get_local_linear_id();
+  auto row_id = lid % 16;
+  auto lane_id = lid % warpSize;
 
-  uint64_t activemask;
-  asm ( "s_mov_b64 %0, exec" : "=r" (activemask));
+  // adaption of rocprim dpp_scan
+  T tmp;
+  // row_sr:1
+  tmp = binary_op(detail::warp_move_dpp<T, 0x111>(local_x), local_x);
+  if (row_id > 0)
+    local_x = tmp;
 
-  if ( ~activemask == 0) {
-    auto row_id = lid % 16;
-    auto lane_id = lid % warpSize;
+  // row_sr:2
+  tmp = binary_op(detail::warp_move_dpp<T, 0x112>(local_x), local_x);
+  if (row_id > 1)
+    local_x = tmp;
 
-    // adaption of rocprim dpp_scan
-    T tmp;
-    // row_sr:1
-    tmp = binary_op(detail::warp_move_dpp<T, 0x111>(local_x), local_x);
-    if (row_id > 0)
+  // row_sr:4
+  tmp = binary_op(detail::warp_move_dpp<T, 0x114>(local_x), local_x);
+  if (row_id > 3)
+    local_x = tmp;
+
+  // row_sr:8
+  tmp = binary_op(detail::warp_move_dpp<T, 0x118>(local_x), local_x);
+  if (row_id > 7)
+    local_x = tmp;
+
+  // row_bcast15
+  tmp = binary_op(detail::warp_move_dpp<T, 0x142>(local_x), local_x);
+  if (lane_id % 32 >= 16)
+    local_x = tmp;
+
+  if (warpSize > 32) {
+    // row_bcast31
+    tmp = binary_op(detail::warp_move_dpp<T, 0x143>(local_x), local_x);
+    if (lane_id >= 32)
       local_x = tmp;
-
-    // row_sr:2
-    tmp = binary_op(detail::warp_move_dpp<T, 0x112>(local_x), local_x);
-    if (row_id > 1)
-      local_x = tmp;
-
-    // row_sr:4
-    tmp = binary_op(detail::warp_move_dpp<T, 0x114>(local_x), local_x);
-    if (row_id > 3)
-      local_x = tmp;
-
-    // row_sr:8
-    tmp = binary_op(detail::warp_move_dpp<T, 0x118>(local_x), local_x);
-    if (row_id > 7)
-      local_x = tmp;
-
-    // row_bcast15
-    tmp = binary_op(detail::warp_move_dpp<T, 0x142>(local_x), local_x);
-    if (lane_id % 32 >= 16)
-      local_x = tmp;
-
-    if (warpSize > 32) {
-      // row_bcast31
-      tmp = binary_op(detail::warp_move_dpp<T, 0x143>(local_x), local_x);
-      if (lane_id >= 32)
-        local_x = tmp;
-    }
-  } else {
-    size_t lrange = g.get_local_linear_range();
-
-    for (size_t i = 1; i < lrange; i *= 2) {
-      size_t next_id = lid - i;
-      if (i > lid)
-        next_id = 0;
-
-      auto other_x = detail::shuffle_impl(local_x, next_id);
-      if (activemask & (1l <<(next_id)) && i <= lid && lid < lrange)
-        local_x = binary_op(local_x, other_x);
-    }
   }
 
   local_x = detail::shuffle_up_impl(local_x, 1);
@@ -208,63 +170,43 @@ HIPSYCL_KERNEL_TARGET T group_inclusive_scan(sub_group g, T x,
                                              BinaryOperation binary_op) {
   auto local_x = x;
   auto lid = g.get_local_linear_id();
+  auto row_id = lid % 16;
+  auto lane_id = lid % warpSize;
+  // adaption of rocprim dpp_scan
+  T tmp;
+  // row_sr:1
+  tmp = binary_op(detail::warp_move_dpp<T, 0x111>(local_x), local_x);
+  if (row_id > 0)
+    local_x = tmp;
 
-  uint64_t activemask;
-  asm ( "s_mov_b64 %0, exec" : "=r" (activemask));
+  // row_sr:2
+  tmp = binary_op(detail::warp_move_dpp<T, 0x112>(local_x), local_x);
+  if (row_id > 1)
+    local_x = tmp;
 
-  if ( ~activemask == 0) {
-    auto row_id = lid % 16;
-    auto lane_id = lid % warpSize;
-    // adaption of rocprim dpp_scan
-    T tmp;
-    // row_sr:1
-    tmp = binary_op(detail::warp_move_dpp<T, 0x111>(local_x), local_x);
-    if (row_id > 0)
+  // row_sr:4
+  tmp = binary_op(detail::warp_move_dpp<T, 0x114>(local_x), local_x);
+  if (row_id > 3)
+    local_x = tmp;
+
+  // row_sr:8
+  tmp = binary_op(detail::warp_move_dpp<T, 0x118>(local_x), local_x);
+  if (row_id > 7)
+    local_x = tmp;
+
+  // row_bcast15
+  tmp = binary_op(detail::warp_move_dpp<T, 0x142>(local_x), local_x);
+  if (lane_id % 32 > 15)
+    local_x = tmp;
+
+  if constexpr (warpSize > 32) {
+    // row_bcast31
+    tmp = binary_op(detail::warp_move_dpp<T, 0x143>(local_x), local_x);
+    if (lane_id > 31)
       local_x = tmp;
-
-    // row_sr:2
-    tmp = binary_op(detail::warp_move_dpp<T, 0x112>(local_x), local_x);
-    if (row_id > 1)
-      local_x = tmp;
-
-    // row_sr:4
-    tmp = binary_op(detail::warp_move_dpp<T, 0x114>(local_x), local_x);
-    if (row_id > 3)
-      local_x = tmp;
-
-    // row_sr:8
-    tmp = binary_op(detail::warp_move_dpp<T, 0x118>(local_x), local_x);
-    if (row_id > 7)
-      local_x = tmp;
-
-    // row_bcast15
-    tmp = binary_op(detail::warp_move_dpp<T, 0x142>(local_x), local_x);
-    if (lane_id % 32 > 15)
-      local_x = tmp;
-
-    if constexpr (warpSize > 32) {
-      // row_bcast31
-      tmp = binary_op(detail::warp_move_dpp<T, 0x143>(local_x), local_x);
-      if (lane_id > 31)
-        local_x = tmp;
-    }
-
-    return local_x;
-  } else {
-    size_t lrange = g.get_local_linear_range();
-
-    for (size_t i = 1; i < lrange; i *= 2) {
-      size_t next_id = lid - i;
-      if (i > lid)
-        next_id = 0;
-
-      auto other_x = detail::shuffle_impl(local_x, next_id);
-      if (activemask & (1l <<(next_id)) && i <= lid && lid < lrange)
-        local_x = binary_op(local_x, other_x);
-    }
-
-    return local_x;
   }
+
+  return local_x;
 }
 
 } // namespace sycl
