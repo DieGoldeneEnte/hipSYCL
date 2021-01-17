@@ -80,10 +80,20 @@ T reduce(Group g, V *first, V *last, T init, plus<T> binary_op) {
 
   if (g.leader()) {
     result = *(first++) + init;
-    while (first + inc < last) {
-      v_type x = xsimd::load_unaligned(first);
-      result += xsimd::hadd(x);
-      first += inc;
+
+    void* aligned_ptr = first;
+    size_t size = last-first;
+    std::align(alignof(v_type), 1, aligned_ptr, size);
+
+    while (first < aligned_ptr) {
+      result += *(first++);
+    }
+    if (first == aligned_ptr) {
+      while (first + inc < last) {
+        v_type x = xsimd::load_aligned(first);
+        result += xsimd::hadd(x);
+        first += inc;
+      }
     }
     while (first < last) {
       result += *(first++);
