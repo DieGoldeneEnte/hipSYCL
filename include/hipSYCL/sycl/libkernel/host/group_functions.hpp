@@ -25,6 +25,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <type_traits>
 #ifndef SYCL_DEVICE_ONLY
 
 #ifndef HIPSYCL_LIBKERNEL_HOST_GROUP_FUNCTIONS_HPP
@@ -36,6 +37,8 @@
 #include "../id.hpp"
 #include "../sub_group.hpp"
 #include "../vec.hpp"
+#include "../functional.hpp"
+#include <xsimd/xsimd.hpp>
 
 
 namespace hipsycl {
@@ -73,8 +76,8 @@ bool any_of(Group g, Ptr first, Ptr last) {
   bool result = false;
 
   if (g.leader()) {
-    for(Ptr i = first; i < last; ++i) {
-      if (*i) {
+    while (first < last) {
+      if (*(first++)) {
         result = true;
         break;
       }
@@ -89,8 +92,8 @@ bool any_of(Group g, Ptr first, Ptr last, Predicate pred) {
   bool result = false;
 
   if (g.leader()) {
-    for(Ptr i = first; i < last; ++i) {
-      if (pred(*i)) {
+    while (first != last) {
+      if (pred(*(first++))) {
         result = true;
         break;
       }
@@ -107,8 +110,8 @@ bool all_of(Group g, Ptr first, Ptr last) {
   bool result = true;
 
   if (g.leader()) {
-    for(Ptr i = first; i < last; ++i) {
-      if (!*i) {
+    while (first != last) {
+      if (!*(first++)) {
         result = false;
         break;
       }
@@ -123,8 +126,8 @@ bool all_of(Group g, Ptr first, Ptr last, Predicate pred) {
   bool result = true;
 
   if (g.leader()) {
-    for(Ptr i = first; i < last; ++i) {
-      if (!pred(*i)) {
+    while (first != last) {
+      if (!pred(*(first++))) {
         result = false;
         break;
       }
@@ -141,8 +144,8 @@ bool none_of(Group g, Ptr first, Ptr last) {
   bool result = true;
 
   if (g.leader()) {
-    for(Ptr i = first; i < last; ++i) {
-      if (*i) {
+    while (first != last) {
+      if (*(first++)) {
         result = false;
         break;
       }
@@ -157,8 +160,8 @@ bool none_of(Group g, Ptr first, Ptr last, Predicate pred) {
   bool result = true;
 
   if (g.leader()) {
-    for(Ptr i = first; i < last; ++i) {
-      if (pred(*i)) {
+    while (first != last) {
+      if (pred(*(first++))) {
         result = false;
         break;
       }
@@ -180,11 +183,36 @@ T leader_reduce(Group g, T *first, T *last, BinaryOperation binary_op) {
 
   if (g.leader()) {
     result = *(first++);
-#pragma omp simd
-    for(T* i = first; i < last; ++i)
-      result = binary_op(result, *i);
+    while (first != last)
+      result = binary_op(result, *(first++));
   }
   return result;
+}
+
+template<typename Group, typename T, std::enable_if_t<!std::is_same_v<T, xsimd::simd_type<T>>, int> = 0>
+HIPSYCL_KERNEL_TARGET
+T leader_reduce(Group g, T *first, T *last, plus<T> binary_op) {
+  T result{};
+
+  using v_type = xsimd::simd_type<T>;
+  constexpr size_t inc = v_type::size;
+
+  if (first >= last) {
+    return T{};
+  }
+
+  if (g.leader()) {
+    result = *(first++);
+    while (first + inc < last) {
+      v_type x = xsimd::load_unaligned(first);
+      result += xsimd::hadd(x);
+      first += inc;
+    }
+    while (first < last) {
+      result += *(first++);
+    }
+  }
+  return group_broadcast(g, T(result));
 }
 
 template<typename Group, typename V, typename T, typename BinaryOperation>
@@ -220,13 +248,9 @@ T *exclusive_scan(Group g, V *first, V *last, T *result, T init,
                   BinaryOperation binary_op) {
 
   if (g.leader()) {
-
-    V previous = init;
-    *(result++) = previous;
-#pragma omp simd
-    for(V* i = first; i < last; ++i) {
-      previous = binary_op(previous, *i);
-      *result = previous;
+    *(result++) = init;
+    while (first != last - 1) {
+      *result = binary_op(*(result - 1), *(first++));
       result++;
     }
   }
@@ -249,11 +273,9 @@ T *inclusive_scan(Group g, V *first, V *last, T *result, T init,
     return result;
 
   if (g.leader()) {
-    V previous = init;
-#pragma omp simd
-    for(V* i = first; i < last; ++i) {
-      previous = binary_op(previous, *i);
-      *result = previous;
+    *(result++) = binary_op(init, *(first++));
+    while (first != last) {
+      *result = binary_op(*(result - 1), *(first++));
       result++;
     }
   }
