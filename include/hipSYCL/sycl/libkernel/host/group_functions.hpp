@@ -36,6 +36,8 @@
 #include "../id.hpp"
 #include "../sub_group.hpp"
 #include "../vec.hpp"
+#include "../functional.hpp"
+#include <xsimd/xsimd.hpp>
 
 
 namespace hipsycl {
@@ -46,6 +48,56 @@ template<typename T, typename Group>
 T *get_local_memory_ptr(Group g, size_t number_elements = 1) {
   return static_cast<T *>(g.get_local_memory_ptr());
 }
+// reduce
+template<typename Group, typename V, typename T, typename BinaryOperation>
+HIPSYCL_KERNEL_TARGET
+T reduce(Group g, V *first, V *last, T init, BinaryOperation binary_op) {
+  T result{};
+
+  if (first >= last) {
+    return init;
+  }
+
+  if (g.leader()) {
+    result = binary_op(*(first++), init);
+    while (first != last)
+      result = binary_op(result, *(first++));
+  }
+  return group_broadcast(g, result);
+}
+
+template<typename Group, typename V, typename T>
+HIPSYCL_KERNEL_TARGET
+T reduce(Group g, V *first, V *last, T init, plus<T> binary_op) {
+  T result{};
+
+  using v_type = xsimd::simd_type<T>;
+  constexpr size_t inc = v_type::size;
+
+  if (first >= last) {
+    return init;
+  }
+
+  if (g.leader()) {
+    result = *(first++) + init;
+    while (first + inc < last) {
+      v_type x = xsimd::load_unaligned(first);
+      result += xsimd::hadd(x);
+      first += inc;
+    }
+    while (first < last) {
+      result += *(first++);
+    }
+  }
+  return group_broadcast(g, T(result));
+}
+
+template<typename Group, typename T, typename BinaryOperation>
+HIPSYCL_KERNEL_TARGET
+T reduce(Group g, T *first, T *last, BinaryOperation binary_op) {
+  return reduce(g, first, last, T{}, binary_op);
+}
+
 
 // reduce implementation
 template<typename Group, typename T, typename BinaryOperation>
@@ -56,20 +108,8 @@ T group_reduce(Group g, T x, BinaryOperation binary_op, T *scratch) {
   scratch[lid] = x;
   group_barrier(g);
 
-  if (g.leader()) {
-    T result = binary_op(scratch[0], scratch[1]);
 
-    for (int i = 2; i < g.get_local_range().size(); ++i)
-      result = binary_op(result, scratch[i]);
-
-    scratch[0] = result;
-  }
-
-  group_barrier(g);
-  T tmp = scratch[0];
-  group_barrier(g);
-
-  return tmp;
+  return reduce(g, scratch, scratch + g.get_local_range().size(), binary_op);
 }
 
 
@@ -81,8 +121,8 @@ bool any_of(Group g, Ptr first, Ptr last) {
   bool result = false;
 
   if (g.leader()) {
-    for(Ptr i = first; i < last; ++i) {
-      if (*i) {
+    while (first < last) {
+      if (*(first++)) {
         result = true;
         break;
       }
@@ -97,8 +137,8 @@ bool any_of(Group g, Ptr first, Ptr last, Predicate pred) {
   bool result = false;
 
   if (g.leader()) {
-    for(Ptr i = first; i < last; ++i) {
-      if (pred(*i)) {
+    while (first != last) {
+      if (pred(*(first++))) {
         result = true;
         break;
       }
@@ -115,8 +155,8 @@ bool all_of(Group g, Ptr first, Ptr last) {
   bool result = true;
 
   if (g.leader()) {
-    for(Ptr i = first; i < last; ++i) {
-      if (!*i) {
+    while (first != last) {
+      if (!*(first++)) {
         result = false;
         break;
       }
@@ -131,8 +171,8 @@ bool all_of(Group g, Ptr first, Ptr last, Predicate pred) {
   bool result = true;
 
   if (g.leader()) {
-    for(Ptr i = first; i < last; ++i) {
-      if (!pred(*i)) {
+    while (first != last) {
+      if (!pred(*(first++))) {
         result = false;
         break;
       }
@@ -149,8 +189,8 @@ bool none_of(Group g, Ptr first, Ptr last) {
   bool result = true;
 
   if (g.leader()) {
-    for(Ptr i = first; i < last; ++i) {
-      if (*i) {
+    while (first != last) {
+      if (*(first++)) {
         result = false;
         break;
       }
@@ -165,8 +205,8 @@ bool none_of(Group g, Ptr first, Ptr last, Predicate pred) {
   bool result = true;
 
   if (g.leader()) {
-    for(Ptr i = first; i < last; ++i) {
-      if (pred(*i)) {
+    while (first != last) {
+      if (pred(*(first++))) {
         result = false;
         break;
       }
@@ -176,31 +216,6 @@ bool none_of(Group g, Ptr first, Ptr last, Predicate pred) {
 }
 
 
-// reduce
-template<typename Group, typename V, typename T, typename BinaryOperation>
-HIPSYCL_KERNEL_TARGET
-T reduce(Group g, V *first, V *last, T init, BinaryOperation binary_op) {
-  T result{};
-
-  if (first >= last) {
-    return init;
-  }
-
-  if (g.leader()) {
-    result = init;
-#pragma omp simd
-    for(V* i = first; i < last; ++i)
-      result = binary_op(result, *i);
-  }
-  return group_broadcast(g, result);
-}
-
-template<typename Group, typename T, typename BinaryOperation>
-HIPSYCL_KERNEL_TARGET
-T reduce(Group g, T *first, T *last, BinaryOperation binary_op) {
-  return reduce(g, first, last, T{}, binary_op);
-}
-
 
 // exclusive_scan
 template<typename Group, typename V, typename T, typename BinaryOperation>
@@ -209,13 +224,9 @@ T *exclusive_scan(Group g, V *first, V *last, T *result, T init,
                   BinaryOperation binary_op) {
 
   if (g.leader()) {
-
-    V previous = init;
-    *(result++) = previous;
-#pragma omp simd
-    for(V* i = first; i < last; ++i) {
-      previous = binary_op(previous, *i);
-      *result = previous;
+    *(result++) = init;
+    while (first != last - 1) {
+      *result = binary_op(*(result - 1), *(first++));
       result++;
     }
   }
@@ -238,11 +249,9 @@ T *inclusive_scan(Group g, V *first, V *last, T *result, T init,
     return result;
 
   if (g.leader()) {
-    V previous = init;
-#pragma omp simd
-    for(V* i = first; i < last; ++i) {
-      previous = binary_op(previous, *i);
-      *result = previous;
+    *(result++) = binary_op(init, *(first++));
+    while (first != last) {
+      *result = binary_op(*(result - 1), *(first++));
       result++;
     }
   }
