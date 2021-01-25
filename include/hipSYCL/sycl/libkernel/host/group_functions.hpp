@@ -203,21 +203,12 @@ T leader_reduce(Group g, T *first, T *last, plus<T> binary_op) {
   }
 
   if (g.leader()) {
-    result = *(first++);
+    result = T{};
 
-    void* aligned_ptr = first;
-    size_t size = last-first;
-    std::align(alignof(v_type), 1, aligned_ptr, size);
-
-    while (first < aligned_ptr) {
-      result += *(first++);
-    }
-    if (first == aligned_ptr) {
-      while (first + inc < last) {
-        v_type x = xsimd::load_aligned(first);
-        result += xsimd::hadd(x);
-        first += inc;
-      }
+    while (first + inc < last) {
+      v_type x = xsimd::load_aligned(first);
+      result += xsimd::hadd(x);
+      first += inc;
     }
     while (first < last) {
       result += *(first++);
