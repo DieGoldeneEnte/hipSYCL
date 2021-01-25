@@ -200,7 +200,7 @@ bool none_of(Group g, Ptr first, Ptr last, Predicate pred) {
 // reduce
 template<typename Group, typename V, typename T, typename BinaryOperation>
 HIPSYCL_KERNEL_TARGET
-T reduce(Group g, V *first, V *last, T init, BinaryOperation binary_op) {
+T leader_reduce(Group g, V *first, V *last, T init, BinaryOperation binary_op) {
   T result{};
 
   if (first >= last) {
@@ -212,13 +212,27 @@ T reduce(Group g, V *first, V *last, T init, BinaryOperation binary_op) {
     while (first != last)
       result = binary_op(result, *(first++));
   }
+  return result;
+}
+
+template<typename Group, typename T, typename BinaryOperation>
+HIPSYCL_KERNEL_TARGET
+T leader_reduce(Group g, T *first, T *last, BinaryOperation binary_op) {
+  return leader_reduce(g, first, last, T{}, binary_op);
+}
+
+template<typename Group, typename V, typename T, typename BinaryOperation>
+HIPSYCL_KERNEL_TARGET
+T reduce(Group g, V *first, V *last, T init, BinaryOperation binary_op) {
+  T result = leader_reduce(g, first, last, init, binary_op);
   return group_broadcast(g, result);
 }
 
 template<typename Group, typename T, typename BinaryOperation>
 HIPSYCL_KERNEL_TARGET
 T reduce(Group g, T *first, T *last, BinaryOperation binary_op) {
-  return reduce(g, first, last, T{}, binary_op);
+  T result = leader_reduce(g, first, last, binary_op);
+  return group_broadcast(g, result);
 }
 
 

@@ -308,6 +308,19 @@ T reduce(Group g, T *first, T *last, BinaryOperation binary_op) {
   return reduce(g, first, last, T{}, binary_op);
 }
 
+template<typename Group, typename V, typename T, typename BinaryOperation>
+HIPSYCL_KERNEL_TARGET
+T leader_reduce(Group g, V *first, V *last, T init, BinaryOperation binary_op) {
+  return reduce(g, first, last, init, binary_op);
+}
+
+template<typename Group, typename T, typename BinaryOperation>
+HIPSYCL_KERNEL_TARGET
+T leader_reduce(Group g, T *first, T *last, BinaryOperation binary_op) {
+  return reduce(g, first, last, binary_op);
+}
+
+
 
 // exclusive_scan
 template<typename Group, typename V, typename T, typename BinaryOperation>
