@@ -32,6 +32,7 @@
 #include <cassert>
 #include <tuple>
 #include <omp.h>
+#include <type_traits>
 
 #include "hipSYCL/common/debug.hpp"
 #include "hipSYCL/runtime/error.hpp"
@@ -244,7 +245,7 @@ inline void parallel_for_ndrange_kernel(
         num_local_mem_bytes);
 
     // 128 kiB as local memory for group algorithms
-    char* group_shared_memory_ptr[128*1024];
+    std::aligned_storage_t<128*1024, alignof(std::max_align_t)> group_shared_memory_ptr{};
 
     host::static_range_decomposition<Dim> group_decomposition{
           num_groups, omp_get_num_threads()};

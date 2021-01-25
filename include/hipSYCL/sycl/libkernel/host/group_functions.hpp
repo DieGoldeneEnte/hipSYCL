@@ -38,6 +38,7 @@
 #include "../sub_group.hpp"
 #include "../vec.hpp"
 #include "../functional.hpp"
+
 #include <xsimd/xsimd.hpp>
 
 
@@ -45,10 +46,10 @@ namespace hipsycl {
 namespace sycl {
 
 namespace detail {
-template<typename T, typename Group>
-T *get_local_memory_ptr(Group g, size_t number_elements = 1) {
-  return static_cast<T *>(g.get_local_memory_ptr());
-}
+
+// forward declaration, the function is implemented below
+template<typename Group, typename T, typename BinaryOperation>
+T reduce(Group g, T *first, T *last, BinaryOperation binary_op);
 
 // forward declaration of implementation below
 template<typename Group, typename T, typename BinaryOperation>

@@ -198,8 +198,8 @@ HIPSYCL_KERNEL_TARGET bool none_of(Group g, T *first, T *last, Predicate pred) {
 template <typename Group, typename T, typename BinaryOperation>
 HIPSYCL_KERNEL_TARGET T reduce(Group g, T *first, T *last,
                                BinaryOperation binary_op) {
-  __shared__ char scratch_char[1024 / warpSize * sizeof(T)];
-  T *scratch = reinterpret_cast<T *>(scratch_char);
+  __shared__ std::aligned_storage_t<sizeof(T)*1024/warpSize, alignof(T)> scratch_storage;
+  T *scratch = reinterpret_cast<T *>(&scratch_storage);
 
   const size_t group_range = g.get_local_range().size();
   const size_t num_elements = last - first;
@@ -269,8 +269,8 @@ T leader_reduce(Group g, T *first, T *last, BinaryOperation binary_op) {
 template <typename Group, typename V, typename T, typename BinaryOperation>
 HIPSYCL_KERNEL_TARGET T *inclusive_scan(Group g, V *first, V *last, T *result,
                                         BinaryOperation binary_op) {
-  __shared__ char scratch_char[sizeof(T)];
-  T *scratch = reinterpret_cast<T *>(scratch_char);
+  __shared__ std::aligned_storage_t<sizeof(T), alignof(T)> scratch_storage;
+  T *scratch = reinterpret_cast<T *>(&scratch_storage);
   auto lid = g.get_local_linear_id();
   auto wid = lid / warpSize;
   size_t lrange = g.get_local_range().size();
@@ -319,8 +319,8 @@ HIPSYCL_KERNEL_TARGET T *inclusive_scan(Group g, V *first, V *last, T *result,
 template <typename Group, typename V, typename T, typename BinaryOperation>
 HIPSYCL_KERNEL_TARGET T *inclusive_scan(Group g, V *first, V *last, T *result,
                                         T init, BinaryOperation binary_op) {
-  __shared__ char scratch_char[sizeof(T)];
-  T *scratch = reinterpret_cast<T *>(scratch_char);
+  __shared__ std::aligned_storage_t<sizeof(T), alignof(T)> scratch_storage;
+  T *scratch = reinterpret_cast<T *>(&scratch_storage);
   auto lid = g.get_local_linear_id();
   auto wid = lid / warpSize;
   size_t lrange = g.get_local_range().size();
@@ -390,8 +390,8 @@ HIPSYCL_KERNEL_TARGET T *exclusive_scan(Group g, V *first, V *last, T *result,
 template <typename Group, typename T>
 HIPSYCL_KERNEL_TARGET T group_broadcast(
     Group g, T x, typename Group::linear_id_type local_linear_id = 0) {
-  __shared__ char scratch_char[sizeof(T)];
-  T *scratch = reinterpret_cast<T *>(scratch_char);
+  __shared__ std::aligned_storage_t<sizeof(T), alignof(T)> scratch_storage;
+  T *scratch = reinterpret_cast<T *>(&scratch_storage);
   auto lid = g.get_local_linear_id();
 
   if (lid == local_linear_id)
@@ -432,8 +432,8 @@ HIPSYCL_KERNEL_TARGET inline bool group_none_of(Group g, bool pred) {
 template <typename Group, typename T, typename BinaryOperation,
           typename std::enable_if_t<!std::is_same_v<Group, sub_group>, int> = 0>
 HIPSYCL_KERNEL_TARGET T group_reduce(Group g, T x, BinaryOperation binary_op) {
-  __shared__ char scratch_char[1024 / warpSize * sizeof(T)];
-  T *scratch = reinterpret_cast<T *>(scratch_char);
+  __shared__ std::aligned_storage_t<sizeof(T)*1024/warpSize, alignof(T)> scratch_storage;
+  T *scratch = reinterpret_cast<T *>(&scratch_storage);
   return detail::group_reduce(g, x, binary_op, scratch);
 }
 
@@ -442,8 +442,8 @@ template <typename Group, typename V, typename T, typename BinaryOperation,
           typename std::enable_if_t<!std::is_same_v<Group, sub_group>, int> = 0>
 HIPSYCL_KERNEL_TARGET T group_exclusive_scan(Group g, V x, T init,
                                              BinaryOperation binary_op) {
-  __shared__ char scratch_char[1024 / warpSize * sizeof(T)];
-  T *scratch = reinterpret_cast<T *>(scratch_char);
+  __shared__ std::aligned_storage_t<sizeof(T)*1024/warpSize, alignof(T)> scratch_storage;
+  T *scratch = reinterpret_cast<T *>(&scratch_storage);
   auto lid = g.get_local_linear_id();
   auto wid = lid / warpSize;
   size_t lrange = 1;
@@ -482,8 +482,8 @@ template <typename Group, typename T, typename BinaryOperation,
           typename std::enable_if_t<!std::is_same_v<Group, sub_group>, int> = 0>
 HIPSYCL_KERNEL_TARGET T group_inclusive_scan(Group g, T x,
                                              BinaryOperation binary_op) {
-  __shared__ char scratch_char[1024 / warpSize * sizeof(T)];
-  T *scratch = reinterpret_cast<T *>(scratch_char);
+  __shared__ std::aligned_storage_t<sizeof(T)*1024/warpSize, alignof(T)> scratch_storage;
+  T *scratch = reinterpret_cast<T *>(&scratch_storage);
   auto lid = g.get_local_linear_id();
   auto wid = lid / warpSize;
   size_t lrange = 1;
