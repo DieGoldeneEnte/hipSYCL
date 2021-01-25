@@ -96,7 +96,7 @@ T group_reduce(Group g, T x, BinaryOperation binary_op, T *scratch) {
 // any_of
 template<typename Group, typename Ptr>
 HIPSYCL_KERNEL_TARGET
-bool any_of(Group g, Ptr first, Ptr last) {
+bool leader_any_of(Group g, Ptr first, Ptr last) {
   bool result = false;
 
   if (g.leader()) {
@@ -107,12 +107,12 @@ bool any_of(Group g, Ptr first, Ptr last) {
       }
     }
   }
-  return group_broadcast(g, result);
+  return result;
 }
 
 template<typename Group, typename Ptr, typename Predicate>
 HIPSYCL_KERNEL_TARGET
-bool any_of(Group g, Ptr first, Ptr last, Predicate pred) {
+bool leader_any_of(Group g, Ptr first, Ptr last, Predicate pred) {
   bool result = false;
 
   if (g.leader()) {
@@ -123,13 +123,27 @@ bool any_of(Group g, Ptr first, Ptr last, Predicate pred) {
       }
     }
   }
+  return result;
+}
+
+template<typename Group, typename Ptr>
+HIPSYCL_KERNEL_TARGET
+bool any_of(Group g, Ptr first, Ptr last) {
+  auto result = leader_any_of(g, first, last);
+  return group_broadcast(g, result);
+}
+
+template<typename Group, typename Ptr, typename Predicate>
+HIPSYCL_KERNEL_TARGET
+bool any_of(Group g, Ptr first, Ptr last, Predicate pred) {
+  auto result = leader_any_of(g, first, last, pred);
   return group_broadcast(g, result);
 }
 
 // all_of
 template<typename Group, typename Ptr>
 HIPSYCL_KERNEL_TARGET
-bool all_of(Group g, Ptr first, Ptr last) {
+bool leader_all_of(Group g, Ptr first, Ptr last) {
   bool result = true;
 
   if (g.leader()) {
@@ -140,12 +154,12 @@ bool all_of(Group g, Ptr first, Ptr last) {
       }
     }
   }
-  return group_broadcast(g, result);
+  return result;
 }
 
 template<typename Group, typename Ptr, typename Predicate>
 HIPSYCL_KERNEL_TARGET
-bool all_of(Group g, Ptr first, Ptr last, Predicate pred) {
+bool leader_all_of(Group g, Ptr first, Ptr last, Predicate pred) {
   bool result = true;
 
   if (g.leader()) {
@@ -156,13 +170,27 @@ bool all_of(Group g, Ptr first, Ptr last, Predicate pred) {
       }
     }
   }
+  return result;
+}
+
+template<typename Group, typename Ptr>
+HIPSYCL_KERNEL_TARGET
+bool all_of(Group g, Ptr first, Ptr last) {
+  auto result = leader_all_of(g, first, last);
+  return group_broadcast(g, result);
+}
+
+template<typename Group, typename Ptr, typename Predicate>
+HIPSYCL_KERNEL_TARGET
+bool all_of(Group g, Ptr first, Ptr last, Predicate pred) {
+  auto result = leader_all_of(g, first, last, pred);
   return group_broadcast(g, result);
 }
 
 // none_of
 template<typename Group, typename Ptr>
 HIPSYCL_KERNEL_TARGET
-bool none_of(Group g, Ptr first, Ptr last) {
+bool leader_none_of(Group g, Ptr first, Ptr last) {
   bool result = true;
 
   if (g.leader()) {
@@ -173,12 +201,12 @@ bool none_of(Group g, Ptr first, Ptr last) {
       }
     }
   }
-  return group_broadcast(g, result);
+  return result;
 }
 
 template<typename Group, typename Ptr, typename Predicate>
 HIPSYCL_KERNEL_TARGET
-bool none_of(Group g, Ptr first, Ptr last, Predicate pred) {
+bool leader_none_of(Group g, Ptr first, Ptr last, Predicate pred) {
   bool result = true;
 
   if (g.leader()) {
@@ -189,6 +217,20 @@ bool none_of(Group g, Ptr first, Ptr last, Predicate pred) {
       }
     }
   }
+  return result;
+}
+
+template<typename Group, typename Ptr>
+HIPSYCL_KERNEL_TARGET
+bool none_of(Group g, Ptr first, Ptr last) {
+  auto result = leader_none_of(g, first, last);
+  return group_broadcast(g, result);
+}
+
+template<typename Group, typename Ptr, typename Predicate>
+HIPSYCL_KERNEL_TARGET
+bool none_of(Group g, Ptr first, Ptr last, Predicate pred) {
+  auto result = leader_none_of(g, first, last, pred);
   return group_broadcast(g, result);
 }
 
@@ -239,7 +281,7 @@ T reduce(Group g, V *first, V *last, T init, BinaryOperation binary_op) {
 // exclusive_scan
 template<typename Group, typename V, typename T, typename BinaryOperation>
 HIPSYCL_KERNEL_TARGET
-T *exclusive_scan(Group g, V *first, V *last, T *result, T init, BinaryOperation binary_op) {
+T *leader_exclusive_scan(Group g, V *first, V *last, T *result, T init, BinaryOperation binary_op) {
 
   if (g.leader()) {
     *(result++) = init;
@@ -248,6 +290,19 @@ T *exclusive_scan(Group g, V *first, V *last, T *result, T init, BinaryOperation
       result++;
     }
   }
+  return result;
+}
+
+template<typename Group, typename V, typename T, typename BinaryOperation>
+HIPSYCL_KERNEL_TARGET
+T *leader_exclusive_scan(Group g, V *first, V *last, T *result, BinaryOperation binary_op) {
+  return leader_exclusive_scan(g, first, last, result, T{}, binary_op);
+}
+
+template<typename Group, typename V, typename T, typename BinaryOperation>
+HIPSYCL_KERNEL_TARGET
+T *exclusive_scan(Group g, V *first, V *last, T *result, T init, BinaryOperation binary_op) {
+  auto ret = leader_exclusive_scan(g, first, last, result, init, binary_op);
   return group_broadcast(g, result);
 }
 
@@ -260,7 +315,7 @@ T *exclusive_scan(Group g, V *first, V *last, T *result, BinaryOperation binary_
 // inclusive_scan
 template<typename Group, typename V, typename T, typename BinaryOperation>
 HIPSYCL_KERNEL_TARGET
-T *inclusive_scan(Group g, V *first, V *last, T *result, T init, BinaryOperation binary_op) {
+T *leader_inclusive_scan(Group g, V *first, V *last, T *result, T init, BinaryOperation binary_op) {
   if (first == last)
     return result;
 
@@ -271,7 +326,20 @@ T *inclusive_scan(Group g, V *first, V *last, T *result, T init, BinaryOperation
       result++;
     }
   }
-  return group_broadcast(g, result);
+  return result;
+}
+
+template<typename Group, typename V, typename T, typename BinaryOperation>
+HIPSYCL_KERNEL_TARGET
+T *leader_inclusive_scan(Group g, V *first, V *last, T *result, BinaryOperation binary_op) {
+  return leader_inclusive_scan(g, first, last, result, T{}, binary_op);
+}
+
+template<typename Group, typename V, typename T, typename BinaryOperation>
+HIPSYCL_KERNEL_TARGET
+T *inclusive_scan(Group g, V *first, V *last, T *result, T init, BinaryOperation binary_op) {
+  auto ret = leader_inclusive_scan(g, first, last,result, init, binary_op);
+  return group_broadcast(g, ret);
 }
 
 template<typename Group, typename V, typename T, typename BinaryOperation>

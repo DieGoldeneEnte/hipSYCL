@@ -38,6 +38,7 @@
 #include "../../id.hpp"
 #include "../../sub_group.hpp"
 #include "../../vec.hpp"
+#include "warp_shuffle.hpp"
 #include <type_traits>
 
 namespace hipsycl {
@@ -110,6 +111,9 @@ T group_reduce(Group g, T x, BinaryOperation binary_op, T *scratch) {
   auto   lid    = g.get_local_linear_id();
   size_t lrange = g.get_local_range().size();
 
+  if (lrange == 1)
+    return x;
+
   scratch[lid] = x;
   group_barrier(g);
 
@@ -130,6 +134,9 @@ HIPSYCL_KERNEL_TARGET
 vec<T, N> group_reduce(Group g, vec<T, N> x, BinaryOperation binary_op, T *scratch) {
   auto   lid    = g.get_local_linear_id();
   size_t lrange = g.get_local_range().size();
+
+  if (lrange == 1)
+    return x;
 
   detail::writeToMemory(scratch + lid * N, x);
   group_barrier(g);
@@ -196,6 +203,18 @@ bool any_of(Group g, T *first, T *last, Predicate pred) {
   return group_any_of(g, local);
 }
 
+template<typename Group, typename T>
+HIPSYCL_KERNEL_TARGET
+bool leader_any_of(Group g, T *first, T *last) {
+  return any_of(g, first, last);
+}
+
+template<typename Group, typename T, typename Predicate>
+HIPSYCL_KERNEL_TARGET
+bool leader_any_of(Group g, T *first, T *last, Predicate pred) {
+  return any_of(g, first, last, pred);
+}
+
 // all_of
 template<typename Group, typename T>
 HIPSYCL_KERNEL_TARGET
@@ -233,6 +252,18 @@ bool all_of(Group g, T *first, T *last, Predicate pred) {
     local &= pred(*p);
 
   return group_all_of(g, local);
+}
+
+template<typename Group, typename T>
+HIPSYCL_KERNEL_TARGET
+bool leader_all_of(Group g, T *first, T *last) {
+  return all_of(g, first, last);
+}
+
+template<typename Group, typename T, typename Predicate>
+HIPSYCL_KERNEL_TARGET
+bool leader_all_of(Group g, T *first, T *last, Predicate pred) {
+  return all_of(g, first, last, pred);
 }
 
 // none_of
@@ -274,19 +305,34 @@ bool none_of(Group g, T *first, T *last, Predicate pred) {
   return group_none_of(g, local);
 }
 
+template<typename Group, typename T>
+HIPSYCL_KERNEL_TARGET
+bool leader_none_of(Group g, T *first, T *last) {
+  return none_of(g, first, last);
+}
+
+template<typename Group, typename T, typename Predicate>
+HIPSYCL_KERNEL_TARGET
+bool leader_none_of(Group g, T *first, T *last, Predicate pred) {
+  return none_of(g, first, last, pred);
+}
+
+
 // reduce
 template<typename Group, typename T, typename BinaryOperation>
 HIPSYCL_KERNEL_TARGET
 T reduce(Group g, T *first, T *last, BinaryOperation binary_op) {
-  __shared__ std::aligned_storage_t<sizeof(T)*1024, alignof(T)> scratch_storage;
-  T *scratch = reinterpret_cast<T *>(&scratch_storage);
+  __shared__ std::aligned_storage_t<sizeof(T) * 1024, alignof(T)> scratch_storage;
+  T *                                                             scratch = reinterpret_cast<T *>(&scratch_storage);
 
   const size_t group_range         = g.get_local_range().size();
   const size_t num_elements        = last - first;
-  const size_t elements_per_thread = (num_elements + group_range - 1) / group_range;
   const size_t lid                 = g.get_local_linear_id();
 
   T *start_ptr = first + lid;
+
+  if (num_elements == 1)
+    return *first;
 
   if (num_elements >= group_range) {
     auto local = *start_ptr;
@@ -297,10 +343,13 @@ T reduce(Group g, T *first, T *last, BinaryOperation binary_op) {
     return detail::group_reduce(g, local, binary_op, scratch);
   } else {
     const size_t warp_id           = lid / warpSize;
-    const size_t num_warps         = group_range / warpSize;
+    const size_t num_warps         = num_elements / warpSize;
     const size_t elements_per_warp = (num_elements + num_warps - 1) / num_warps;
+    size_t       outputs           = num_elements;
 
-    if (warp_id < num_warps) {
+    if (num_warps == 0 && lid < num_elements) {
+      scratch[lid] = first[lid];
+    } else if (warp_id < num_warps) {
       const size_t active_threads = num_warps * warpSize;
 
       auto local = *start_ptr;
@@ -313,15 +362,18 @@ T reduce(Group g, T *first, T *last, BinaryOperation binary_op) {
       local = group_reduce(sg, local, binary_op);
       if (sg.leader())
         scratch[warp_id] = local;
-      group_barrier(g);
-
-      for (size_t i = num_warps / 2; i > 0; i /= 2) {
-        if (lid < i)
-          scratch[lid] = binary_op(scratch[lid], scratch[lid + i]);
-        group_barrier(g);
-      }
+      outputs = num_warps;
     }
-    return scratch[0];
+    group_barrier(g);
+
+    for (size_t i = (outputs + 1) / 2; i > 1; i = (i + 1) / 2) {
+      if (lid < i && lid + i < outputs)
+        scratch[lid] = binary_op(scratch[lid], scratch[lid + i]);
+      outputs = outputs / 2 + outputs % 2;
+      group_barrier(g);
+    }
+
+    return binary_op(scratch[0], scratch[1]);
   }
 }
 
@@ -378,6 +430,19 @@ T *inclusive_scan(Group g, V *first, V *last, T *result, BinaryOperation binary_
   return group_broadcast(g, result);
 }
 
+template<typename Group, typename V, typename T, typename BinaryOperation>
+HIPSYCL_KERNEL_TARGET
+T *leader_inclusive_scan(Group g, V *first, V *last, T *result, T init, BinaryOperation binary_op) {
+  return inclusive_scan(g, first, last, result, init, binary_op);
+}
+
+template<typename Group, typename V, typename T, typename BinaryOperation>
+HIPSYCL_KERNEL_TARGET
+T *leader_inclusive_scan(Group g, V *first, V *last, T *result, BinaryOperation binary_op) {
+  return inclusive_scan(g, first, last, result, binary_op);
+}
+
+
 // exclusive_scan
 template<typename Group, typename V, typename T, typename BinaryOperation>
 HIPSYCL_KERNEL_TARGET
@@ -392,6 +457,18 @@ template<typename Group, typename V, typename T, typename BinaryOperation>
 HIPSYCL_KERNEL_TARGET
 T *exclusive_scan(Group g, V *first, V *last, T *result, BinaryOperation binary_op) {
   return exclusive_scan(g, first, last, result, T{}, binary_op);
+}
+
+template<typename Group, typename V, typename T, typename BinaryOperation>
+HIPSYCL_KERNEL_TARGET
+T *leader_exclusive_scan(Group g, V *first, V *last, T *result, T init, BinaryOperation binary_op) {
+  return exclusive_scan(g, first, last, result, init, binary_op);
+}
+
+template<typename Group, typename V, typename T, typename BinaryOperation>
+HIPSYCL_KERNEL_TARGET
+T *eleader_xclusive_scan(Group g, V *first, V *last, T *result, BinaryOperation binary_op) {
+  return exclusive_scan(g, first, last, result, binary_op);
 }
 
 } // namespace detail
