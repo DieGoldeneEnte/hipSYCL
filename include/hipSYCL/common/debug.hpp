@@ -29,10 +29,10 @@
 #define HIPSYCL_DEBUG_HPP
 
 #include <algorithm>
-#define HIPSYCL_DEBUG_LEVEL_NONE 0
-#define HIPSYCL_DEBUG_LEVEL_ERROR 1
+#define HIPSYCL_DEBUG_LEVEL_NONE    0
+#define HIPSYCL_DEBUG_LEVEL_ERROR   1
 #define HIPSYCL_DEBUG_LEVEL_WARNING 2
-#define HIPSYCL_DEBUG_LEVEL_INFO 3
+#define HIPSYCL_DEBUG_LEVEL_INFO    3
 #define HIPSYCL_DEBUG_LEVEL_VERBOSE 4
 
 #ifndef HIPSYCL_DEBUG_LEVEL
@@ -57,37 +57,34 @@ public:
   }
 
   std::ostream &get_stream() const { return _output_stream; }
-  int get_debug_level() const { return _debug_level; }
+  int           get_debug_level() const { return _debug_level; }
 
 private:
-  
-  output_stream()
-  : _debug_level {HIPSYCL_DEBUG_LEVEL}, _output_stream{std::cout} {
+  output_stream() : _debug_level{HIPSYCL_DEBUG_LEVEL}, _output_stream{std::cout} {
 #ifndef HIPSYCL_COMPILER_COMPONENT
-    _debug_level =
-        rt::application::get_settings().get<rt::setting::debug_level>();
+    _debug_level = rt::application::get_settings().get<rt::setting::debug_level>();
 #else
     const char *env = std::getenv("HIPSYCL_DEBUG_LEVEL");
     if (env) {
-      if (std::string{env}.find_first_not_of("0123456789") ==
-          std::string::npos) {
+      if (std::string{env}.find_first_not_of("0123456789") == std::string::npos) {
         _debug_level = std::stoi(std::string{env});
       }
     }
 #endif
   }
 
-  int _debug_level;
-  std::ostream& _output_stream;
+  int           _debug_level;
+  std::ostream &_output_stream;
 };
 
-}
-}
+} // namespace common
+} // namespace hipsycl
 
-#define HIPSYCL_DEBUG_STREAM(level, prefix)                                    \
-  if (level > ::hipsycl::common::output_stream::get().get_debug_level())       \
-    ;                                                                          \
-  else ::hipsycl::common::output_stream::get().get_stream() << prefix
+#define HIPSYCL_DEBUG_STREAM(level, prefix)                              \
+  if (level > ::hipsycl::common::output_stream::get().get_debug_level()) \
+    ;                                                                    \
+  else                                                                   \
+    ::hipsycl::common::output_stream::get().get_stream() << prefix
 
 #ifdef HIPSYCL_DEBUG_NOCOLOR
 #define HIPSYCL_DEBUG_PREFIX_ERROR   "[hipSYCL Error] "
@@ -100,18 +97,15 @@ private:
 #endif
 
 #define HIPSYCL_DEBUG_ERROR \
-  HIPSYCL_DEBUG_STREAM(HIPSYCL_DEBUG_LEVEL_ERROR, \
-                      HIPSYCL_DEBUG_PREFIX_ERROR)
+  HIPSYCL_DEBUG_STREAM(HIPSYCL_DEBUG_LEVEL_ERROR, HIPSYCL_DEBUG_PREFIX_ERROR)
 
 
 #define HIPSYCL_DEBUG_WARNING \
-  HIPSYCL_DEBUG_STREAM(HIPSYCL_DEBUG_LEVEL_WARNING, \
-                      HIPSYCL_DEBUG_PREFIX_WARNING)
+  HIPSYCL_DEBUG_STREAM(HIPSYCL_DEBUG_LEVEL_WARNING, HIPSYCL_DEBUG_PREFIX_WARNING)
 
 
 #define HIPSYCL_DEBUG_INFO \
-  HIPSYCL_DEBUG_STREAM(HIPSYCL_DEBUG_LEVEL_INFO, \
-                      HIPSYCL_DEBUG_PREFIX_INFO)
+  HIPSYCL_DEBUG_STREAM(HIPSYCL_DEBUG_LEVEL_INFO, HIPSYCL_DEBUG_PREFIX_INFO)
 
 
 #endif

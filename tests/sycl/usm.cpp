@@ -43,18 +43,15 @@ BOOST_AUTO_TEST_CASE(allocation_functions) {
 
   std::size_t count = 1024;
 
-  int *device_mem_ptr = sycl::malloc_device<int>(count, q);
-  int *aligned_device_mem_ptr =
-      sycl::aligned_alloc_device<int>(sizeof(int), count, q);
-  int *host_ptr = sycl::malloc_host<int>(count, q);
-  int *aligned_host_ptr =
-      sycl::aligned_alloc_host<int>(sizeof(int), count, q);
-  int *shared_ptr = sycl::malloc_shared<int>(count, q);
-  int *aligned_shared_ptr =
-      sycl::aligned_alloc_shared<int>(sizeof(int), count, q);
+  int *device_mem_ptr         = sycl::malloc_device<int>(count, q);
+  int *aligned_device_mem_ptr = sycl::aligned_alloc_device<int>(sizeof(int), count, q);
+  int *host_ptr               = sycl::malloc_host<int>(count, q);
+  int *aligned_host_ptr       = sycl::aligned_alloc_host<int>(sizeof(int), count, q);
+  int *shared_ptr             = sycl::malloc_shared<int>(count, q);
+  int *aligned_shared_ptr     = sycl::aligned_alloc_shared<int>(sizeof(int), count, q);
   std::vector<int> unregistered_data(100);
-  
-  
+
+
   BOOST_TEST(device_mem_ptr != nullptr);
   BOOST_TEST(aligned_device_mem_ptr != nullptr);
   BOOST_TEST(host_ptr != nullptr);
@@ -75,8 +72,7 @@ BOOST_AUTO_TEST_CASE(allocation_functions) {
     verify_allocation_type(shared_ptr, sycl::usm::alloc::host);
     verify_allocation_type(aligned_shared_ptr, sycl::usm::alloc::host);
     verify_allocation_type(unregistered_data.data(), sycl::usm::alloc::host);
-  }
-  else {
+  } else {
     verify_allocation_type(device_mem_ptr, sycl::usm::alloc::device);
     verify_allocation_type(aligned_device_mem_ptr, sycl::usm::alloc::device);
     verify_allocation_type(host_ptr, sycl::usm::alloc::host);
@@ -102,15 +98,14 @@ BOOST_AUTO_TEST_CASE(allocation_functions) {
   verify_device(aligned_host_ptr);
   verify_device(shared_ptr);
   verify_device(aligned_shared_ptr);
-  
-  
+
+
   sycl::free(device_mem_ptr, q);
   sycl::free(aligned_device_mem_ptr, q);
   sycl::free(host_ptr, q);
   sycl::free(aligned_host_ptr, q);
   sycl::free(shared_ptr, q);
   sycl::free(aligned_shared_ptr, q);
-
 }
 
 BOOST_AUTO_TEST_CASE(explicit_queue_dependencies) {
@@ -121,15 +116,13 @@ BOOST_AUTO_TEST_CASE(explicit_queue_dependencies) {
 
   // Make sure that there are no dependencies between tasks
   // by default
-  sycl::event evt1 = q.submit([&](sycl::handler &cgh) {
-    cgh.single_task<class Queue_deps_kernel1>([](){});
-  });
+  sycl::event evt1 = q.submit(
+      [&](sycl::handler &cgh) { cgh.single_task<class Queue_deps_kernel1>([]() {}); });
 
   BOOST_CHECK(evt1.get_wait_list().empty());
 
-  sycl::event evt2 = q.submit([&](sycl::handler &cgh) {
-    cgh.single_task<class Queue_deps_kernel2>([](){});
-  });
+  sycl::event evt2 = q.submit(
+      [&](sycl::handler &cgh) { cgh.single_task<class Queue_deps_kernel2>([]() {}); });
 
   BOOST_CHECK(evt2.get_wait_list().empty());
 
@@ -137,7 +130,7 @@ BOOST_AUTO_TEST_CASE(explicit_queue_dependencies) {
   // depends_on()
   sycl::event evt3 = q.submit([&](sycl::handler &cgh) {
     cgh.depends_on(evt2);
-    cgh.single_task<class Queue_deps_kernel3>([](){});
+    cgh.single_task<class Queue_deps_kernel3>([]() {});
   });
 
   BOOST_CHECK(evt3.get_wait_list().size() == 1);
@@ -145,7 +138,7 @@ BOOST_AUTO_TEST_CASE(explicit_queue_dependencies) {
 
   sycl::event evt4 = q.submit([&](sycl::handler &cgh) {
     cgh.depends_on(evt3);
-    cgh.single_task<class Queue_deps_kernel4>([](){});
+    cgh.single_task<class Queue_deps_kernel4>([]() {});
   });
 
   BOOST_CHECK(evt4.get_wait_list().size() == 1);
@@ -159,20 +152,20 @@ BOOST_AUTO_TEST_CASE(in_order_queue) {
   BOOST_CHECK(q.is_in_order());
 
   sycl::event evt1 = q.submit([&](sycl::handler &cgh) {
-    cgh.single_task<class In_order_queue_kernel1>([](){});
+    cgh.single_task<class In_order_queue_kernel1>([]() {});
   });
 
   BOOST_CHECK(evt1.get_wait_list().empty());
 
   sycl::event evt2 = q.submit([&](sycl::handler &cgh) {
-    cgh.single_task<class In_order_queue_kernel2>([](){});
+    cgh.single_task<class In_order_queue_kernel2>([]() {});
   });
 
   BOOST_CHECK(evt2.get_wait_list().size() == 1);
   BOOST_CHECK(evt2.get_wait_list()[0] == evt1);
 
   sycl::event evt3 = q.submit([&](sycl::handler &cgh) {
-    cgh.single_task<class In_order_queue_kernel3>([](){});
+    cgh.single_task<class In_order_queue_kernel3>([]() {});
   });
 
   BOOST_CHECK(evt3.get_wait_list().size() == 1);
@@ -182,25 +175,24 @@ BOOST_AUTO_TEST_CASE(in_order_queue) {
 BOOST_AUTO_TEST_CASE(allocations_in_kernels) {
   sycl::queue q{sycl::property_list{sycl::property::queue::in_order{}}};
 
-  std::size_t test_size = 4096;
-  int *shared_allocation = sycl::malloc_shared<int>(test_size, q);
-  int *explicit_allocation = sycl::malloc_device<int>(test_size, q);
-  int *mapped_host_allocation = sycl::malloc_host<int>(test_size, q);
-  
+  std::size_t test_size              = 4096;
+  int *       shared_allocation      = sycl::malloc_shared<int>(test_size, q);
+  int *       explicit_allocation    = sycl::malloc_device<int>(test_size, q);
+  int *       mapped_host_allocation = sycl::malloc_host<int>(test_size, q);
+
   q.single_task<class usm_alloc_single_task>([=]() {
     for (int i = 0; i < test_size; ++i) {
-      shared_allocation[i] = i;
-      explicit_allocation[i] = i;
+      shared_allocation[i]      = i;
+      explicit_allocation[i]    = i;
       mapped_host_allocation[i] = i;
     }
   });
 
-  q.parallel_for<class usm_alloc_pf>(sycl::range<1>{test_size},
-                                     [=](sycl::id<1> idx) {
-                                       shared_allocation[idx.get(0)] += 1;
-                                       explicit_allocation[idx.get(0)] += 1;
-                                       mapped_host_allocation[idx.get(0)] += 1;
-                                     });
+  q.parallel_for<class usm_alloc_pf>(sycl::range<1>{test_size}, [=](sycl::id<1> idx) {
+    shared_allocation[idx.get(0)] += 1;
+    explicit_allocation[idx.get(0)] += 1;
+    mapped_host_allocation[idx.get(0)] += 1;
+  });
 
   q.parallel_for<class usm_alloc_ndrange_pf>(
       sycl::nd_range<1>{sycl::range<1>{test_size}, sycl::range<1>{128}},
@@ -211,11 +203,10 @@ BOOST_AUTO_TEST_CASE(allocations_in_kernels) {
       });
 
   std::vector<int> host_explicit_allocation(test_size);
-  q.memcpy(host_explicit_allocation.data(), explicit_allocation,
-           test_size * sizeof(int));
+  q.memcpy(host_explicit_allocation.data(), explicit_allocation, test_size * sizeof(int));
   q.wait();
 
-  for (int i = 0; i < test_size; ++i){
+  for (int i = 0; i < test_size; ++i) {
     BOOST_TEST(shared_allocation[i] == i + 2);
     BOOST_TEST(host_explicit_allocation[i] == i + 2);
     BOOST_TEST(mapped_host_allocation[i] == i + 2);
@@ -228,7 +219,7 @@ BOOST_AUTO_TEST_CASE(allocations_in_kernels) {
 BOOST_AUTO_TEST_CASE(memcpy) {
   sycl::queue q{sycl::property_list{sycl::property::queue::in_order{}}};
 
-  std::size_t test_size = 4096;
+  std::size_t      test_size = 4096;
   std::vector<int> initial_data(test_size);
 
   for (std::size_t i = 0; i < initial_data.size(); ++i)
@@ -276,7 +267,7 @@ BOOST_AUTO_TEST_CASE(memcpy) {
     for (std::size_t i = 0; i < test_size; ++i)
       BOOST_TEST(shared_mem[i] == initial_data[i]);
 
-    int *device_mem2 = sycl::malloc_device<int>(test_size, q);
+    int *            device_mem2 = sycl::malloc_device<int>(test_size, q);
     std::vector<int> host_data(test_size);
 
     q.memcpy(device_mem2, shared_mem, sizeof(int) * test_size);
@@ -286,7 +277,7 @@ BOOST_AUTO_TEST_CASE(memcpy) {
 
     for (std::size_t i = 0; i < test_size; ++i)
       BOOST_TEST(host_data[i] == initial_data[i]);
-    
+
     sycl::free(device_mem, q);
     sycl::free(device_mem2, q);
     sycl::free(shared_mem, q);
@@ -294,7 +285,7 @@ BOOST_AUTO_TEST_CASE(memcpy) {
 
   // memcpy host->host
   {
-    int *host_mem = sycl::malloc_host<int>(test_size, q);
+    int *host_mem  = sycl::malloc_host<int>(test_size, q);
     int *host_mem2 = sycl::malloc_host<int>(test_size, q);
 
     for (std::size_t i = 0; i < test_size; ++i)
@@ -312,10 +303,10 @@ BOOST_AUTO_TEST_CASE(memcpy) {
 
   // memcpy device->device
   {
-    int *device_mem = sycl::malloc_device<int>(test_size, q);
-    int *device_mem2 = sycl::malloc_device<int>(test_size, q);
+    int *            device_mem  = sycl::malloc_device<int>(test_size, q);
+    int *            device_mem2 = sycl::malloc_device<int>(test_size, q);
     std::vector<int> host_data(test_size);
-    
+
     q.memcpy(device_mem, initial_data.data(), test_size * sizeof(int));
     q.memcpy(device_mem2, device_mem, test_size * sizeof(int));
     q.memcpy(host_data.data(), device_mem2, test_size * sizeof(int));
@@ -324,12 +315,12 @@ BOOST_AUTO_TEST_CASE(memcpy) {
     for (std::size_t i = 0; i < test_size; ++i)
       BOOST_TEST(host_data[i] == initial_data[i]);
 
-    sycl::free(device_mem,  q);
+    sycl::free(device_mem, q);
     sycl::free(device_mem2, q);
   }
   // memcpy shared->shared
   {
-    int *shared_mem = sycl::malloc_shared<int>(test_size, q);
+    int *shared_mem  = sycl::malloc_shared<int>(test_size, q);
     int *shared_mem2 = sycl::malloc_shared<int>(test_size, q);
 
     for (std::size_t i = 0; i < test_size; ++i)
@@ -348,13 +339,13 @@ BOOST_AUTO_TEST_CASE(memcpy) {
 BOOST_AUTO_TEST_CASE(usm_fill) {
   sycl::queue q{sycl::property_list{sycl::property::queue::in_order{}}};
 
-  std::size_t test_size = 4096;
-  int* shared_mem = sycl::malloc_shared<int>(test_size, q);
+  std::size_t test_size  = 4096;
+  int *       shared_mem = sycl::malloc_shared<int>(test_size, q);
   for (int i = 0; i < test_size; ++i)
     shared_mem[i] = 0;
 
   int fill_value = 1234567890;
-  q.fill(shared_mem+1, fill_value, test_size-2);
+  q.fill(shared_mem + 1, fill_value, test_size - 2);
   q.wait();
 
   for (int i = 0; i < test_size; ++i) {
@@ -369,8 +360,8 @@ BOOST_AUTO_TEST_CASE(usm_fill) {
 BOOST_AUTO_TEST_CASE(memset) {
   sycl::queue q{sycl::property_list{sycl::property::queue::in_order{}}};
 
-  std::size_t test_size = 4096;
-  unsigned char *mem = sycl::malloc_device<unsigned char>(test_size, q);
+  std::size_t    test_size = 4096;
+  unsigned char *mem       = sycl::malloc_device<unsigned char>(test_size, q);
 
   q.memset(mem, 0, test_size);
   q.memset(mem + 1, 12, test_size - 2);
@@ -391,17 +382,16 @@ BOOST_AUTO_TEST_CASE(memset) {
 BOOST_AUTO_TEST_CASE(prefetch) {
   sycl::queue q{sycl::property_list{sycl::property::queue::in_order{}}};
 
-  std::size_t test_size = 4096;
-  int *shared_mem = sycl::malloc_shared<int>(test_size, q);
+  std::size_t test_size  = 4096;
+  int *       shared_mem = sycl::malloc_shared<int>(test_size, q);
 
   for (std::size_t i = 0; i < test_size; ++i)
     shared_mem[i] = i;
 
   q.prefetch(shared_mem, test_size * sizeof(int));
   q.parallel_for<class usm_prefetch_test_kernel>(
-      sycl::range<1>{test_size},
-      [=](sycl::id<1> idx) { shared_mem[idx.get(0)] += 1; });
-  
+      sycl::range<1>{test_size}, [=](sycl::id<1> idx) { shared_mem[idx.get(0)] += 1; });
+
   q.wait();
 
   // Test prefetching to host using a host_queue
@@ -412,7 +402,7 @@ BOOST_AUTO_TEST_CASE(prefetch) {
   }
   for (std::size_t i = 0; i < test_size; ++i)
     BOOST_TEST(shared_mem[i] == i + 1);
-  
+
   sycl::free(shared_mem, q);
 }
 BOOST_AUTO_TEST_SUITE_END() // NOTE: Make sure not to add anything below this

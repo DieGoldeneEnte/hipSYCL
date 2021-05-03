@@ -40,26 +40,21 @@ class device;
 
 namespace info {
 
-enum class context : int {
+enum class context : int
+{
   reference_count,
   platform,
   devices
 };
 
-HIPSYCL_PARAM_TRAIT_RETURN_VALUE(context,
-                                 context::reference_count,
-                                 detail::u_int);
+HIPSYCL_PARAM_TRAIT_RETURN_VALUE(context, context::reference_count, detail::u_int);
 
-HIPSYCL_PARAM_TRAIT_RETURN_VALUE(context,
-                                 context::platform,
-                                 sycl::platform);
+HIPSYCL_PARAM_TRAIT_RETURN_VALUE(context, context::platform, sycl::platform);
 
-HIPSYCL_PARAM_TRAIT_RETURN_VALUE(context,
-                                 context::devices,
-                                 vector_class<sycl::device>);
+HIPSYCL_PARAM_TRAIT_RETURN_VALUE(context, context::devices, vector_class<sycl::device>);
 
-}
-}
-}
+} // namespace info
+} // namespace sycl
+} // namespace hipsycl
 
 #endif

@@ -38,42 +38,33 @@ using namespace hipsycl;
 
 BOOST_FIXTURE_TEST_SUITE(data, reset_device_fixture)
 BOOST_AUTO_TEST_CASE(page_table) {
-  rt::range_store::rect full_range{rt::id<3>{0, 0, 0},
-                                   rt::range<3>{16, 16, 16}};
-  rt::range_store::rect fill_subrange{rt::id<3>{2, 3, 4},
-                                      rt::range<3>{4, 4, 4}};
-  rt::range_store::rect intersection_subrange(rt::id<3>{2, 2, 2},
-                                              rt::range<3>{4, 4, 4});
+  rt::range_store::rect full_range{rt::id<3>{0, 0, 0}, rt::range<3>{16, 16, 16}};
+  rt::range_store::rect fill_subrange{rt::id<3>{2, 3, 4}, rt::range<3>{4, 4, 4}};
+  rt::range_store::rect intersection_subrange(rt::id<3>{2, 2, 2}, rt::range<3>{4, 4, 4});
 
   struct input_configuration {
-    rt::range_store::rect page_table_size;
-    rt::range_store::rect filled_subrange;
-    rt::range_store::rect intersection_subrange;
+    rt::range_store::rect              page_table_size;
+    rt::range_store::rect              filled_subrange;
+    rt::range_store::rect              intersection_subrange;
     std::vector<rt::range_store::rect> expected_intersections;
   };
 
   // TODO Test more configurations
-  std::vector<input_configuration> configurations {
-    {
-      rt::range_store::rect{rt::id<3>{0, 0, 0}, rt::range<3>{16, 16, 16}},
-      rt::range_store::rect{rt::id<3>{2, 3, 4}, rt::range<3>{4, 4, 4}},
-      rt::range_store::rect{rt::id<3>{2, 2, 2}, rt::range<3>{4, 4, 4}},
-      {
-        rt::range_store::rect{rt::id<3>{2,3,4}, rt::range<3>{4,3,2}}
-      }
-    }
-  };
+  std::vector<input_configuration> configurations{
+      {rt::range_store::rect{rt::id<3>{0, 0, 0}, rt::range<3>{16, 16, 16}},
+       rt::range_store::rect{rt::id<3>{2, 3, 4}, rt::range<3>{4, 4, 4}},
+       rt::range_store::rect{rt::id<3>{2, 2, 2}, rt::range<3>{4, 4, 4}},
+       {rt::range_store::rect{rt::id<3>{2, 3, 4}, rt::range<3>{4, 3, 2}}}}};
 
   for (auto config : configurations) {
 
-    auto full_range = config.page_table_size;
-    auto fill_subrange = config.filled_subrange;
+    auto full_range            = config.page_table_size;
+    auto fill_subrange         = config.filled_subrange;
     auto intersection_subrange = config.intersection_subrange;
 
     rt::range_store pt(full_range.second);
 
-    BOOST_CHECK(
-        pt.entire_range_equals(full_range, rt::range_store::data_state::empty));
+    BOOST_CHECK(pt.entire_range_equals(full_range, rt::range_store::data_state::empty));
     BOOST_CHECK(pt.entire_range_empty(full_range));
     BOOST_CHECK(!pt.entire_range_filled(full_range));
     BOOST_CHECK(pt.get_size() == full_range.second);

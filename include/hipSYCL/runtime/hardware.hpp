@@ -35,7 +35,8 @@
 namespace hipsycl {
 namespace rt {
 
-enum class device_support_aspect {
+enum class device_support_aspect
+{
   images,
   error_correction,
   host_unified_memory,
@@ -53,7 +54,8 @@ enum class device_support_aspect {
   usm_system_allocations
 };
 
-enum class device_uint_property {
+enum class device_uint_property
+{
   max_compute_units,
   max_global_size0,
   max_global_size1,
@@ -106,12 +108,10 @@ enum class device_uint_property {
   vendor_id
 };
 
-enum class device_uint_list_property {
-  sub_group_sizes
-};
+enum class device_uint_list_property
+{ sub_group_sizes };
 
-class hardware_context
-{
+class hardware_context {
 public:
   virtual bool is_cpu() const = 0;
   virtual bool is_gpu() const = 0;
@@ -127,31 +127,28 @@ public:
   virtual std::string get_device_arch() const = 0;
 
   virtual bool has(device_support_aspect aspect) const = 0;
-  
+
   virtual std::size_t get_property(device_uint_property prop) const = 0;
 
-  virtual std::vector<std::size_t>
-  get_property(device_uint_list_property prop) const = 0;
+  virtual std::vector<std::size_t> get_property(device_uint_list_property prop) const = 0;
 
   virtual std::string get_driver_version() const = 0;
-  virtual std::string get_profile() const = 0;
-  
-  virtual ~hardware_context(){}
+  virtual std::string get_profile() const        = 0;
+
+  virtual ~hardware_context() {}
 };
 
-class backend_hardware_manager
-{
+class backend_hardware_manager {
 public:
-  virtual std::size_t get_num_devices() const = 0;
-  virtual hardware_context *get_device(std::size_t index) = 0;
-  virtual device_id get_device_id(std::size_t index) const = 0;
+  virtual std::size_t       get_num_devices() const                = 0;
+  virtual hardware_context *get_device(std::size_t index)          = 0;
+  virtual device_id         get_device_id(std::size_t index) const = 0;
 
-  virtual ~backend_hardware_manager(){}
+  virtual ~backend_hardware_manager() {}
 };
 
 
-
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

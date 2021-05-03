@@ -53,9 +53,9 @@ HIPSYCL_PARAM_TRAIT_RETURN_VALUE(queue, queue::device, sycl::device);
 HIPSYCL_PARAM_TRAIT_RETURN_VALUE(queue, queue::reference_count, detail::u_int);
 HIPSYCL_PARAM_TRAIT_RETURN_VALUE(queue, queue::hipSYCL_node_group, std::size_t);
 
-}
-}
-}
+} // namespace info
+} // namespace sycl
+} // namespace hipsycl
 
 
 #endif

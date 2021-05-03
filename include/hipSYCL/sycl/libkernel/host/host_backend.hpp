@@ -35,13 +35,13 @@
 // We are in the "device pass" for the host target
 // if we are not in an actual device pass
 #ifndef HIPSYCL_LIBKERNEL_DEVICE_PASS
- #define HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HOST 1
+#define HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HOST 1
 
- // TODO: Do we need those still?
- #define HIPSYCL_UNIVERSAL_TARGET
- #define HIPSYCL_KERNEL_TARGET
- #define HIPSYCL_HOST_TARGET
+// TODO: Do we need those still?
+#define HIPSYCL_UNIVERSAL_TARGET
+#define HIPSYCL_KERNEL_TARGET
+#define HIPSYCL_HOST_TARGET
 #else
- #define HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HOST 0
+#define HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HOST 0
 #endif
 #endif

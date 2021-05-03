@@ -36,8 +36,7 @@ namespace hipsycl {
 namespace rt {
 
 
-class hip_queue : public inorder_queue
-{
+class hip_queue : public inorder_queue {
 public:
   hip_queue(device_id dev);
 
@@ -48,28 +47,29 @@ public:
   /// Inserts an event into the stream
   virtual std::shared_ptr<dag_node_event> insert_event() override;
 
-  virtual result submit_memcpy(const memcpy_operation&, dag_node_ptr) override;
-  virtual result submit_kernel(const kernel_operation&, dag_node_ptr) override;
+  virtual result submit_memcpy(const memcpy_operation &, dag_node_ptr) override;
+  virtual result submit_kernel(const kernel_operation &, dag_node_ptr) override;
   virtual result submit_prefetch(const prefetch_operation &, dag_node_ptr) override;
-  virtual result submit_memset(const memset_operation&, dag_node_ptr) override;
-  
+  virtual result submit_memset(const memset_operation &, dag_node_ptr) override;
+
   /// Causes the queue to wait until an event on another queue has occured.
   /// the other queue must be from the same backend
   virtual result submit_queue_wait_for(std::shared_ptr<dag_node_event> evt) override;
   virtual result submit_external_wait_for(dag_node_ptr node) override;
 
   virtual device_id get_device() const override;
-  virtual void* get_native_type() const override;
+  virtual void *    get_native_type() const override;
 
-  virtual module_invoker* get_module_invoker() override;
+  virtual module_invoker *get_module_invoker() override;
+
 private:
   void activate_device() const;
-  
-  device_id _dev;
+
+  device_id   _dev;
   hipStream_t _stream;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

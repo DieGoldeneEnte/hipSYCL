@@ -37,64 +37,74 @@ namespace hipsycl {
 namespace sycl {
 
 template<typename DT, HIPSYCL_ENABLE_IF_FLOATING_POINT(DT)>
-HIPSYCL_KERNEL_TARGET inline vec<DT, 3> cross(vec<DT, 3> a, vec<DT, 3> b) {
-  return {a.y() * b.z() - a.z() * b.y(),
-          a.z() * b.x() - a.x() * b.z(),
+HIPSYCL_KERNEL_TARGET
+inline vec<DT, 3> cross(vec<DT, 3> a, vec<DT, 3> b) {
+  return {a.y() * b.z() - a.z() * b.y(), a.z() * b.x() - a.x() * b.z(),
           a.x() * b.y() - a.y() * b.x()};
 }
 template<typename DT, HIPSYCL_ENABLE_IF_FLOATING_POINT(DT)>
-HIPSYCL_KERNEL_TARGET inline vec<DT, 4> cross(vec<DT, 4> a, vec<DT, 4> b) {
-  auto c =
-      cross(vec<DT, 3>{a.x(), a.y(), a.z()}, vec<DT, 3>{b.x(), b.y(), b.z()});
+HIPSYCL_KERNEL_TARGET
+inline vec<DT, 4> cross(vec<DT, 4> a, vec<DT, 4> b) {
+  auto c = cross(vec<DT, 3>{a.x(), a.y(), a.z()}, vec<DT, 3>{b.x(), b.y(), b.z()});
   return {c.x(), c.y(), c.z(), DT{0}};
 }
 
 template<typename DT, HIPSYCL_ENABLE_IF_FLOATING_POINT(DT)>
-HIPSYCL_KERNEL_TARGET inline DT dot(DT a, DT b) {
+HIPSYCL_KERNEL_TARGET
+inline DT dot(DT a, DT b) {
   return a * b;
 }
 template<typename DT, HIPSYCL_ENABLE_IF_FLOATING_POINT(DT)>
-HIPSYCL_KERNEL_TARGET inline DT dot(vec<DT, 2> a, vec<DT, 2> b) {
+HIPSYCL_KERNEL_TARGET
+inline DT dot(vec<DT, 2> a, vec<DT, 2> b) {
   return a.x() * b.x() + a.y() * b.y();
 }
 template<typename DT, HIPSYCL_ENABLE_IF_FLOATING_POINT(DT)>
-HIPSYCL_KERNEL_TARGET inline DT dot(vec<DT, 3> a, vec<DT, 3> b) {
+HIPSYCL_KERNEL_TARGET
+inline DT dot(vec<DT, 3> a, vec<DT, 3> b) {
   return a.x() * b.x() + a.y() * b.y() + a.z() * b.z();
 }
 template<typename DT, HIPSYCL_ENABLE_IF_FLOATING_POINT(DT)>
-HIPSYCL_KERNEL_TARGET inline DT dot(vec<DT, 4> a, vec<DT, 4> b) {
+HIPSYCL_KERNEL_TARGET
+inline DT dot(vec<DT, 4> a, vec<DT, 4> b) {
   return a.x() * b.x() + a.y() * b.y() + a.z() * b.z() + a.w() * b.w();
 }
 
 template<typename T, std::enable_if_t<traits::is_geo_v<T>, int> = 0>
-HIPSYCL_KERNEL_TARGET inline auto length(T v) {
+HIPSYCL_KERNEL_TARGET
+inline auto length(T v) {
   return sqrt(dot(v, v));
 }
 
 template<typename T, std::enable_if_t<traits::is_geo_v<T>, int> = 0>
-HIPSYCL_KERNEL_TARGET inline auto distance(T p0, T p1) {
+HIPSYCL_KERNEL_TARGET
+inline auto distance(T p0, T p1) {
   return length(p0 - p1);
 }
 
 template<typename T, std::enable_if_t<traits::is_geo_v<T>, int> = 0>
-HIPSYCL_KERNEL_TARGET inline auto normalize(T v) {
+HIPSYCL_KERNEL_TARGET
+inline auto normalize(T v) {
   return v / length(v);
 }
 
 // Fast* functions simply map to standard implementations for now
 
 template<typename T, std::enable_if_t<traits::is_gengeofloat_v<T>, int> = 0>
-HIPSYCL_KERNEL_TARGET inline auto fast_distance(T p0, T p1) {
+HIPSYCL_KERNEL_TARGET
+inline auto fast_distance(T p0, T p1) {
   return distance(p0, p1);
 }
 
 template<typename T, std::enable_if_t<traits::is_gengeofloat_v<T>, int> = 0>
-HIPSYCL_KERNEL_TARGET inline auto fast_length(T v) {
+HIPSYCL_KERNEL_TARGET
+inline auto fast_length(T v) {
   return length(v);
 }
 
 template<typename T, std::enable_if_t<traits::is_gengeofloat_v<T>, int> = 0>
-HIPSYCL_KERNEL_TARGET inline auto fast_normalize(T v) {
+HIPSYCL_KERNEL_TARGET
+inline auto fast_normalize(T v) {
   return normalize(v);
 }
 

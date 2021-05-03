@@ -43,112 +43,104 @@ namespace sycl {
 
 class event {
   friend class handler;
+
 public:
-  event()
-  {}
+  event() {}
 
   event(
       const rt::dag_node_ptr &evt,
-      async_handler handler =
-          [](exception_list e) { glue::default_async_handler(e); })
+      async_handler handler = [](exception_list e) { glue::default_async_handler(e); })
       : _node{evt} {}
 
-  std::vector<event> get_wait_list()
-  {
-    if(_node) {
+  std::vector<event> get_wait_list() {
+    if (_node) {
       std::vector<event> events;
 
-      for(auto node : _node->get_requirements()) {
+      for (auto node : _node->get_requirements()) {
         // TODO Is it correct to just use our handler here?
         events.push_back(event{node, _handler});
       }
 
       return events;
-      
     }
     return std::vector<event>{};
   }
 
-  void wait()
-  {
-    if(this->_node){
-      if(!this->_node->is_submitted())
+  void wait() {
+    if (this->_node) {
+      if (!this->_node->is_submitted())
         rt::application::dag().flush_sync();
-      
+
       assert(this->_node->is_submitted());
       this->_node->wait();
     }
   }
 
-  static void wait(const vector_class<event> &eventList)
-  {
+  static void wait(const vector_class<event> &eventList) {
     // Only need a at most a single flush,
     // so check if any of the events are unsubmitted,
     // if so, perform a single flush.
     bool flush = false;
-    for(const event& evt: eventList)
-      if(evt._node)
-        if(!evt._node->is_submitted())
+    for (const event &evt : eventList)
+      if (evt._node)
+        if (!evt._node->is_submitted())
           flush = true;
 
-    if(flush)
+    if (flush)
       rt::application::dag().flush_sync();
 
-    for(const event& evt: eventList){
-      const_cast<event&>(evt).wait();
+    for (const event &evt : eventList) {
+      const_cast<event &>(evt).wait();
     }
   }
 
-  void wait_and_throw()
-  {
+  void wait_and_throw() {
     wait();
     glue::throw_asynchronous_errors(_handler);
   }
 
-  static void wait_and_throw(const vector_class<event> &eventList)
-  {
+  static void wait_and_throw(const vector_class<event> &eventList) {
     wait(eventList);
 
     // Just invoke handler of first event?
-    if(eventList.empty())
+    if (eventList.empty())
       glue::throw_asynchronous_errors(
           [](sycl::exception_list e) { glue::default_async_handler(e); });
     else
       glue::throw_asynchronous_errors(eventList.front()._handler);
   }
 
-  template <info::event param>
+  template<info::event param>
   typename info::param_traits<info::event, param>::return_type get_info() const;
 
-  template <info::event_profiling param>
-  typename info::param_traits<info::event_profiling, param>::return_type get_profiling_info() const
-  { throw unimplemented{"event::get_profiling_info() is unimplemented."}; }
+  template<info::event_profiling param>
+  typename info::param_traits<info::event_profiling, param>::return_type
+      get_profiling_info() const {
+    throw unimplemented{"event::get_profiling_info() is unimplemented."};
+  }
 
-  friend bool operator ==(const event& lhs, const event& rhs)
-  { return lhs._node == rhs._node; }
+  friend bool operator==(const event &lhs, const event &rhs) {
+    return lhs._node == rhs._node;
+  }
 
-  friend bool operator !=(const event& lhs, const event& rhs)
-  { return !(lhs == rhs); }
+  friend bool operator!=(const event &lhs, const event &rhs) { return !(lhs == rhs); }
 
 private:
-
   rt::dag_node_ptr _node;
-  async_handler _handler;
+  async_handler    _handler;
 };
 
-HIPSYCL_SPECIALIZE_GET_INFO(event, command_execution_status)
-{
-  if(_node->is_complete())
+HIPSYCL_SPECIALIZE_GET_INFO(event, command_execution_status) {
+  if (_node->is_complete())
     return info::event_command_status::complete;
 
-  if(_node->is_submitted())
+  if (_node->is_submitted())
     return info::event_command_status::running;
 
   return info::event_command_status::submitted;
 }
 
-HIPSYCL_SPECIALIZE_GET_INFO(event, reference_count)
-{
+HIPSYCL_SPECIALIZE_GET_INFO(event, reference_count) {
   return _node.use_count();
 }
 

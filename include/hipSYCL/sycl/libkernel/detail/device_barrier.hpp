@@ -31,8 +31,8 @@
 #include "hipSYCL/sycl/libkernel/backend.hpp"
 #include "hipSYCL/sycl/access.hpp"
 
-#if !HIPSYCL_LIBKERNEL_COMPILER_SUPPORTS_HIP &&                                \
-    !HIPSYCL_LIBKERNEL_COMPILER_SUPPORTS_CUDA &&                               \
+#if !HIPSYCL_LIBKERNEL_COMPILER_SUPPORTS_HIP &&  \
+    !HIPSYCL_LIBKERNEL_COMPILER_SUPPORTS_CUDA && \
     !HIPSYCL_LIBKERNEL_COMPILER_SUPPORTS_SPIRV
 #error "This file requires a device compiler"
 #endif
@@ -44,33 +44,29 @@ namespace detail {
 HIPSYCL_KERNEL_TARGET
 void local_device_barrier(
     access::fence_space space = access::fence_space::global_and_local) {
-#if HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_CUDA ||                                   \
-HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP
+#if HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_CUDA || HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP
   __syncthreads();
 #elif HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_SPIRV
-  uint32_t flags =  0;
-  
+  uint32_t flags = 0;
+
   if (space == access::fence_space::global_space) {
-    flags = static_cast<uint32_t>(
-                   __spv::MemorySemanticsMask::SequentiallyConsistent |
-                   __spv::MemorySemanticsMask::CrossWorkgroupMemory);
-  } else if (space == access::fence_space::local_space){
-    flags = static_cast<uint32_t>(
-                         __spv::MemorySemanticsMask::SequentiallyConsistent |
-                         __spv::MemorySemanticsMask::WorkgroupMemory);
+    flags = static_cast<uint32_t>(__spv::MemorySemanticsMask::SequentiallyConsistent |
+                                  __spv::MemorySemanticsMask::CrossWorkgroupMemory);
+  } else if (space == access::fence_space::local_space) {
+    flags = static_cast<uint32_t>(__spv::MemorySemanticsMask::SequentiallyConsistent |
+                                  __spv::MemorySemanticsMask::WorkgroupMemory);
   } else {
     flags = static_cast<uint32_t>(__spv::MemorySemanticsMask::SequentiallyConsistent |
-                       __spv::MemorySemanticsMask::CrossWorkgroupMemory |
-                       __spv::MemorySemanticsMask::WorkgroupMemory);
+                                  __spv::MemorySemanticsMask::CrossWorkgroupMemory |
+                                  __spv::MemorySemanticsMask::WorkgroupMemory);
   }
-  __spirv_ControlBarrier(__spv::Scope::Workgroup, __spv::Scope::Workgroup,
-                           flags);
+  __spirv_ControlBarrier(__spv::Scope::Workgroup, __spv::Scope::Workgroup, flags);
 #else
-  #warning device barrier called on CPU, this should not happen
+#warning device barrier called on CPU, this should not happen
 #endif
 }
-}
-}
-}
+} // namespace detail
+} // namespace sycl
+} // namespace hipsycl
 
 #endif

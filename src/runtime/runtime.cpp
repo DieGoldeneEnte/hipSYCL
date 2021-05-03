@@ -31,17 +31,13 @@
 namespace hipsycl {
 namespace rt {
 
-runtime::runtime()
-{
-  HIPSYCL_DEBUG_INFO << "runtime: ******* rt launch initiated ********"
-                      << std::endl;
+runtime::runtime() {
+  HIPSYCL_DEBUG_INFO << "runtime: ******* rt launch initiated ********" << std::endl;
 }
 
-runtime::~runtime()
-{
-  HIPSYCL_DEBUG_INFO << "runtime: ******* rt shutdown ********"
-                      << std::endl;
+runtime::~runtime() {
+  HIPSYCL_DEBUG_INFO << "runtime: ******* rt shutdown ********" << std::endl;
 }
 
-}
-}
+} // namespace rt
+} // namespace hipsycl

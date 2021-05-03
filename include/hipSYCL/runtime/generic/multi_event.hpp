@@ -35,36 +35,32 @@
 namespace hipsycl {
 namespace rt {
 
-class dag_multi_node_event : public dag_node_event
-{
+class dag_multi_node_event : public dag_node_event {
 public:
   dag_multi_node_event(std::vector<std::shared_ptr<dag_node_event>> events)
-  : _events(events)
-  {}
+      : _events(events) {}
 
   virtual bool is_complete() const override {
-    for(auto& evt : _events)
-      if(!evt->is_complete())
+    for (auto &evt : _events)
+      if (!evt->is_complete())
         return false;
     return true;
   }
 
   virtual void wait() override {
-    for(auto& evt : _events)
+    for (auto &evt : _events)
       evt->wait();
   }
 
   virtual ~dag_multi_node_event() {}
 
-  void add_event(std::shared_ptr<dag_node_event> evt){
-    _events.push_back(evt);
-  }
+  void add_event(std::shared_ptr<dag_node_event> evt) { _events.push_back(evt); }
 
 private:
   std::vector<std::shared_ptr<dag_node_event>> _events;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

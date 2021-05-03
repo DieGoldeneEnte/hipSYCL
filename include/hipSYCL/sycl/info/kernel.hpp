@@ -40,7 +40,8 @@ class program;
 
 namespace info {
 
-enum class kernel : int {
+enum class kernel : int
+{
   function_name,
   num_args,
   context,
@@ -65,20 +66,22 @@ enum class kernel_work_group : int
   private_mem_size
 };
 
-HIPSYCL_PARAM_TRAIT_RETURN_VALUE(kernel_work_group, 
-                                kernel_work_group::global_work_size, sycl::range<3>);
-HIPSYCL_PARAM_TRAIT_RETURN_VALUE(kernel_work_group, 
-                                kernel_work_group::work_group_size, size_t);
-HIPSYCL_PARAM_TRAIT_RETURN_VALUE(kernel_work_group, 
-                                kernel_work_group::compile_work_group_size, sycl::range<3>);
-HIPSYCL_PARAM_TRAIT_RETURN_VALUE(kernel_work_group, 
-                                kernel_work_group::preferred_work_group_size_multiple, size_t);
-HIPSYCL_PARAM_TRAIT_RETURN_VALUE(kernel_work_group, 
-                                kernel_work_group::private_mem_size, detail::u_long);
+HIPSYCL_PARAM_TRAIT_RETURN_VALUE(kernel_work_group, kernel_work_group::global_work_size,
+                                 sycl::range<3>);
+HIPSYCL_PARAM_TRAIT_RETURN_VALUE(kernel_work_group, kernel_work_group::work_group_size,
+                                 size_t);
+HIPSYCL_PARAM_TRAIT_RETURN_VALUE(kernel_work_group,
+                                 kernel_work_group::compile_work_group_size,
+                                 sycl::range<3>);
+HIPSYCL_PARAM_TRAIT_RETURN_VALUE(kernel_work_group,
+                                 kernel_work_group::preferred_work_group_size_multiple,
+                                 size_t);
+HIPSYCL_PARAM_TRAIT_RETURN_VALUE(kernel_work_group, kernel_work_group::private_mem_size,
+                                 detail::u_long);
 
-} // info
-} // sycl
-} // hipsycl
+} // namespace info
+} // namespace sycl
+} // namespace hipsycl
 
 
 #endif

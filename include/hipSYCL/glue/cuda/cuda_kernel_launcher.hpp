@@ -39,6 +39,6 @@ using cuda_kernel_launcher =
     hiplike_kernel_launcher<rt::backend_id::cuda, rt::cuda_queue>;
 
 }
-}
+} // namespace hipsycl
 
 #endif

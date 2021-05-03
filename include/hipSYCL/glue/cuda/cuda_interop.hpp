@@ -26,7 +26,6 @@
  */
 
 
-
 #include "hipSYCL/sycl/backend.hpp"
 #include "hipSYCL/sycl/device.hpp"
 
@@ -40,15 +39,16 @@
 namespace hipsycl {
 namespace glue {
 
-template <> struct backend_interop<sycl::backend::cuda> {
+template<>
+struct backend_interop<sycl::backend::cuda> {
   // Well, there's not a really a native error code type
   using error_type = int;
 
-  using native_mem_type = void *;
+  using native_mem_type    = void *;
   using native_device_type = int;
-  using native_queue_type = CUstream_st*;
+  using native_queue_type  = CUstream_st *;
 
-  template <class Accessor_type>
+  template<class Accessor_type>
   static native_mem_type get_native_mem(const Accessor_type &a) {
     return a.get_pointer();
   }
@@ -58,78 +58,73 @@ template <> struct backend_interop<sycl::backend::cuda> {
   }
 
 #ifdef __HIPSYCL_ENABLE_CUDA_TARGET__
-  static native_queue_type
-  get_native_queue(void *launcher_params) {
+  static native_queue_type get_native_queue(void *launcher_params) {
 
     if (!launcher_params) {
-      rt::register_error(
-          __hipsycl_here(),
-          rt::error_info{"Invalid argument to get_native_queue()"});
-      
+      rt::register_error(__hipsycl_here(),
+                         rt::error_info{"Invalid argument to get_native_queue()"});
+
       return native_queue_type{};
     }
 
-    rt::inorder_queue* q = static_cast<rt::inorder_queue*>(launcher_params);
+    rt::inorder_queue *q = static_cast<rt::inorder_queue *>(launcher_params);
     return static_cast<native_queue_type>(q->get_native_type());
   }
 
-  static native_queue_type
-  get_native_queue(rt::device_id dev, rt::backend_executor *executor) {
-    rt::multi_queue_executor *mqe =
-        dynamic_cast<rt::multi_queue_executor *>(executor);
+  static native_queue_type get_native_queue(rt::device_id         dev,
+                                            rt::backend_executor *executor) {
+    rt::multi_queue_executor *mqe = dynamic_cast<rt::multi_queue_executor *>(executor);
 
     if (!mqe) {
-      rt::register_error(
-          __hipsycl_here(),
-          rt::error_info{"Invalid argument to get_native_queue()"});
+      rt::register_error(__hipsycl_here(),
+                         rt::error_info{"Invalid argument to get_native_queue()"});
       return native_queue_type{};
     }
 
     rt::inorder_queue *q = nullptr;
-    mqe->for_each_queue(
-        dev, [&](rt::inorder_queue *current_queue) { q = current_queue; });
+    mqe->for_each_queue(dev,
+                        [&](rt::inorder_queue *current_queue) { q = current_queue; });
     assert(q);
 
     return static_cast<native_queue_type>(q->get_native_type());
   }
 #endif
-      
+
   static sycl::device make_sycl_device(int device_id) {
-    return sycl::device{
-        rt::device_id{rt::backend_descriptor{rt::hardware_platform::cuda,
-                                             rt::api_platform::cuda},
-                      device_id}};
+    return sycl::device{rt::device_id{
+        rt::backend_descriptor{rt::hardware_platform::cuda, rt::api_platform::cuda},
+        device_id}};
   }
 
-  static constexpr bool can_make_platform = false;
-  static constexpr bool can_make_device = true;
-  static constexpr bool can_make_context = false;
-  static constexpr bool can_make_queue = false;
-  static constexpr bool can_make_event = false;
-  static constexpr bool can_make_buffer = false;
+  static constexpr bool can_make_platform      = false;
+  static constexpr bool can_make_device        = true;
+  static constexpr bool can_make_context       = false;
+  static constexpr bool can_make_queue         = false;
+  static constexpr bool can_make_event         = false;
+  static constexpr bool can_make_buffer        = false;
   static constexpr bool can_make_sampled_image = false;
   static constexpr bool can_make_image_sampler = false;
-  static constexpr bool can_make_stream = false;
-  static constexpr bool can_make_kernel = false;
-  static constexpr bool can_make_module = false;
+  static constexpr bool can_make_stream        = false;
+  static constexpr bool can_make_kernel        = false;
+  static constexpr bool can_make_module        = false;
 
-  static constexpr bool can_extract_native_platform = false;
-  static constexpr bool can_extract_native_device = true;
-  static constexpr bool can_extract_native_context = false;
-  static constexpr bool can_extract_native_queue = false;
-  static constexpr bool can_extract_native_event = false;
-  static constexpr bool can_extract_native_buffer = false;
+  static constexpr bool can_extract_native_platform      = false;
+  static constexpr bool can_extract_native_device        = true;
+  static constexpr bool can_extract_native_context       = false;
+  static constexpr bool can_extract_native_queue         = false;
+  static constexpr bool can_extract_native_event         = false;
+  static constexpr bool can_extract_native_buffer        = false;
   static constexpr bool can_extract_native_sampled_image = false;
   static constexpr bool can_extract_native_image_sampler = false;
-  static constexpr bool can_extract_native_stream = false;
-  static constexpr bool can_extract_native_kernel = false;
-  static constexpr bool can_extract_native_module = false;
-  static constexpr bool can_extract_native_device_event = false;
-  static constexpr bool can_extract_native_mem = true;
+  static constexpr bool can_extract_native_stream        = false;
+  static constexpr bool can_extract_native_kernel        = false;
+  static constexpr bool can_extract_native_module        = false;
+  static constexpr bool can_extract_native_device_event  = false;
+  static constexpr bool can_extract_native_mem           = true;
 };
 
-}
-}
+} // namespace glue
+} // namespace hipsycl
 
 #endif
 #endif

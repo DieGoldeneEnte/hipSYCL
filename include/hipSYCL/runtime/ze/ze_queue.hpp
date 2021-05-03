@@ -44,22 +44,22 @@ class ze_hardware_manager;
 class ze_queue;
 class ze_module_invoker;
 
-class ze_queue : public inorder_queue
-{
+class ze_queue : public inorder_queue {
   friend class ze_module_invoker;
+
 public:
-  ze_queue(ze_hardware_manager* hw_manager, std::size_t device_index);
+  ze_queue(ze_hardware_manager *hw_manager, std::size_t device_index);
 
   virtual ~ze_queue();
 
   /// Inserts an event into the stream
   virtual std::shared_ptr<dag_node_event> insert_event() override;
 
-  virtual result submit_memcpy(const memcpy_operation&, dag_node_ptr) override;
-  virtual result submit_kernel(const kernel_operation&, dag_node_ptr) override;
+  virtual result submit_memcpy(const memcpy_operation &, dag_node_ptr) override;
+  virtual result submit_kernel(const kernel_operation &, dag_node_ptr) override;
   virtual result submit_prefetch(const prefetch_operation &, dag_node_ptr) override;
-  virtual result submit_memset(const memset_operation&, dag_node_ptr) override;
-  
+  virtual result submit_memset(const memset_operation &, dag_node_ptr) override;
+
   /// Causes the queue to wait until an event on another queue has occured.
   /// the other queue must be from the same backend
   virtual result submit_queue_wait_for(std::shared_ptr<dag_node_event> evt) override;
@@ -67,43 +67,38 @@ public:
 
   virtual device_id get_device() const override;
   /// Return native type if supported, nullptr otherwise
-  virtual void* get_native_type() const override;
+  virtual void *get_native_type() const override;
 
   /// Get a module invoker to launch kernels from module images,
   /// if the backend supports this. Returns nullptr if unsupported.
-  virtual module_invoker* get_module_invoker() override;
+  virtual module_invoker *get_module_invoker() override;
 
-  ze_command_list_handle_t get_ze_command_list() const {
-    return _command_list;
-  }
+  ze_command_list_handle_t get_ze_command_list() const { return _command_list; }
 
-  ze_hardware_manager* get_hardware_manager() const {
-    return _hw_manager;
-  }
+  ze_hardware_manager *get_hardware_manager() const { return _hw_manager; }
 
 private:
-  const std::vector<std::shared_ptr<dag_node_event>>&
-  get_enqueued_synchronization_ops() const;
-  
-  std::vector<ze_event_handle_t>
-  get_enqueued_event_handles() const;
+  const std::vector<std::shared_ptr<dag_node_event>> &
+      get_enqueued_synchronization_ops() const;
+
+  std::vector<ze_event_handle_t> get_enqueued_event_handles() const;
 
   void register_submitted_op(std::shared_ptr<dag_node_event> evt);
 
   std::shared_ptr<dag_node_event> create_event();
 
   ze_command_list_handle_t _command_list;
-  ze_hardware_manager* _hw_manager;
-  std::size_t _device_index;
-  ze_module_invoker _module_invoker;
+  ze_hardware_manager *    _hw_manager;
+  std::size_t              _device_index;
+  ze_module_invoker        _module_invoker;
 
-  std::shared_ptr<dag_node_event> _last_submitted_op_event;
+  std::shared_ptr<dag_node_event>              _last_submitted_op_event;
   std::vector<std::shared_ptr<dag_node_event>> _enqueued_synchronization_ops;
 
   std::vector<std::future<void>> _external_waits;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

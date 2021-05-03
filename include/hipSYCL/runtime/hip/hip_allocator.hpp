@@ -34,31 +34,30 @@
 namespace hipsycl {
 namespace rt {
 
-class hip_allocator : public backend_allocator 
-{
+class hip_allocator : public backend_allocator {
 public:
   hip_allocator(backend_descriptor desc, int hip_device);
 
-  virtual void* allocate(size_t min_alignment, size_t size_bytes) override;
+  virtual void *allocate(size_t min_alignment, size_t size_bytes) override;
 
-  virtual void *allocate_optimized_host(size_t min_alignment,
-                                        size_t bytes) override;
-  
+  virtual void *allocate_optimized_host(size_t min_alignment, size_t bytes) override;
+
   virtual void free(void *mem) override;
 
   virtual void *allocate_usm(size_t bytes) override;
-  virtual bool is_usm_accessible_from(backend_descriptor b) const override;
+  virtual bool  is_usm_accessible_from(backend_descriptor b) const override;
 
-  virtual result query_pointer(const void* ptr, pointer_info& out) const override;
+  virtual result query_pointer(const void *ptr, pointer_info &out) const override;
 
   virtual result mem_advise(const void *addr, std::size_t num_bytes,
                             int advise) const override;
+
 private:
   backend_descriptor _backend_descriptor;
-  int _dev;
+  int                _dev;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

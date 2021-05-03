@@ -47,10 +47,10 @@ namespace hipsycl {
 namespace rt {
 
 hip_backend::hip_backend()
-    : _hw_manager{get_hardware_platform()},
-      _executor{*this, [](device_id dev) {
-                  return std::make_unique<hip_queue>(dev);
-                }} {
+    : _hw_manager{get_hardware_platform()}, _executor{
+                                                *this, [](device_id dev) {
+                                                  return std::make_unique<hip_queue>(dev);
+                                                }} {
 
   backend_descriptor backend_desc{get_hardware_platform(), get_api_platform()};
 
@@ -71,7 +71,7 @@ hardware_platform hip_backend::get_hardware_platform() const {
 #elif defined(HIPSYCL_RT_HIP_TARGET_HIPCPU)
   return hardware_platform::cpu;
 #else
-  #error HIP Backend: Not HIP Target specified
+#error HIP Backend: Not HIP Target specified
 #endif
 }
 
@@ -102,7 +102,8 @@ backend_allocator *hip_backend::get_allocator(device_id dev) const {
     return nullptr;
   }
   if (static_cast<std::size_t>(dev.get_id()) >= _allocators.size()) {
-    register_error(__hipsycl_here(), error_info{"hip_backend: Device id is out of bounds"});
+    register_error(__hipsycl_here(),
+                   error_info{"hip_backend: Device id is out of bounds"});
   }
   return &(_allocators[dev.get_id()]);
 }
@@ -110,6 +111,6 @@ backend_allocator *hip_backend::get_allocator(device_id dev) const {
 std::string hip_backend::get_name() const {
   return "HIP";
 }
-  
-}
-}
+
+} // namespace rt
+} // namespace hipsycl

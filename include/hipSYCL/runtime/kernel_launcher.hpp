@@ -42,7 +42,8 @@
 namespace hipsycl {
 namespace rt {
 
-enum class kernel_type {
+enum class kernel_type
+{
   single_task,
   basic_parallel_for,
   ndrange_parallel_for,
@@ -51,24 +52,20 @@ enum class kernel_type {
   custom
 };
 
-class backend_kernel_launcher
-{
+class backend_kernel_launcher {
 public:
-  virtual ~backend_kernel_launcher(){}
+  virtual ~backend_kernel_launcher() {}
 
-  virtual backend_id get_backend() const = 0;
+  virtual backend_id  get_backend() const     = 0;
   virtual kernel_type get_kernel_type() const = 0;
-  virtual void set_params(void*) = 0;
-  virtual void invoke(dag_node* node) = 0;
+  virtual void        set_params(void *)      = 0;
+  virtual void        invoke(dag_node *node)  = 0;
 };
 
-class kernel_launcher
-{
+class kernel_launcher {
 public:
-  kernel_launcher(
-      std::vector<std::unique_ptr<backend_kernel_launcher>>&& kernels)
-  : _kernels{std::move(kernels)}
-  {}
+  kernel_launcher(std::vector<std::unique_ptr<backend_kernel_launcher>> &&kernels)
+      : _kernels{std::move(kernels)} {}
 
   kernel_launcher(const kernel_launcher &) = delete;
 
@@ -76,16 +73,15 @@ public:
     find_launcher(id)->invoke(node.get());
   }
 
-  backend_kernel_launcher* find_launcher(backend_id id) const {
+  backend_kernel_launcher *find_launcher(backend_id id) const {
     for (auto &backend_launcher : _kernels) {
       if (backend_launcher->get_backend() == id) {
         return backend_launcher.get();
       }
     }
-    register_error(
-        __hipsycl_here(),
-        error_info{"No kernel launcher is present for requested backend",
-                   error_type::invalid_parameter_error});
+    register_error(__hipsycl_here(),
+                   error_info{"No kernel launcher is present for requested backend",
+                              error_type::invalid_parameter_error});
     return nullptr;
   }
 

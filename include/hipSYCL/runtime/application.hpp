@@ -40,14 +40,13 @@ namespace rt {
 class dag_manager;
 class runtime;
 
-class application
-{
+class application {
 public:
-  static runtime& get_runtime();
-  static settings& get_settings();
-  static dag_manager &dag();
-  static backend &get_backend(hipsycl::rt::backend_id id);
-  static backend_manager& backends();
+  static runtime &        get_runtime();
+  static settings &       get_settings();
+  static dag_manager &    dag();
+  static backend &        get_backend(hipsycl::rt::backend_id id);
+  static backend_manager &backends();
   // Note: This functions is not fully thread-safe and should
   // only be called in well-defined circumstances!
   static void reset();
@@ -55,8 +54,8 @@ public:
   application() = delete;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 
 #endif

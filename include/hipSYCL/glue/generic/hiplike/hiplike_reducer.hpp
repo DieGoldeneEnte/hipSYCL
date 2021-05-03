@@ -37,37 +37,32 @@ namespace hiplike {
 template<class ReductionDescriptor>
 class local_reducer {
 public:
-  using value_type = typename ReductionDescriptor::value_type;
+  using value_type    = typename ReductionDescriptor::value_type;
   using combiner_type = typename ReductionDescriptor::combiner_type;
 
-  __host__ __device__ local_reducer(const ReductionDescriptor &desc, int my_lid,
-                                    value_type *local_memory,
-                                    value_type *local_output,
-                                    value_type *global_input = nullptr)
-      : _desc{desc}, _my_lid{my_lid}, _my_value{identity()},
-        _local_memory{local_memory}, _local_output{local_output},
-        _global_input{global_input} {}
-
   __host__ __device__
+  local_reducer(const ReductionDescriptor &desc, int my_lid, value_type *local_memory,
+                value_type *local_output, value_type *global_input = nullptr)
+      : _desc{desc}, _my_lid{my_lid}, _my_value{identity()}, _local_memory{local_memory},
+        _local_output{local_output}, _global_input{global_input} {}
+
+  __host__   __device__
   value_type identity() const { return _desc.identity; }
 
   __host__ __device__
-  void combine(const value_type& v) {
-    _my_value = _desc.combiner(_my_value, v);
-  }
+  void     combine(const value_type &v) { _my_value = _desc.combiner(_my_value, v); }
 
   __host__ __device__
-  void finalize_result() {
+  void     finalize_result() {
     _local_memory[_my_lid] = _my_value;
     // TODO Optimize this - may be able to share
     // code with group algorithms
     // TODO What if local size is not power of two?
 #ifdef SYCL_DEVICE_ONLY
     __syncthreads();
-    const int local_size =
-        __hipsycl_lsize_x * __hipsycl_lsize_y * __hipsycl_lsize_z;
+    const int local_size = __hipsycl_lsize_x * __hipsycl_lsize_y * __hipsycl_lsize_z;
     for (int i = local_size / 2; i > 0; i /= 2) {
-      if(_my_lid < i)
+      if (_my_lid < i)
         _local_memory[_my_lid] =
             _desc.combiner(_local_memory[_my_lid], _local_memory[_my_lid + i]);
       __syncthreads();
@@ -78,22 +73,24 @@ public:
 #endif
   }
 
-  __host__ __device__ void combine_global_input(int my_global_id) {
+  __host__ __device__
+  void     combine_global_input(int my_global_id) {
 #ifdef SYCL_DEVICE_ONLY
     combine(_global_input[my_global_id]);
 #endif
   }
+
 private:
   const ReductionDescriptor &_desc;
-  const int _my_lid;
-  value_type _my_value;
-  value_type* _local_memory;
-  value_type* _local_output;
-  value_type* _global_input;
+  const int                  _my_lid;
+  value_type                 _my_value;
+  value_type *               _local_memory;
+  value_type *               _local_output;
+  value_type *               _global_input;
 };
 
-}
-}
-}
+} // namespace hiplike
+} // namespace glue
+} // namespace hipsycl
 
 #endif

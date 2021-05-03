@@ -47,7 +47,7 @@ SYCL_EXTERNAL size_t __spirv_LocalInvocationId_z();
 
 #else // __SYCL_NVPTX__
 
-typedef size_t size_t_vec __attribute__((ext_vector_type(3)));
+typedef size_t                    size_t_vec __attribute__((ext_vector_type(3)));
 __SPIRV_VAR_QUALIFIERS size_t_vec __spirv_BuiltInGlobalSize;
 __SPIRV_VAR_QUALIFIERS size_t_vec __spirv_BuiltInGlobalInvocationId;
 __SPIRV_VAR_QUALIFIERS size_t_vec __spirv_BuiltInWorkgroupSize;
@@ -141,30 +141,45 @@ namespace __spirv {
 
 // Helper function templates to initialize and get vector component from SPIR-V
 // built-in variables
-#define __SPIRV_DEFINE_INIT_AND_GET_HELPERS(POSTFIX)                           \
-  template <int ID> static size_t get##POSTFIX();                              \
-  template <> size_t get##POSTFIX<0>() { return __spirv_##POSTFIX##_x(); }     \
-  template <> size_t get##POSTFIX<1>() { return __spirv_##POSTFIX##_y(); }     \
-  template <> size_t get##POSTFIX<2>() { return __spirv_##POSTFIX##_z(); }     \
-                                                                               \
-  template <int Dim, class DstT> struct InitSizesST##POSTFIX;                  \
-                                                                               \
-  template <class DstT> struct InitSizesST##POSTFIX<1, DstT> {                 \
-    static DstT initSize() { return {get##POSTFIX<0>()}; }                     \
-  };                                                                           \
-                                                                               \
-  template <class DstT> struct InitSizesST##POSTFIX<2, DstT> {                 \
-    static DstT initSize() { return {get##POSTFIX<1>(), get##POSTFIX<0>()}; }  \
-  };                                                                           \
-                                                                               \
-  template <class DstT> struct InitSizesST##POSTFIX<3, DstT> {                 \
-    static DstT initSize() {                                                   \
-      return {get##POSTFIX<2>(), get##POSTFIX<1>(), get##POSTFIX<0>()};        \
-    }                                                                          \
-  };                                                                           \
-                                                                               \
-  template <int Dims, class DstT> static DstT init##POSTFIX() {                \
-    return InitSizesST##POSTFIX<Dims, DstT>::initSize();                       \
+#define __SPIRV_DEFINE_INIT_AND_GET_HELPERS(POSTFIX)                          \
+  template<int ID>                                                            \
+  static size_t get##POSTFIX();                                               \
+  template<>                                                                  \
+  size_t get##POSTFIX<0>() {                                                  \
+    return __spirv_##POSTFIX##_x();                                           \
+  }                                                                           \
+  template<>                                                                  \
+  size_t get##POSTFIX<1>() {                                                  \
+    return __spirv_##POSTFIX##_y();                                           \
+  }                                                                           \
+  template<>                                                                  \
+  size_t get##POSTFIX<2>() {                                                  \
+    return __spirv_##POSTFIX##_z();                                           \
+  }                                                                           \
+                                                                              \
+  template<int Dim, class DstT>                                               \
+  struct InitSizesST##POSTFIX;                                                \
+                                                                              \
+  template<class DstT>                                                        \
+  struct InitSizesST##POSTFIX<1, DstT> {                                      \
+    static DstT initSize() { return {get##POSTFIX<0>()}; }                    \
+  };                                                                          \
+                                                                              \
+  template<class DstT>                                                        \
+  struct InitSizesST##POSTFIX<2, DstT> {                                      \
+    static DstT initSize() { return {get##POSTFIX<1>(), get##POSTFIX<0>()}; } \
+  };                                                                          \
+                                                                              \
+  template<class DstT>                                                        \
+  struct InitSizesST##POSTFIX<3, DstT> {                                      \
+    static DstT initSize() {                                                  \
+      return {get##POSTFIX<2>(), get##POSTFIX<1>(), get##POSTFIX<0>()};       \
+    }                                                                         \
+  };                                                                          \
+                                                                              \
+  template<int Dims, class DstT>                                              \
+  static DstT init##POSTFIX() {                                               \
+    return InitSizesST##POSTFIX<Dims, DstT>::initSize();                      \
   }
 
 __SPIRV_DEFINE_INIT_AND_GET_HELPERS(GlobalSize);

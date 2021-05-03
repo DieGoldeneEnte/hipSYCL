@@ -37,18 +37,17 @@ namespace hipsycl {
 namespace sycl {
 namespace detail {
 
-static std::string version_string()
-{
-  std::string hipsycl_version = std::to_string(HIPSYCL_VERSION_MAJOR)
-      + "." + std::to_string(HIPSYCL_VERSION_MINOR)
-      + "." + std::to_string(HIPSYCL_VERSION_PATCH)
-      + "-" + std::string(HIPSYCL_VERSION_TYPE);
+static std::string version_string() {
+  std::string hipsycl_version = std::to_string(HIPSYCL_VERSION_MAJOR) + "." +
+                                std::to_string(HIPSYCL_VERSION_MINOR) + "." +
+                                std::to_string(HIPSYCL_VERSION_PATCH) + "-" +
+                                std::string(HIPSYCL_VERSION_TYPE);
 
   return "hipSYCL " + hipsycl_version;
 }
 
-}
-}
-}
+} // namespace detail
+} // namespace sycl
+} // namespace hipsycl
 
 #endif

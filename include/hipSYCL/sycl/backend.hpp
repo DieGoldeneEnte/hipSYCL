@@ -38,7 +38,7 @@ namespace sycl {
 using backend = hipsycl::rt::backend_id;
 
 #if defined(HIPSYCL_PLATFORM_CPU) && defined(__HIPSYCL_ENABLE_OMPHOST_TARGET__)
- #define SYCL_EXT_HIPSYCL_BACKEND_OMPHOST
+#define SYCL_EXT_HIPSYCL_BACKEND_OMPHOST
 #endif
 // In explicit multipass mode, HIPSYCL_PLATFORM_* is not defined in the host
 // pass. We therefore consider a backend as enabled either
@@ -49,18 +49,18 @@ using backend = hipsycl::rt::backend_id;
 // if a backend is available for interop, which would correspond to whether
 // the runtime has been compiled with support for a backend.
 #if defined(HIPSYCL_PLATFORM_HIP) || defined(__HIPSYCL_ENABLE_HIP_TARGET__)
- #define SYCL_EXT_HIPSYCL_BACKEND_HIP
+#define SYCL_EXT_HIPSYCL_BACKEND_HIP
 #endif
 
 #if defined(HIPSYCL_PLATFORM_CUDA) || defined(__HIPSYCL_ENABLE_CUDA_TARGET__)
- #define SYCL_EXT_HIPSYCL_BACKEND_CUDA
+#define SYCL_EXT_HIPSYCL_BACKEND_CUDA
 #endif
 
 #if defined(HIPSYCL_PLATFORM_SPIRV) || defined(__HIPSYCL_ENABLE_SPIRV_TARGET__)
- #define SYCL_EXT_HIPSYCL_BACKEND_SPIRV
+#define SYCL_EXT_HIPSYCL_BACKEND_SPIRV
 #endif
 
-}
+} // namespace sycl
 } // namespace hipsycl
 
 #endif

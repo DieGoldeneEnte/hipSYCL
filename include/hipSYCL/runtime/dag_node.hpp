@@ -44,12 +44,10 @@ class backend_executor;
 class dag_node;
 using dag_node_ptr = std::shared_ptr<dag_node>;
 
-class dag_node
-{
+class dag_node {
 public:
-  dag_node(const execution_hints& hints,
-          const std::vector<dag_node_ptr>& requirements,
-          std::unique_ptr<operation> op);
+  dag_node(const execution_hints &hints, const std::vector<dag_node_ptr> &requirements,
+           std::unique_ptr<operation> op);
 
   ~dag_node();
 
@@ -58,30 +56,30 @@ public:
   bool is_known_complete() const;
   bool is_cancelled() const;
   bool is_virtual() const;
-  
+
   void mark_submitted(std::shared_ptr<dag_node_event> completion_evt);
   void mark_virtually_submitted();
   void cancel();
 
-  void assign_to_executor(backend_executor* ctx);
+  void assign_to_executor(backend_executor *ctx);
   void assign_to_device(device_id dev);
   void assign_to_execution_lane(std::size_t lane_id);
   // can be used by the backend executor to store
   // ordering information between nodes
   void assign_execution_index(std::size_t index);
 
-  device_id get_assigned_device() const;
+  device_id         get_assigned_device() const;
   backend_executor *get_assigned_executor() const;
-  std::size_t get_assigned_execution_lane() const;
-  std::size_t get_assigned_execution_index() const;
+  std::size_t       get_assigned_execution_lane() const;
+  std::size_t       get_assigned_execution_index() const;
 
-  const execution_hints& get_execution_hints() const;
-  execution_hints& get_execution_hints();
+  const execution_hints &get_execution_hints() const;
+  execution_hints &      get_execution_hints();
 
   // Add requirement if not already present
-  void add_requirement(dag_node_ptr requirement);
-  operation* get_operation() const;
-  const std::vector<dag_node_ptr>& get_requirements() const;
+  void                             add_requirement(dag_node_ptr requirement);
+  operation *                      get_operation() const;
+  const std::vector<dag_node_ptr> &get_requirements() const;
 
   // Wait until the associated event has completed.
   // Can be invoked before the event has been set (pre-submission),
@@ -91,28 +89,27 @@ public:
 
   std::shared_ptr<dag_node_event> get_event() const;
 
-  void for_each_nonvirtual_requirement(std::function<void(dag_node_ptr)>
-                                           handler) const;
+  void for_each_nonvirtual_requirement(std::function<void(dag_node_ptr)> handler) const;
+
 private:
-  execution_hints _hints;
+  execution_hints           _hints;
   std::vector<dag_node_ptr> _requirements;
 
-  device_id _assigned_device;
+  device_id         _assigned_device;
   backend_executor *_assigned_executor;
-  std::size_t _assigned_execution_lane;
-  std::size_t _assigned_execution_index;
+  std::size_t       _assigned_execution_lane;
+  std::size_t       _assigned_execution_index;
 
   std::shared_ptr<dag_node_event> _event;
-  std::unique_ptr<operation> _operation;
+  std::unique_ptr<operation>      _operation;
 
-  std::atomic<bool> _is_submitted;
+  std::atomic<bool>         _is_submitted;
   mutable std::atomic<bool> _is_complete;
-  bool _is_virtual;
-  std::atomic<bool> _is_cancelled;
-
+  bool                      _is_virtual;
+  std::atomic<bool>         _is_cancelled;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

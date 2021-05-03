@@ -46,7 +46,7 @@ class handler;
 template<class T, int Dim, class AllocatorT>
 class buffer;
 
-template <typename T, int Dim, access_mode M, target Tgt, access::placeholder P>
+template<typename T, int Dim, access_mode M, target Tgt, access::placeholder P>
 class accessor;
 
 template<typename T, int Dim, access_mode M>
@@ -92,76 +92,67 @@ struct associated_property_base<host_accessor<T, Dim, M>> {
   using type = accessor_property;
 };
 
-template <class SyclObjectT>
-using associated_property_base_t =
-    typename associated_property_base<SyclObjectT>::type;
+template<class SyclObjectT>
+using associated_property_base_t = typename associated_property_base<SyclObjectT>::type;
 
-} // detail
+} // namespace detail
 
-template <typename PropertyT>
-struct is_property : public std::integral_constant<
-                         bool, std::is_base_of_v<detail::property, PropertyT>> {
-};
+template<typename PropertyT>
+struct is_property
+    : public std::integral_constant<bool,
+                                    std::is_base_of_v<detail::property, PropertyT>> {};
 
 template<typename PropertyT>
 inline constexpr bool is_property_v = is_property<PropertyT>::value;
 
-template <typename PropertyT, typename SyclObjectT>
+template<typename PropertyT, typename SyclObjectT>
 struct is_property_of
     : public std::integral_constant<
           bool,
-          std::is_base_of_v<detail::associated_property_base_t<SyclObjectT>,
-                            PropertyT>> {};
+          std::is_base_of_v<detail::associated_property_base_t<SyclObjectT>, PropertyT>> {
+};
 
-template <typename PropertyT, typename SyclObjectT>
-inline constexpr bool is_property_of_v =
-    is_property_of<PropertyT, SyclObjectT>::value;
+template<typename PropertyT, typename SyclObjectT>
+inline constexpr bool is_property_of_v = is_property_of<PropertyT, SyclObjectT>::value;
 
-class property_list
-{
+class property_list {
 public:
-
-  template <typename... propertyTN,
-    std::enable_if_t<(is_property_v<propertyTN> && ...), bool> = true>
-  property_list(propertyTN... props)
-  {
+  template<typename... propertyTN,
+           std::enable_if_t<(is_property_v<propertyTN> && ...), bool> = true>
+  property_list(propertyTN... props) {
     init(props...);
   }
 
-  template <typename propertyT>
-  bool has_property() const noexcept
-  {
+  template<typename propertyT>
+  bool has_property() const noexcept {
     std::size_t id = typeid(propertyT).hash_code();
-    for(std::size_t i = 0; i < _props.size(); ++i) {
-      if(_props[i]->type_hash == id) {
+    for (std::size_t i = 0; i < _props.size(); ++i) {
+      if (_props[i]->type_hash == id) {
         return true;
       }
     }
-    
+
     return false;
   }
 
-  template <typename propertyT>
-  propertyT get_property() const
-  {
+  template<typename propertyT>
+  propertyT get_property() const {
     std::size_t id = typeid(propertyT).hash_code();
-    for(std::size_t i = 0; i < _props.size(); ++i) {
-      if(_props[i]->type_hash == id) {
-        return static_cast<property_wrapper<propertyT> *>(_props[i].get())
-            ->property;
+    for (std::size_t i = 0; i < _props.size(); ++i) {
+      if (_props[i]->type_hash == id) {
+        return static_cast<property_wrapper<propertyT> *>(_props[i].get())->property;
       }
     }
 
     throw invalid_object_error{"Property not found"};
   }
-private:
 
+private:
   struct type_erased_property {
-    type_erased_property(std::size_t id)
-    : type_hash{id} {}
+    type_erased_property(std::size_t id) : type_hash{id} {}
 
     std::size_t type_hash;
-    virtual ~type_erased_property(){}
+    virtual ~type_erased_property() {}
   };
 
   template<class PropT>
@@ -175,13 +166,12 @@ private:
   using property_ptr = std::shared_ptr<type_erased_property>;
 
   template<typename... Props>
-  void init(Props... props){
+  void init(Props... props) {
     (add_property(props), ...);
   }
 
   template<class T>
-  void add_property(const T& prop)
-  {
+  void add_property(const T &prop) {
     auto ptr = property_ptr{new property_wrapper<T>{prop}};
     _props.push_back(ptr);
   }
@@ -192,29 +182,24 @@ private:
 
 namespace detail {
 
-class property_carrying_object
-{
+class property_carrying_object {
 public:
-  property_carrying_object(const property_list& props)
-    : _property_list{props}
-  {}
+  property_carrying_object(const property_list &props) : _property_list{props} {}
 
-  template <typename propertyT>
-  bool has_property() const
-  {
+  template<typename propertyT>
+  bool has_property() const {
     return _property_list.has_property<propertyT>();
   }
 
-  template <typename propertyT>
-  propertyT get_property() const
-  {
+  template<typename propertyT>
+  propertyT get_property() const {
     return _property_list.get_property<propertyT>();
   }
 
 private:
   property_list _property_list;
 };
-} // detail
+} // namespace detail
 
 } // namespace sycl
 } // namespace hipsycl

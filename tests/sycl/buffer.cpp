@@ -34,28 +34,27 @@ BOOST_FIXTURE_TEST_SUITE(buffer_tests, reset_device_fixture)
 
 
 BOOST_AUTO_TEST_CASE(buffer_versioning) {
-  namespace s = cl::sycl;
+  namespace s               = cl::sycl;
   constexpr size_t buf_size = 32;
 
-  s::queue queue;
+  s::queue          queue;
   s::buffer<int, 1> buf(buf_size);
   {
     auto acc = buf.get_access<s::access::mode::discard_write>();
-    for(int i = 0; i < buf_size; ++i) {
+    for (int i = 0; i < buf_size; ++i) {
       acc[i] = i;
     }
   }
 
-  queue.submit([&](s::handler& cgh) {
+  queue.submit([&](s::handler &cgh) {
     auto acc = buf.get_access<s::access::mode::discard_write>(cgh);
-    cgh.parallel_for<class buffer_versioning>(buf.get_range(), [=](s::id<1> id) {
-      acc[id] = buf_size - id[0];
-    });
+    cgh.parallel_for<class buffer_versioning>(
+        buf.get_range(), [=](s::id<1> id) { acc[id] = buf_size - id[0]; });
   });
 
   {
     auto acc = buf.get_access<s::access::mode::read>();
-    for(int i = 0; i < buf_size; ++i) {
+    for (int i = 0; i < buf_size; ++i) {
       BOOST_REQUIRE(acc[i] == buf_size - i);
     }
   }
@@ -70,7 +69,7 @@ BOOST_AUTO_TEST_CASE(buffer_api) {
   {
     auto host_a = buf_a.get_host_access();
     auto host_b = buf_a.get_host_access();
-    for(size_t i = 0; i < host_a.size(); ++i) {
+    for (size_t i = 0; i < host_a.size(); ++i) {
       host_a[i] = i;
       host_b[i] = -1;
     }
@@ -82,28 +81,28 @@ BOOST_AUTO_TEST_CASE(buffer_api) {
   BOOST_REQUIRE(buf_a == buf_a);
   BOOST_REQUIRE(buf_a != buf_b);
   BOOST_REQUIRE(buf_a == buf_c);
-  
+
   auto host_f = buf_f.get_host_access();
   auto host_a = buf_a.get_host_access();
-  for(size_t i = 0; i < host_a.size(); ++i)
+  for (size_t i = 0; i < host_a.size(); ++i)
     BOOST_CHECK_EQUAL(host_a[i], static_cast<int>(host_f[i]));
 }
 
 BOOST_AUTO_TEST_CASE(buffer_update_host) {
-  cl::sycl::queue q;
-  std::vector<int> host_buf(4);
+  cl::sycl::queue       q;
+  std::vector<int>      host_buf(4);
   cl::sycl::buffer<int> sycl_buf(host_buf.data(), host_buf.size());
 
-  q.submit([&](cl::sycl::handler& cgh) {
+  q.submit([&](cl::sycl::handler &cgh) {
     auto acc = sycl_buf.get_access<cl::sycl::access::mode::read_write>(cgh);
-    cgh.parallel_for<class update_host_test>(sycl_buf.get_range(), [=](cl::sycl::item<1> item){
-      acc[item] += item.get_id()[0];
-    });
+    cgh.parallel_for<class update_host_test>(
+        sycl_buf.get_range(),
+        [=](cl::sycl::item<1> item) { acc[item] += item.get_id()[0]; });
   });
 
-  q.submit([&](cl::sycl::handler& cgh) {
-    cgh.update_host(sycl_buf.get_access<cl::sycl::access::mode::read>(cgh));
-  }).wait();
+  q.submit([&](cl::sycl::handler &cgh) {
+     cgh.update_host(sycl_buf.get_access<cl::sycl::access::mode::read>(cgh));
+   }).wait();
 
   BOOST_CHECK(host_buf == (std::vector{0, 1, 2, 3}));
 }
@@ -111,7 +110,7 @@ BOOST_AUTO_TEST_CASE(buffer_update_host) {
 BOOST_AUTO_TEST_CASE(buffer_external_writeback) {
   cl::sycl::queue q;
 
-  std::size_t size = 1024;
+  std::size_t      size = 1024;
   std::vector<int> host_buff(size);
   {
     cl::sycl::buffer<int> buff{size};
@@ -119,17 +118,15 @@ BOOST_AUTO_TEST_CASE(buffer_external_writeback) {
     buff.set_final_data(host_buff.data());
 
     q.submit([&](cl::sycl::handler &cgh) {
-      auto acc =
-          buff.get_access<cl::sycl::access::mode::discard_read_write>(cgh);
+      auto acc = buff.get_access<cl::sycl::access::mode::discard_read_write>(cgh);
 
       cgh.parallel_for<class buffer_external_writeback_test>(
-          cl::sycl::range{size}, [=](cl::sycl::id<1> idx) {
-            acc[idx.get(0)] = static_cast<int>(idx.get(0));
-          });
+          cl::sycl::range{size},
+          [=](cl::sycl::id<1> idx) { acc[idx.get(0)] = static_cast<int>(idx.get(0)); });
     });
   }
 
-  for(int i = 0; i < host_buff.size(); ++i) {
+  for (int i = 0; i < host_buff.size(); ++i) {
     BOOST_CHECK(host_buff[i] == i);
   }
 }
@@ -137,7 +134,7 @@ BOOST_AUTO_TEST_CASE(buffer_external_writeback) {
 BOOST_AUTO_TEST_CASE(buffer_external_writeback_nullptr) {
   cl::sycl::queue q;
 
-  std::size_t size = 1024;
+  std::size_t      size = 1024;
   std::vector<int> host_buff(size);
   {
     cl::sycl::buffer<int> buff{size};
@@ -145,17 +142,15 @@ BOOST_AUTO_TEST_CASE(buffer_external_writeback_nullptr) {
     buff.set_final_data(nullptr);
 
     q.submit([&](cl::sycl::handler &cgh) {
-      auto acc =
-          buff.get_access<cl::sycl::access::mode::discard_read_write>(cgh);
+      auto acc = buff.get_access<cl::sycl::access::mode::discard_read_write>(cgh);
 
       cgh.parallel_for<class buffer_external_writeback_test>(
-          cl::sycl::range{size}, [=](cl::sycl::id<1> idx) {
-            acc[idx.get(0)] = static_cast<int>(idx.get(0));
-          });
+          cl::sycl::range{size},
+          [=](cl::sycl::id<1> idx) { acc[idx.get(0)] = static_cast<int>(idx.get(0)); });
     });
   }
 
-  for(int i = 0; i < host_buff.size(); ++i) {
+  for (int i = 0; i < host_buff.size(); ++i) {
     BOOST_CHECK(host_buff[i] == 0);
   }
 }

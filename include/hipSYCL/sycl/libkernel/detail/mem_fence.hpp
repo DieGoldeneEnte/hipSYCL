@@ -36,57 +36,44 @@ namespace sycl {
 namespace detail {
 
 template<access::fence_space, access::mode>
-struct mem_fence_impl
-{
+struct mem_fence_impl {
   HIPSYCL_KERNEL_TARGET
-  static void mem_fence()
-  {
-#if HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_CUDA ||                                   \
-    HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP
+  static void mem_fence() {
+#if HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_CUDA || HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP
     __threadfence();
 #elif HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_SPIRV
     __spirv_MemoryBarrier(__spv::Scope::Device,
                           __spv::MemorySemanticsMask::SequentiallyConsistent |
-                          __spv::MemorySemanticsMask::CrossWorkgroupMemory |
-                          __spv::MemorySemanticsMask::WorkgroupMemory);
+                              __spv::MemorySemanticsMask::CrossWorkgroupMemory |
+                              __spv::MemorySemanticsMask::WorkgroupMemory);
 #else
     // TODO What about CPU?
 #endif
   }
-
 };
 
 template<access::mode M>
-struct mem_fence_impl<access::fence_space::local_space, M>
-{
+struct mem_fence_impl<access::fence_space::local_space, M> {
   HIPSYCL_KERNEL_TARGET
-  static void mem_fence()
-  {
-#if HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_CUDA ||                                   \
-    HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP
+  static void mem_fence() {
+#if HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_CUDA || HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP
     __threadfence_block();
 #elif HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_SPIRV
     __spirv_MemoryBarrier(
         __spv::Scope::Workgroup,
-        static_cast<uint32_t>(
-            __spv::MemorySemanticsMask::SequentiallyConsistent |
-            __spv::MemorySemanticsMask::WorkgroupMemory));
+        static_cast<uint32_t>(__spv::MemorySemanticsMask::SequentiallyConsistent |
+                              __spv::MemorySemanticsMask::WorkgroupMemory));
 #endif
   }
 };
 
 
-
-template <
-  access::fence_space Fence_space = access::fence_space::global_and_local,
-  access::mode Mode = access::mode::read_write
->
+template<access::fence_space Fence_space = access::fence_space::global_and_local,
+         access::mode        Mode        = access::mode::read_write>
 HIPSYCL_KERNEL_TARGET
-inline void mem_fence()
-{
-  static_assert(Mode == access::mode::read ||
-                Mode == access::mode::write ||
-                Mode == access::mode::read_write,
+inline void mem_fence() {
+  static_assert(Mode == access::mode::read || Mode == access::mode::write ||
+                    Mode == access::mode::read_write,
                 "mem_fence() is only allowed for read, write "
                 "or read_write access modes.");
   mem_fence_impl<Fence_space, Mode>::mem_fence();
@@ -94,20 +81,19 @@ inline void mem_fence()
 
 template<access::mode Mode>
 HIPSYCL_KERNEL_TARGET
-inline void mem_fence(access::fence_space space)
-{
-  if(space == access::fence_space::local_space)
+inline void mem_fence(access::fence_space space) {
+  if (space == access::fence_space::local_space)
     mem_fence<access::fence_space::local_space, Mode>();
 
-  else if(space == access::fence_space::global_space)
+  else if (space == access::fence_space::global_space)
     mem_fence<access::fence_space::global_space, Mode>();
 
-  else if(space == access::fence_space::global_and_local)
+  else if (space == access::fence_space::global_and_local)
     mem_fence<access::fence_space::global_and_local, Mode>();
 }
 
-}
-}
-}
+} // namespace detail
+} // namespace sycl
+} // namespace hipsycl
 
 #endif

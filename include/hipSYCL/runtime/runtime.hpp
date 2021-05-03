@@ -39,37 +39,32 @@ namespace hipsycl {
 namespace rt {
 
 
-class runtime
-{
+class runtime {
 public:
-
   runtime();
 
   ~runtime();
 
-  dag_manager& dag()
-  { return _dag_manager; }
+  dag_manager &dag() { return _dag_manager; }
 
-  const dag_manager& dag() const
-  { return _dag_manager; }
+  const dag_manager &dag() const { return _dag_manager; }
 
   backend_manager &backends() { return _backends; }
 
   const backend_manager &backends() const { return _backends; }
 
-  async_error_list& errors() { return _errors; }
-  const async_error_list& errors() const { return _errors; }
+  async_error_list &      errors() { return _errors; }
+  const async_error_list &errors() const { return _errors; }
 
 private:
-  
   // !! Attention: order is important, as backends have to be still present, when the dag_manager is destructed!
   async_error_list _errors;
-  backend_manager _backends;
-  dag_manager _dag_manager;
+  backend_manager  _backends;
+  dag_manager      _dag_manager;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 
 #endif

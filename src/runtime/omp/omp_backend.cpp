@@ -48,7 +48,6 @@ const char *hipsycl_backend_plugin_get_name() {
 }
 
 
-
 namespace hipsycl {
 namespace rt {
 
@@ -58,13 +57,12 @@ std::unique_ptr<inorder_queue> make_omp_queue(device_id dev) {
   return std::make_unique<omp_queue>(dev.get_backend());
 }
 
-}
+} // namespace
 
 omp_backend::omp_backend()
     : _allocator{device_id{
           backend_descriptor{get_hardware_platform(), get_api_platform()}, 0}},
-      _hw{},
-      _executor(*this, [](device_id dev) -> std::unique_ptr<inorder_queue> {
+      _hw{}, _executor(*this, [](device_id dev) -> std::unique_ptr<inorder_queue> {
         return make_omp_queue(dev);
       }) {}
 
@@ -79,13 +77,13 @@ hardware_platform omp_backend::get_hardware_platform() const {
 backend_id omp_backend::get_unique_backend_id() const {
   return backend_id::omp;
 }
-  
-backend_hardware_manager* omp_backend::get_hardware_manager() const {
+
+backend_hardware_manager *omp_backend::get_hardware_manager() const {
   return &_hw;
 }
 
-backend_executor* omp_backend::get_executor(device_id dev) const {
-  if(dev.get_backend() != this->get_unique_backend_id()) {
+backend_executor *omp_backend::get_executor(device_id dev) const {
+  if (dev.get_backend() != this->get_unique_backend_id()) {
     register_error(__hipsycl_here(),
                    error_info{"omp_backend: Device id from other backend requested",
                               error_type::invalid_parameter_error});
@@ -95,8 +93,8 @@ backend_executor* omp_backend::get_executor(device_id dev) const {
   return &_executor;
 }
 
-backend_allocator* omp_backend::get_allocator(device_id dev) const {
-  if(dev.get_backend() != this->get_unique_backend_id()) {
+backend_allocator *omp_backend::get_allocator(device_id dev) const {
+  if (dev.get_backend() != this->get_unique_backend_id()) {
     register_error(__hipsycl_here(),
                    error_info{"omp_backend: Device id from other backend requested",
                               error_type::invalid_parameter_error});
@@ -109,5 +107,5 @@ std::string omp_backend::get_name() const {
   return "OpenMP";
 }
 
-}
-}
+} // namespace rt
+} // namespace hipsycl

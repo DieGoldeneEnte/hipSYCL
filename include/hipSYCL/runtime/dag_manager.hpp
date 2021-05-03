@@ -40,9 +40,9 @@ namespace rt {
 
 class dag_interpreter;
 
-class dag_manager
-{
+class dag_manager {
   friend class dag_build_guard;
+
 public:
   dag_manager();
   ~dag_manager();
@@ -55,35 +55,34 @@ public:
   // Wait for completion of all submitted operations
   void wait();
   void wait(std::size_t node_group_id);
-  
+
   void register_submitted_ops(dag_node_ptr);
+
 private:
   void trigger_flush_opportunity();
 
-  dag_builder* builder() const;
+  dag_builder *builder() const;
 
   std::unique_ptr<dag_builder> _builder;
-  worker_thread _worker;
-  
+  worker_thread                _worker;
+
   dag_direct_scheduler _direct_scheduler;
-  dag_submitted_ops _submitted_ops;
+  dag_submitted_ops    _submitted_ops;
 };
 
-class dag_build_guard
-{
+class dag_build_guard {
 public:
-  dag_build_guard(dag_manager& mgr)
-  : _mgr{&mgr} {}
+  dag_build_guard(dag_manager &mgr) : _mgr{&mgr} {}
 
   ~dag_build_guard();
 
-  dag_builder* builder() const
-  { return _mgr->builder(); }
+  dag_builder *builder() const { return _mgr->builder(); }
+
 private:
-  dag_manager* _mgr;
+  dag_manager *_mgr;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

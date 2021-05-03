@@ -36,7 +36,7 @@
 
 #include <cuda_runtime_api.h>
 #include <cuda_runtime.h> //for make_cudaPitchedPtr
-#include <cuda.h> // For kernels launched from modules
+#include <cuda.h>         // For kernels launched from modules
 
 #include <cassert>
 #include <memory>
@@ -48,23 +48,22 @@ namespace {
 
 void host_synchronization_callback(cudaStream_t stream, cudaError_t status,
                                    void *userData) {
-  
+
   assert(userData);
-  dag_node_ptr* node = static_cast<dag_node_ptr*>(userData);
-  
-  if(status != cudaSuccess) {
+  dag_node_ptr *node = static_cast<dag_node_ptr *>(userData);
+
+  if (status != cudaSuccess) {
     register_error(__hipsycl_here(),
                    error_info{"cuda_queue callback: CUDA returned error code.",
                               error_code{"CUDA", status}});
-  }
-  else {
+  } else {
     (*node)->wait();
   }
   delete node;
 }
 
 
-}
+} // namespace
 
 
 void cuda_queue::activate_device() const {
@@ -82,14 +81,15 @@ cuda_queue::cuda_queue(device_id dev) : _dev{dev}, _module_invoker{this} {
   }
 }
 
-CUstream_st* cuda_queue::get_stream() const { return _stream; }
+CUstream_st *cuda_queue::get_stream() const {
+  return _stream;
+}
 
 cuda_queue::~cuda_queue() {
   auto err = cudaStreamDestroy(_stream);
   if (err != cudaSuccess) {
-    register_error(__hipsycl_here(),
-                   error_info{"cuda_queue: Couldn't destroy stream",
-                              error_code{"CUDA", err}});
+    register_error(__hipsycl_here(), error_info{"cuda_queue: Couldn't destroy stream",
+                                                error_code{"CUDA", err}});
   }
 }
 
@@ -101,29 +101,27 @@ std::shared_ptr<dag_node_event> cuda_queue::insert_event() {
   cudaError_t err = cudaEventCreate(&evt);
 
   if (err != cudaSuccess) {
-    register_error(
-        __hipsycl_here(),
-        error_info{"cuda_queue: Couldn't create event", error_code{"CUDA", err}});
-    
+    register_error(__hipsycl_here(), error_info{"cuda_queue: Couldn't create event",
+                                                error_code{"CUDA", err}});
+
     return nullptr;
   }
 
   err = cudaEventRecord(evt, this->get_stream());
 
   if (err != cudaSuccess) {
-    register_error(
-        __hipsycl_here(),
-        error_info{"cuda_queue: Couldn't record event", error_code{"CUDA", err}});
+    register_error(__hipsycl_here(), error_info{"cuda_queue: Couldn't record event",
+                                                error_code{"CUDA", err}});
     return nullptr;
   }
 
   return std::make_shared<cuda_node_event>(_dev, evt);
 }
 
-result cuda_queue::submit_memcpy(const memcpy_operation & op, dag_node_ptr) {
+result cuda_queue::submit_memcpy(const memcpy_operation &op, dag_node_ptr) {
 
   device_id source_dev = op.source().get_device();
-  device_id dest_dev = op.dest().get_device();
+  device_id dest_dev   = op.dest().get_device();
 
   assert(op.source().get_access_ptr());
   assert(op.dest().get_access_ptr());
@@ -131,8 +129,7 @@ result cuda_queue::submit_memcpy(const memcpy_operation & op, dag_node_ptr) {
   cudaMemcpyKind copy_kind = cudaMemcpyHostToDevice;
 
   if (source_dev.get_full_backend_descriptor().sw_platform == api_platform::cuda) {
-    if (dest_dev.get_full_backend_descriptor().sw_platform ==
-        api_platform::cuda) {
+    if (dest_dev.get_full_backend_descriptor().sw_platform == api_platform::cuda) {
       assert(source_dev.get_full_backend_descriptor().hw_platform ==
                  dest_dev.get_full_backend_descriptor().hw_platform &&
              "Attempted to execute explicit device<->device copy operation "
@@ -145,8 +142,7 @@ result cuda_queue::submit_memcpy(const memcpy_operation & op, dag_node_ptr) {
       assert(false && "Unknown copy destination platform");
   } else if (source_dev.get_full_backend_descriptor().hw_platform ==
              hardware_platform::cpu) {
-    if (dest_dev.get_full_backend_descriptor().sw_platform ==
-        api_platform::cuda) {
+    if (dest_dev.get_full_backend_descriptor().sw_platform == api_platform::cuda) {
       copy_kind = cudaMemcpyHostToDevice;
     } else
       assert(false && "Unknown copy destination platform");
@@ -177,40 +173,36 @@ result cuda_queue::submit_memcpy(const memcpy_operation & op, dag_node_ptr) {
 
   cudaError_t err = cudaSuccess;
   if (dimension == 1) {
-    err = cudaMemcpyAsync(
-        op.dest().get_access_ptr(), op.source().get_access_ptr(),
-        op.get_num_transferred_bytes(), copy_kind, get_stream());
-    
+    err = cudaMemcpyAsync(op.dest().get_access_ptr(), op.source().get_access_ptr(),
+                          op.get_num_transferred_bytes(), copy_kind, get_stream());
+
   } else if (dimension == 2) {
-    err = cudaMemcpy2DAsync(
-        op.dest().get_access_ptr(),
-        extract_from_range3<2>(op.dest().get_allocation_shape())[1] *
-            op.dest().get_element_size(),
-        op.source().get_access_ptr(),
-        extract_from_range3<2>(op.source().get_allocation_shape())[1] *
-            op.source().get_element_size(),
-        extract_from_range3<2>(op.get_num_transferred_elements())[1] *
-            op.source().get_element_size(),
-        extract_from_range3<2>(op.get_num_transferred_elements())[0], copy_kind,
-        get_stream());
-    
+    err =
+        cudaMemcpy2DAsync(op.dest().get_access_ptr(),
+                          extract_from_range3<2>(op.dest().get_allocation_shape())[1] *
+                              op.dest().get_element_size(),
+                          op.source().get_access_ptr(),
+                          extract_from_range3<2>(op.source().get_allocation_shape())[1] *
+                              op.source().get_element_size(),
+                          extract_from_range3<2>(op.get_num_transferred_elements())[1] *
+                              op.source().get_element_size(),
+                          extract_from_range3<2>(op.get_num_transferred_elements())[0],
+                          copy_kind, get_stream());
+
   } else {
-    
+
     cudaMemcpy3DParms params = {0};
-    params.srcPtr = make_cudaPitchedPtr(op.source().get_access_ptr(),
-                                        op.source().get_allocation_shape()[2] *
-                                            op.source().get_element_size(),
-                                        op.source().get_allocation_shape()[2],
-                                        op.source().get_allocation_shape()[1]);
-    params.dstPtr = make_cudaPitchedPtr(op.dest().get_access_ptr(),
-                                        op.dest().get_allocation_shape()[2] *
-                                            op.dest().get_element_size(),
-                                        op.dest().get_allocation_shape()[2],
-                                        op.dest().get_allocation_shape()[1]);
-    params.extent = {op.get_num_transferred_elements()[2] *
-                         op.source().get_element_size(),
-                     op.get_num_transferred_elements()[1],
-                     op.get_num_transferred_elements()[0]};
+    params.srcPtr            = make_cudaPitchedPtr(
+        op.source().get_access_ptr(),
+        op.source().get_allocation_shape()[2] * op.source().get_element_size(),
+        op.source().get_allocation_shape()[2], op.source().get_allocation_shape()[1]);
+    params.dstPtr = make_cudaPitchedPtr(
+        op.dest().get_access_ptr(),
+        op.dest().get_allocation_shape()[2] * op.dest().get_element_size(),
+        op.dest().get_allocation_shape()[2], op.dest().get_allocation_shape()[1]);
+    params.extent = {
+        op.get_num_transferred_elements()[2] * op.source().get_element_size(),
+        op.get_num_transferred_elements()[1], op.get_num_transferred_elements()[0]};
     params.kind = copy_kind;
 
     err = cudaMemcpy3DAsync(&params, get_stream());
@@ -218,9 +210,8 @@ result cuda_queue::submit_memcpy(const memcpy_operation & op, dag_node_ptr) {
 
 
   if (err != cudaSuccess) {
-    return make_error(__hipsycl_here(),
-                      error_info{"cuda_queue: Couldn't submit memcpy",
-                                  error_code{"CUDA", err}});
+    return make_error(__hipsycl_here(), error_info{"cuda_queue: Couldn't submit memcpy",
+                                                   error_code{"CUDA", err}});
   }
   return make_success();
 }
@@ -228,48 +219,46 @@ result cuda_queue::submit_memcpy(const memcpy_operation & op, dag_node_ptr) {
 result cuda_queue::submit_kernel(const kernel_operation &op, dag_node_ptr node) {
 
   this->activate_device();
-  rt::backend_kernel_launcher *l = 
-      op.get_launcher().find_launcher(backend_id::cuda);
+  rt::backend_kernel_launcher *l = op.get_launcher().find_launcher(backend_id::cuda);
   if (!l)
-    return make_error(__hipsycl_here(), error_info{"Could not obtain backend kernel launcher"});
+    return make_error(__hipsycl_here(),
+                      error_info{"Could not obtain backend kernel launcher"});
   l->set_params(this);
   l->invoke(node.get());
 
   return make_success();
 }
 
-result cuda_queue::submit_prefetch(const prefetch_operation& op, dag_node_ptr) {
+result cuda_queue::submit_prefetch(const prefetch_operation &op, dag_node_ptr) {
 #ifndef _WIN32
   cudaError_t err = cudaSuccess;
   if (op.get_target().is_host()) {
-    err = cudaMemPrefetchAsync(op.get_pointer(), op.get_num_bytes(),
-                                         cudaCpuDeviceId, get_stream());
+    err = cudaMemPrefetchAsync(op.get_pointer(), op.get_num_bytes(), cudaCpuDeviceId,
+                               get_stream());
   } else {
-    err = cudaMemPrefetchAsync(op.get_pointer(), op.get_num_bytes(),
-                                         _dev.get_id(), get_stream());
+    err = cudaMemPrefetchAsync(op.get_pointer(), op.get_num_bytes(), _dev.get_id(),
+                               get_stream());
   }
 
   if (err != cudaSuccess) {
-    return make_error(__hipsycl_here(),
-                      error_info{"cuda_queue: cudaMemPrefetchAsync() failed",
-                                 error_code{"CUDA", err}});
+    return make_error(
+        __hipsycl_here(),
+        error_info{"cuda_queue: cudaMemPrefetchAsync() failed", error_code{"CUDA", err}});
   }
 #else
-  HIPSYCL_DEBUG_WARNING << "cuda_queue: Ignoring prefetch() hint"
-                        << std::endl;
+  HIPSYCL_DEBUG_WARNING << "cuda_queue: Ignoring prefetch() hint" << std::endl;
 #endif // _WIN32
   return make_success();
 }
 
 result cuda_queue::submit_memset(const memset_operation &op, dag_node_ptr) {
-  
+
   cudaError_t err = cudaMemsetAsync(op.get_pointer(), op.get_pattern(),
                                     op.get_num_bytes(), get_stream());
 
   if (err != cudaSuccess) {
-    return make_error(__hipsycl_here(),
-                      error_info{"cuda_queue: cudaMemsetAsync() failed",
-                                 error_code{"CUDA", err}});
+    return make_error(__hipsycl_here(), error_info{"cuda_queue: cudaMemsetAsync() failed",
+                                                   error_code{"CUDA", err}});
   }
 
   return make_success();
@@ -280,12 +269,12 @@ result cuda_queue::submit_memset(const memset_operation &op, dag_node_ptr) {
 result cuda_queue::submit_queue_wait_for(std::shared_ptr<dag_node_event> evt) {
   assert(dynamic_is<cuda_node_event>(evt.get()));
 
-  cuda_node_event* cuda_evt = cast<cuda_node_event>(evt.get());
-  auto err = cudaStreamWaitEvent(_stream, cuda_evt->get_event(), 0);
+  cuda_node_event *cuda_evt = cast<cuda_node_event>(evt.get());
+  auto             err      = cudaStreamWaitEvent(_stream, cuda_evt->get_event(), 0);
   if (err != cudaSuccess) {
-    return make_error(__hipsycl_here(),
-                      error_info{"cuda_queue: cudaStreamWaitEvent() failed",
-                                 error_code{"CUDA", err}});
+    return make_error(
+        __hipsycl_here(),
+        error_info{"cuda_queue: cudaStreamWaitEvent() failed", error_code{"CUDA", err}});
   }
 
   return make_success();
@@ -293,40 +282,36 @@ result cuda_queue::submit_queue_wait_for(std::shared_ptr<dag_node_event> evt) {
 
 result cuda_queue::submit_external_wait_for(dag_node_ptr node) {
 
-  dag_node_ptr* user_data = new dag_node_ptr;
+  dag_node_ptr *user_data = new dag_node_ptr;
   assert(user_data);
   *user_data = node;
 
-  auto err = 
-      cudaStreamAddCallback(_stream, host_synchronization_callback,
-                           reinterpret_cast<void *>(user_data), 0);
+  auto err = cudaStreamAddCallback(_stream, host_synchronization_callback,
+                                   reinterpret_cast<void *>(user_data), 0);
 
   if (err != cudaSuccess) {
     return make_error(__hipsycl_here(),
                       error_info{"cuda_queue: Couldn't submit stream callback",
                                  error_code{"CUDA", err}});
   }
-  
+
   return make_success();
 }
 
-result cuda_queue::submit_kernel_from_module(cuda_module_manager &manager,
-                                             const cuda_module &module,
-                                             const std::string &kernel_name,
-                                             const rt::range<3> &grid_size,
-                                             const rt::range<3> &block_size,
-                                             unsigned dynamic_shared_mem,
-                                             void **kernel_args) {
+result cuda_queue::submit_kernel_from_module(
+    cuda_module_manager &manager, const cuda_module &module,
+    const std::string &kernel_name, const rt::range<3> &grid_size,
+    const rt::range<3> &block_size, unsigned dynamic_shared_mem, void **kernel_args) {
 
   this->activate_device();
 
   CUmodule cumodule;
-  result res = manager.load(_dev, module, cumodule);
+  result   res = manager.load(_dev, module, cumodule);
   if (!res.is_success())
     return res;
 
   CUfunction f;
-  CUresult err = cuModuleGetFunction(&f, cumodule, kernel_name.c_str());
+  CUresult   err = cuModuleGetFunction(&f, cumodule, kernel_name.c_str());
 
   if (err != CUDA_SUCCESS) {
     return make_error(__hipsycl_here(),
@@ -334,20 +319,18 @@ result cuda_queue::submit_kernel_from_module(cuda_module_manager &manager,
                                  error_code{"CU", static_cast<int>(err)}});
   }
 
-  err = cuLaunchKernel(f, static_cast<unsigned>(grid_size.get(0)),
-                       static_cast<unsigned>(grid_size.get(1)),
-                       static_cast<unsigned>(grid_size.get(2)),
-                       static_cast<unsigned>(block_size.get(0)),
-                       static_cast<unsigned>(block_size.get(1)),
-                       static_cast<unsigned>(block_size.get(2)),
-                       dynamic_shared_mem, _stream, kernel_args, nullptr);
+  err = cuLaunchKernel(
+      f, static_cast<unsigned>(grid_size.get(0)), static_cast<unsigned>(grid_size.get(1)),
+      static_cast<unsigned>(grid_size.get(2)), static_cast<unsigned>(block_size.get(0)),
+      static_cast<unsigned>(block_size.get(1)), static_cast<unsigned>(block_size.get(2)),
+      dynamic_shared_mem, _stream, kernel_args, nullptr);
 
   if (err != CUDA_SUCCESS) {
     return make_error(__hipsycl_here(),
                       error_info{"cuda_queue: could not submit kernel from module",
                                  error_code{"CU", static_cast<int>(err)}});
   }
-  
+
   return make_success();
 }
 
@@ -356,7 +339,7 @@ device_id cuda_queue::get_device() const {
 }
 
 void *cuda_queue::get_native_type() const {
-  return static_cast<void*>(get_stream());
+  return static_cast<void *>(get_stream());
 }
 
 module_invoker *cuda_queue::get_module_invoker() {
@@ -366,10 +349,9 @@ module_invoker *cuda_queue::get_module_invoker() {
 cuda_module_invoker::cuda_module_invoker(cuda_queue *q) : _queue{q} {}
 
 result cuda_module_invoker::submit_kernel(
-    module_id_t id, const std::string &module_variant,
-    const std::string *module_image, const rt::range<3> &num_groups,
-    const rt::range<3> &group_size, unsigned local_mem_size, void **args,
-    std::size_t *arg_sizes, std::size_t num_args,
+    module_id_t id, const std::string &module_variant, const std::string *module_image,
+    const rt::range<3> &num_groups, const rt::range<3> &group_size,
+    unsigned local_mem_size, void **args, std::size_t *arg_sizes, std::size_t num_args,
     const std::string &kernel_name_tag, const std::string &kernel_body_name) {
 
   assert(_queue);
@@ -380,7 +362,7 @@ result cuda_module_invoker::submit_kernel(
 
   HIPSYCL_DEBUG_INFO << "cuda_module_invoker: Obtaining module with id " << id
                      << " in variant '" << module_variant << "'" << std::endl;
-  
+
   const cuda_module &code_module =
       be->get_module_manager().obtain_module(id, module_variant, *module_image);
 
@@ -388,30 +370,26 @@ result cuda_module_invoker::submit_kernel(
   std::string kernel_name;
   // First check if there is a kernel in the module that matches
   // the expected explicitly named kernel name
-  if (!code_module.guess_kernel_name("__hipsycl_kernel", kernel_name_tag,
-                                     kernel_name)) {
+  if (!code_module.guess_kernel_name("__hipsycl_kernel", kernel_name_tag, kernel_name)) {
 
     // We are dealing with an unnamed kernel, so check if we can find
     // a matching unnamed kernel
     if (!code_module.guess_kernel_name("__hipsycl_kernel", kernel_body_name,
                                        kernel_name)) {
 
-      return rt::make_error(
-          __hipsycl_here(),
-          rt::error_info{"cuda_module_invoker: No matching CUDA kernel "
-                         "found in module for kernel with name tag " +
-                         kernel_name_tag + " and type " +
-                         kernel_body_name});
+      return rt::make_error(__hipsycl_here(),
+                            rt::error_info{"cuda_module_invoker: No matching CUDA kernel "
+                                           "found in module for kernel with name tag " +
+                                           kernel_name_tag + " and type " +
+                                           kernel_body_name});
     }
   }
-  HIPSYCL_DEBUG_INFO
-      << "cuda_module_invoker: Selected kernel from module for execution: "
-      << kernel_name << std::endl;
+  HIPSYCL_DEBUG_INFO << "cuda_module_invoker: Selected kernel from module for execution: "
+                     << kernel_name << std::endl;
 
-  return _queue->submit_kernel_from_module(
-      be->get_module_manager(), code_module, kernel_name, num_groups,
-      group_size, local_mem_size, args);
+  return _queue->submit_kernel_from_module(be->get_module_manager(), code_module,
+                                           kernel_name, num_groups, group_size,
+                                           local_mem_size, args);
 }
-}
-}
-
+} // namespace rt
+} // namespace hipsycl

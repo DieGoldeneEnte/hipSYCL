@@ -40,17 +40,16 @@
 namespace hipsycl {
 namespace rt {
 
-/// Represents a DAG that can be transformed for execution (e.g., turning 
+/// Represents a DAG that can be transformed for execution (e.g., turning
 /// by requirements into actual operations).
 ///
 /// Thread safety: None
-class dag
-{
+class dag {
 public:
   void add_command_group(dag_node_ptr node);
 
-  const std::vector<dag_node_ptr>& get_command_groups() const;
-  const std::vector<dag_node_ptr>& get_memory_requirements() const;
+  const std::vector<dag_node_ptr> &get_command_groups() const;
+  const std::vector<dag_node_ptr> &get_memory_requirements() const;
 
   using node_iterator = std::vector<dag_node_ptr>::iterator;
 
@@ -58,21 +57,21 @@ public:
 
   void for_each_node(std::function<void(dag_node_ptr)> handler) const;
 
-  std::size_t num_nodes() const
-  {
+  std::size_t num_nodes() const {
     return _command_groups.size() + _memory_requirements.size();
   }
 
   bool is_requirement_from_this_dag(const dag_node_ptr &node) const;
 
-  void dump(std::ostream& ostr) const;
+  void dump(std::ostream &ostr) const;
+
 private:
   std::vector<dag_node_ptr> _command_groups;
   std::vector<dag_node_ptr> _memory_requirements;
 };
 
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

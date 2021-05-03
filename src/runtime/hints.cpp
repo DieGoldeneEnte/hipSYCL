@@ -32,36 +32,31 @@
 namespace hipsycl {
 namespace rt {
 
-execution_hint::execution_hint(execution_hint_type type)
-: _type{type}
-{}
+execution_hint::execution_hint(execution_hint_type type) : _type{type} {}
 
-execution_hint_type execution_hint::get_hint_type() const
-{
+execution_hint_type execution_hint::get_hint_type() const {
   return _type;
 }
 
-execution_hint::~execution_hint(){}
+execution_hint::~execution_hint() {}
 
 namespace hints {
 
 bind_to_device::bind_to_device(device_id d)
-: execution_hint{execution_hint_type::bind_to_device}, _dev{d}
-{}
+    : execution_hint{execution_hint_type::bind_to_device}, _dev{d} {}
 
-device_id bind_to_device::get_device_id() const
-{ return _dev; }
+device_id bind_to_device::get_device_id() const {
+  return _dev;
+}
 
-} // hints
+} // namespace hints
 
-void execution_hints::add_hint(execution_hint_ptr hint)
-{
+void execution_hints::add_hint(execution_hint_ptr hint) {
   _hints.push_back(hint);
 }
 
-void execution_hints::overwrite_with(const execution_hints& other)
-{
-  for(const auto& hint : other._hints){
+void execution_hints::overwrite_with(const execution_hints &other) {
+  for (const auto &hint : other._hints) {
     this->overwrite_with(hint);
   }
 }
@@ -76,19 +71,17 @@ void execution_hints::overwrite_with(execution_hint_ptr hint) {
   _hints.push_back(hint);
 }
 
-bool execution_hints::has_hint(execution_hint_type type) const
-{
+bool execution_hints::has_hint(execution_hint_type type) const {
   return get_hint(type) != nullptr;
 }
 
-execution_hint* execution_hints::get_hint(execution_hint_type type) const
-{
-  for(const auto& hint : _hints)
-    if(hint->get_hint_type() == type)
+execution_hint *execution_hints::get_hint(execution_hint_type type) const {
+  for (const auto &hint : _hints)
+    if (hint->get_hint_type() == type)
       return hint.get();
   return nullptr;
 }
 
 
-}
-}
+} // namespace rt
+} // namespace hipsycl

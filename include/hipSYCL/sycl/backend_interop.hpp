@@ -50,12 +50,13 @@ class queue;
 namespace detail {
 
 
-template <class T>
+template<class T>
 struct interop_traits {};
 
 #define HIPSYCL_DEFINE_INTEROP_TRAIT(sycl_type, interop_trait_type)            \
-  template <> struct interop_traits<sycl_type> {                               \
-    template <backend B>                                                       \
+  template<>                                                                   \
+  struct interop_traits<sycl_type> {                                           \
+    template<backend B>                                                        \
     using native_type = typename glue::backend_interop<B>::interop_trait_type; \
   };
 
@@ -68,85 +69,82 @@ HIPSYCL_DEFINE_INTEROP_TRAIT(sycl::stream, native_stream_type)
 HIPSYCL_DEFINE_INTEROP_TRAIT(sycl::kernel, native_kernel_type)
 HIPSYCL_DEFINE_INTEROP_TRAIT(sycl::device_event, native_device_event_type)
 
-template <typename dataT, int dimensions, access::mode accessmode,
-          access::target Target, access::placeholder isPlaceholder>
+template<typename dataT, int dimensions, access::mode accessmode, access::target Target,
+         access::placeholder isPlaceholder>
 struct interop_traits<
     sycl::accessor<dataT, dimensions, accessmode, Target, isPlaceholder>> {
 
-  template <backend B>
+  template<backend B>
   using native_type = typename glue::backend_interop<B>::native_mem_type;
 };
 
 } // namespace detail
 
 
-template <backend Backend> class backend_traits {
+template<backend Backend>
+class backend_traits {
 public:
-  template <class T>
-  using native_type =
-      typename detail::interop_traits<T>::template native_type<Backend>;
+  template<class T>
+  using native_type = typename detail::interop_traits<T>::template native_type<Backend>;
 
   using errc = typename glue::backend_interop<Backend>::error_type;
 };
 
-template <backend Backend>
+template<backend Backend>
 typename backend_traits<Backend>::template native_type<device>
-get_native(const device &sycl_object) {
+    get_native(const device &sycl_object) {
   return glue::backend_interop<Backend>::get_native_device(sycl_object);
 }
 
-template <backend Backend>
+template<backend Backend>
 typename backend_traits<Backend>::template native_type<platform>
-get_native(const platform &sycl_object) {
+    get_native(const platform &sycl_object) {
   return glue::backend_interop<Backend>::get_native_platform(sycl_object);
 }
 
-template <backend Backend>
+template<backend Backend>
 typename backend_traits<Backend>::template native_type<context>
-get_native(const context &sycl_object) {
+    get_native(const context &sycl_object) {
   return glue::backend_interop<Backend>::get_native_context(sycl_object);
 }
 
-template <backend Backend>
+template<backend Backend>
 typename backend_traits<Backend>::template native_type<queue>
-get_native(const queue &sycl_object) {
+    get_native(const queue &sycl_object) {
   return glue::backend_interop<Backend>::get_native_queue(sycl_object);
 }
 
-template <backend Backend>
+template<backend Backend>
 typename backend_traits<Backend>::template native_type<event>
-get_native(const event &sycl_object) {
+    get_native(const event &sycl_object) {
   return glue::backend_interop<Backend>::get_native_event(sycl_object);
 }
 
-template <backend Backend>
+template<backend Backend>
 typename backend_traits<Backend>::template native_type<buffer>
-get_native(const event &sycl_object) {
+    get_native(const event &sycl_object) {
   return glue::backend_interop<Backend>::get_native_event(sycl_object);
 }
 
-template <backend Backend>
-platform make_platform(
-    const typename backend_traits<Backend>::template native_type<platform>
-        &backend_object) {
-  return glue::backend_interop<Backend>::make_sycl_platform(backend_object); 
+template<backend Backend>
+platform
+    make_platform(const typename backend_traits<Backend>::template native_type<platform>
+                      &backend_object) {
+  return glue::backend_interop<Backend>::make_sycl_platform(backend_object);
 }
 
-template <backend Backend>
-device
-make_device(const typename backend_traits<Backend>::template native_type<device>
-                &backend_object) {
+template<backend Backend>
+device make_device(const typename backend_traits<Backend>::template native_type<device>
+                       &backend_object) {
   return glue::backend_interop<Backend>::make_sycl_device(backend_object);
 }
 
-template <backend Backend>
+template<backend Backend>
 context make_context(
-    const typename backend_traits<Backend>::template native_type<context>
-        &backend_object,
-    const async_handler handler = {}) {
+    const typename backend_traits<Backend>::template native_type<context> &backend_object,
+    const async_handler                                                    handler = {}) {
 
-  return glue::backend_interop<Backend>::make_sycl_context(backend_object,
-                                                           handler);
+  return glue::backend_interop<Backend>::make_sycl_context(backend_object, handler);
 }
 
 /*
@@ -165,20 +163,19 @@ queue make_queue(
 }
 */
 
-template <backend Backend>
+template<backend Backend>
 event make_event(
-    const typename backend_traits<Backend>::template native_type<event>
-        &backend_object,
-    const context &ctx) {
+    const typename backend_traits<Backend>::template native_type<event> &backend_object,
+    const context &                                                      ctx) {
 
   return glue::backend_interop<Backend>::make_sycl_event(backend_object, ctx);
 }
 
-template <backend Backend>
+template<backend Backend>
 buffer<int, 1> // TODO: How can infer the template arguments of buffer?
-make_buffer(const typename backend_traits<Backend>::template native_type<buffer>
-                &backend_object,
-            const context &ctx, event available_event = {}) {
+    make_buffer(const typename backend_traits<Backend>::template native_type<buffer>
+                    &          backend_object,
+                const context &ctx, event available_event = {}) {
   return glue::backend_interop<Backend>::make_sycl_buffer(backend_object, ctx,
                                                           available_event);
 }
@@ -201,33 +198,30 @@ const backend_traits<Backend>::native_type<image_sampler> &backendObject,
 const context &targetContext);
 */
 
-template <backend Backend>
-stream
-make_stream(const typename backend_traits<Backend>::template native_type<stream>
-                &backend_object,
-            const context &ctx, event available_event = {}) {
+template<backend Backend>
+stream make_stream(
+    const typename backend_traits<Backend>::template native_type<stream> &backend_object,
+    const context &ctx, event available_event = {}) {
 
   return glue::backend_interop<Backend>::make_sycl_stream(backend_object, ctx,
                                                           available_event);
 }
 
-template <backend Backend>
-kernel
-make_kernel(const typename backend_traits<Backend>::template native_type<kernel>
-                &backend_object,
-            const context &ctx) {
+template<backend Backend>
+kernel make_kernel(
+    const typename backend_traits<Backend>::template native_type<kernel> &backend_object,
+    const context &                                                       ctx) {
   return glue::backend_interop<Backend>::make_sycl_kernel(backend_object, ctx);
 }
 
-template <backend Backend>
-kernel
-make_module(const typename backend_traits<Backend>::template native_type<event>
-                &backend_object,
-            const context &ctx) {
+template<backend Backend>
+kernel make_module(
+    const typename backend_traits<Backend>::template native_type<event> &backend_object,
+    const context &                                                      ctx) {
   return glue::backend_interop<Backend>::make_sycl_module(backend_object, ctx);
 }
 
-}
-}
+} // namespace sycl
+} // namespace hipsycl
 
 #endif

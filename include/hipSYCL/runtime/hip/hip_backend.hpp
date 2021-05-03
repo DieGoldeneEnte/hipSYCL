@@ -41,30 +41,29 @@ namespace hipsycl {
 namespace rt {
 
 
-class hip_backend : public backend
-{
+class hip_backend : public backend {
 public:
   hip_backend();
-  virtual api_platform get_api_platform() const override;
+  virtual api_platform      get_api_platform() const override;
   virtual hardware_platform get_hardware_platform() const override;
-  virtual backend_id get_unique_backend_id() const override;
-  
-  virtual backend_hardware_manager* get_hardware_manager() const override;
-  virtual backend_executor* get_executor(device_id dev) const override;
-  virtual backend_allocator *get_allocator(device_id dev) const override;
+  virtual backend_id        get_unique_backend_id() const override;
+
+  virtual backend_hardware_manager *get_hardware_manager() const override;
+  virtual backend_executor *        get_executor(device_id dev) const override;
+  virtual backend_allocator *       get_allocator(device_id dev) const override;
 
   virtual std::string get_name() const override;
 
-  virtual ~hip_backend(){}
+  virtual ~hip_backend() {}
 
 private:
-  mutable hip_hardware_manager _hw_manager;
-  mutable multi_queue_executor _executor;
+  mutable hip_hardware_manager       _hw_manager;
+  mutable multi_queue_executor       _executor;
   mutable std::vector<hip_allocator> _allocators;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 
 #endif

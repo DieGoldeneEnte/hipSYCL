@@ -37,9 +37,10 @@
 #include "kernel.hpp"
 #include "program.hpp"
 
-#define HIPSYCL_SPECIALIZE_GET_INFO(class_name, specialization)\
-  template<> \
-  inline typename info::param_traits<info::class_name,info::class_name::specialization>::return_type \
-  sycl::class_name::get_info<info::class_name::specialization>() const
+#define HIPSYCL_SPECIALIZE_GET_INFO(class_name, specialization)                     \
+  template<>                                                                        \
+  inline typename info::param_traits<info::class_name,                              \
+                                     info::class_name::specialization>::return_type \
+      sycl::class_name::get_info<info::class_name::specialization>() const
 
 #endif

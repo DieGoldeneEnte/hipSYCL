@@ -33,7 +33,8 @@
 namespace hipsycl {
 namespace sycl {
 
-enum class target {
+enum class target
+{
   device,
   host_task,
   global_buffer = device,
@@ -46,7 +47,8 @@ enum class target {
   image_array
 };
 
-enum class access_mode {
+enum class access_mode
+{
   read,
   write,
   read_write,
@@ -58,8 +60,7 @@ enum class access_mode {
 
 
 // TODO these should be moved to a common/serialization.hpp?
-inline std::ostream &operator<<(std::ostream &out, const sycl::access_mode value)
-{
+inline std::ostream &operator<<(std::ostream &out, const sycl::access_mode value) {
   switch (value) {
   case sycl::access_mode::read:
     out << "R";
@@ -86,8 +87,7 @@ inline std::ostream &operator<<(std::ostream &out, const sycl::access_mode value
   return out;
 }
 
-inline std::ostream &operator<<(std::ostream &out,
-                                const sycl::target value) {
+inline std::ostream &operator<<(std::ostream &out, const sycl::target value) {
   switch (value) {
   case sycl::target::image:
     out << "image";
@@ -127,20 +127,21 @@ using sycl::target;
 using mode = sycl::access_mode;
 
 // Deprecated
-enum class placeholder {
+enum class placeholder
+{
   false_t,
   true_t
 };
 
-enum class fence_space : char {
+enum class fence_space : char
+{
   local_space,
   global_space,
   global_and_local
 };
 
-inline std::ostream &operator<<(std::ostream &out,
-                         const sycl::access::placeholder value)
-{
+inline std::ostream &operator<<(std::ostream &                  out,
+                                const sycl::access::placeholder value) {
   switch (value) {
   case sycl::access::placeholder::false_t:
     out << "false";
@@ -155,9 +156,8 @@ inline std::ostream &operator<<(std::ostream &out,
   return out;
 }
 
-inline std::ostream &operator<<(std::ostream &out,
-                         const sycl::access::fence_space value) 
-{
+inline std::ostream &operator<<(std::ostream &                  out,
+                                const sycl::access::fence_space value) {
   switch (value) {
   case sycl::access::fence_space::global_and_local:
     out << "global and local";
@@ -175,9 +175,9 @@ inline std::ostream &operator<<(std::ostream &out,
   return out;
 }
 
-} // access
-}
-}
+} // namespace access
+} // namespace sycl
+} // namespace hipsycl
 
 
 #endif

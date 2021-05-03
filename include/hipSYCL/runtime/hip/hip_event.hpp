@@ -35,8 +35,7 @@ namespace hipsycl {
 namespace rt {
 
 /// Manages a hipEvent_t.
-class hip_node_event : public dag_node_event
-{
+class hip_node_event : public dag_node_event {
 public:
   /// Takes ownership of supplied hipEvent_t. \c evt Must
   /// have been properly initialized and recorded.
@@ -47,14 +46,15 @@ public:
   virtual void wait() override;
 
   hipEvent_t get_event() const;
-  device_id get_device() const;
+  device_id  get_device() const;
+
 private:
-  device_id _dev;
+  device_id  _dev;
   hipEvent_t _evt;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 
 #endif

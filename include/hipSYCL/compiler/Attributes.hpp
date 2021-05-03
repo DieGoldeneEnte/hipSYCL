@@ -35,23 +35,20 @@
 namespace hipsycl {
 namespace compiler {
 
-class AddonAttribute
-{
+class AddonAttribute {
   std::string Name;
+
 public:
-  AddonAttribute(const std::string& name)
-  : Name(name)
-  {}
+  AddonAttribute(const std::string &name) : Name(name) {}
 
-  std::string getString() const
-  { return "__attribute__((diagnose_if(false,\""+ Name +",\"warning\")))"; }
+  std::string getString() const {
+    return "__attribute__((diagnose_if(false,\"" + Name + ",\"warning\")))";
+  }
 
-  bool describedBy(clang::Attr* attrib) const
-  {
-    if(clang::isa<clang::DiagnoseIfAttr>(attrib))
-    {
-      clang::DiagnoseIfAttr* attr = clang::cast<clang::DiagnoseIfAttr>(attrib);
-      if(attr->getMessage() == Name)
+  bool describedBy(clang::Attr *attrib) const {
+    if (clang::isa<clang::DiagnoseIfAttr>(attrib)) {
+      clang::DiagnoseIfAttr *attr = clang::cast<clang::DiagnoseIfAttr>(attrib);
+      if (attr->getMessage() == Name)
         return true;
     }
     return false;
@@ -64,23 +61,19 @@ public:
   }
 };
 
-class KernelAttribute : public AddonAttribute
-{
+class KernelAttribute : public AddonAttribute {
 public:
-  KernelAttribute()
-  : AddonAttribute{"hipsycl_kernel"}
-  {}
+  KernelAttribute() : AddonAttribute{"hipsycl_kernel"} {}
 };
 
-class CustomAttributes
-{
+class CustomAttributes {
 public:
   static const KernelAttribute SyclKernel;
 };
 
 const KernelAttribute CustomAttributes::SyclKernel = KernelAttribute{};
 
-}
-}
+} // namespace compiler
+} // namespace hipsycl
 
 #endif

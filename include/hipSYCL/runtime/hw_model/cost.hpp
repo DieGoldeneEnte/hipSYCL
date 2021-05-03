@@ -31,4 +31,4 @@ namespace rt {
 using cost_type = double;
 
 }
-}
+} // namespace hipsycl

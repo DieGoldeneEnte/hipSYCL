@@ -32,22 +32,17 @@ namespace hipsycl {
 namespace rt {
 
 
-hip_node_event::hip_node_event(device_id dev, hipEvent_t evt)
-: _dev{dev}, _evt{evt}
-{}
+hip_node_event::hip_node_event(device_id dev, hipEvent_t evt) : _dev{dev}, _evt{evt} {}
 
-hip_node_event::~hip_node_event()
-{
+hip_node_event::~hip_node_event() {
   auto err = hipEventDestroy(_evt);
   if (err != hipSuccess) {
-    register_error(__hipsycl_here(),
-                   error_info{"hip_node_event: Couldn't destroy event",
-                              error_code{"HIP", err}});
+    register_error(__hipsycl_here(), error_info{"hip_node_event: Couldn't destroy event",
+                                                error_code{"HIP", err}});
   }
 }
 
-bool hip_node_event::is_complete() const
-{
+bool hip_node_event::is_complete() const {
   hipError_t err = hipEventQuery(_evt);
   if (err != hipErrorNotReady && err != hipSuccess) {
     register_error(__hipsycl_here(),
@@ -57,8 +52,7 @@ bool hip_node_event::is_complete() const
   return err == hipSuccess;
 }
 
-void hip_node_event::wait()
-{
+void hip_node_event::wait() {
   auto err = hipEventSynchronize(_evt);
   if (err != hipSuccess) {
     register_error(__hipsycl_here(),
@@ -67,15 +61,13 @@ void hip_node_event::wait()
   }
 }
 
-hipEvent_t hip_node_event::get_event() const
-{
+hipEvent_t hip_node_event::get_event() const {
   return _evt;
 }
 
-device_id hip_node_event::get_device() const
-{
+device_id hip_node_event::get_device() const {
   return _dev;
 }
 
-}
-}
+} // namespace rt
+} // namespace hipsycl

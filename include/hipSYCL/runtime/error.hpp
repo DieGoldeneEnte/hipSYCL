@@ -40,7 +40,8 @@
 namespace hipsycl {
 namespace rt {
 
-enum class error_type {
+enum class error_type
+{
   unimplemented,
   runtime_error,
   kernel_error,
@@ -60,27 +61,22 @@ enum class error_type {
 
 class source_location {
 public:
-  source_location(const std::string &function, const std::string &file,
-                  int line)
+  source_location(const std::string &function, const std::string &file, int line)
       : _function{function}, _file{file}, _line{line} {}
 
-  const std::string& get_function() const
-  { return _function; }
+  const std::string &get_function() const { return _function; }
 
-  const std::string& get_file() const
-  { return _file; }
+  const std::string &get_file() const { return _file; }
 
-  int get_line() const
-  { return _line; }
+  int get_line() const { return _line; }
 
 private:
   std::string _function;
   std::string _file;
-  int _line;
+  int         _line;
 };
 
-class error_code
-{
+class error_code {
 public:
   error_code(int code)
       : _component{"<unspecified>"}, _has_error_code{true}, _code{code} {}
@@ -93,18 +89,15 @@ public:
   error_code(const std::string &component, int code)
       : _component{component}, _has_error_code{true}, _code{code} {}
 
-  const std::string& get_component() const
-  { return _component; }
+  const std::string &get_component() const { return _component; }
 
-  bool is_code_specified() const
-  { return _has_error_code; }
+  bool is_code_specified() const { return _has_error_code; }
 
-  int get_code() const
-  { return _code; }
+  int get_code() const { return _code; }
 
-  std::string str() const{
-    auto res = _component+":";
-    if(_has_error_code)
+  std::string str() const {
+    auto res = _component + ":";
+    if (_has_error_code)
       res += std::to_string(_code);
     else
       res += "<unspecified>";
@@ -113,8 +106,8 @@ public:
 
 private:
   std::string _component;
-  bool _has_error_code;
-  int _code;
+  bool        _has_error_code;
+  int         _code;
 };
 
 class error_info {
@@ -123,22 +116,22 @@ public:
 
   error_info() = default;
 
-  error_info(const std::string &message,
-            error_type etype = error_type::runtime_error)
+  error_info(const std::string &message, error_type etype = error_type::runtime_error)
       : _message{message}, _etype{etype} {}
 
   error_info(const std::string &message, errc_type backend_error_code,
              error_type etype = error_type::runtime_error)
       : _message{message}, _error_code{backend_error_code}, _etype{etype} {}
 
-  const std::string& what() const { return _message; }
-  errc_type error_code() const { return _error_code; }
+  const std::string &what() const { return _message; }
+  errc_type          error_code() const { return _error_code; }
 
   error_type get_error_type() const { return _etype; }
+
 private:
   std::string _message;
-  errc_type _error_code;
-  error_type _etype;
+  errc_type   _error_code;
+  error_type  _etype;
 };
 
 class result {
@@ -146,32 +139,28 @@ public:
   // constructs success result
   result() = default;
   result(const source_location &origin, const error_info &info);
-  result(const result& other);
-  result(result&& other) noexcept;
+  result(const result &other);
+  result(result &&other) noexcept;
 
-  friend void swap(result& r1, result& r2) noexcept {
-    std::swap(r1._impl, r2._impl);
-  }
+  friend void swap(result &r1, result &r2) noexcept { std::swap(r1._impl, r2._impl); }
 
-  result& operator=(const result& other);
-  result& operator=(result&& other);
+  result &operator=(const result &other);
+  result &operator=(result &&other);
 
   bool is_success() const;
-  
+
   source_location origin() const;
-  error_info info() const;
+  error_info      info() const;
 
   std::string what() const;
-  void dump(std::ostream& ostr) const;
+  void        dump(std::ostream &ostr) const;
+
 private:
-  struct result_impl
-  {
-    result_impl(const source_location& l, const error_info& i)
-    : origin{l}, info{i}
-    {}
+  struct result_impl {
+    result_impl(const source_location &l, const error_info &i) : origin{l}, info{i} {}
 
     source_location origin;
-    error_info info;
+    error_info      info;
   };
 
   std::unique_ptr<result_impl> _impl;
@@ -181,23 +170,21 @@ inline result make_success() {
   return result{};
 }
 
-inline result make_error(
-    const source_location &origin, const error_info &info) {
+inline result make_error(const source_location &origin, const error_info &info) {
   return result{origin, info};
 }
 
 // Construct an error object and register in the error queue
-result register_error(
-    const source_location &origin, const error_info &info);
-void register_error(const result& err);
+result register_error(const source_location &origin, const error_info &info);
+void   register_error(const result &err);
 
-inline void print_result(const result& res, bool warn_only = false){
+inline void print_result(const result &res, bool warn_only = false) {
 
   std::stringstream sstr;
   res.dump(sstr);
-  
-  if(!res.is_success()) {
-    if(!warn_only) { 
+
+  if (!res.is_success()) {
+    if (!warn_only) {
       HIPSYCL_DEBUG_ERROR << sstr.str() << std::endl;
     } else {
       HIPSYCL_DEBUG_WARNING << sstr.str() << std::endl;
@@ -207,23 +194,22 @@ inline void print_result(const result& res, bool warn_only = false){
   }
 }
 
-inline result print_error(const source_location &origin,
-                          const error_info &info) {
+inline result print_error(const source_location &origin, const error_info &info) {
   result r = make_error(origin, info);
   print_result(r);
   return r;
 }
 
-inline result print_warning(const source_location &origin,
-                            const error_info &info) {
+inline result print_warning(const source_location &origin, const error_info &info) {
   result r = make_error(origin, info);
   print_result(r, true);
   return r;
 }
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
-#define __hipsycl_here() ::hipsycl::rt::source_location{__func__, __FILE__, __LINE__}
+#define __hipsycl_here() \
+  ::hipsycl::rt::source_location { __func__, __FILE__, __LINE__ }
 
 #endif

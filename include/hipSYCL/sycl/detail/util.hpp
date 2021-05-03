@@ -37,50 +37,50 @@ namespace hipsycl {
 namespace sycl {
 namespace detail {
 
-template <typename T>
-T* get_raw_pointer(T* ptr) { return ptr; }
+template<typename T>
+T *get_raw_pointer(T *ptr) {
+  return ptr;
+}
 
-template <typename WrappedPtr>
-auto get_raw_pointer(const WrappedPtr& ptr) { return ptr.get(); }
+template<typename WrappedPtr>
+auto get_raw_pointer(const WrappedPtr &ptr) {
+  return ptr.get();
+}
 
 class spin_lock {
 public:
   void lock() {
-    while (_lock.test_and_set(std::memory_order_acquire));
+    while (_lock.test_and_set(std::memory_order_acquire))
+      ;
   }
-  void unlock() {
-    _lock.clear(std::memory_order_release);
-  }
+  void unlock() { _lock.clear(std::memory_order_release); }
+
 private:
   std::atomic_flag _lock = ATOMIC_FLAG_INIT;
 };
 
 class spin_lock_guard {
 public:
-  spin_lock_guard(spin_lock& lock) : _lock(lock) {
-    _lock.lock();
-  }
-  ~spin_lock_guard() {
-    _lock.unlock();
-  }
+  spin_lock_guard(spin_lock &lock) : _lock(lock) { _lock.lock(); }
+  ~spin_lock_guard() { _lock.unlock(); }
+
 private:
-  spin_lock& _lock;
+  spin_lock &_lock;
 };
 
 template<typename Tuple, std::size_t... Ints>
 std::tuple<std::tuple_element_t<Ints, Tuple>...>
-extract_tuple(Tuple&& tuple, std::index_sequence<Ints...>) {
- return { std::get<Ints>(std::forward<Tuple>(tuple))... };
+    extract_tuple(Tuple &&tuple, std::index_sequence<Ints...>) {
+  return {std::get<Ints>(std::forward<Tuple>(tuple))...};
 }
 
 
 template<class F, typename... Args>
-void separate_last_argument_and_apply(F&& f, Args&& ... args) {
-  
-  static_assert(
-      sizeof...(args) > 0,
-      "Cannot extract last argument from template pack for empty pack");
-  
+void separate_last_argument_and_apply(F &&f, Args &&...args) {
+
+  static_assert(sizeof...(args) > 0,
+                "Cannot extract last argument from template pack for empty pack");
+
   constexpr std::size_t last_index = sizeof...(args) - 1;
 
   auto last_element =
@@ -90,13 +90,11 @@ void separate_last_argument_and_apply(F&& f, Args&& ... args) {
       extract_tuple(std::forward_as_tuple(std::forward<Args>(args)...),
                     std::make_index_sequence<last_index>());
 
-  std::apply(f,
-             std::tuple_cat(std::make_tuple(last_element), preceding_elements));
+  std::apply(f, std::tuple_cat(std::make_tuple(last_element), preceding_elements));
 }
 
-}
-}
-}
+} // namespace detail
+} // namespace sycl
+} // namespace hipsycl
 
 #endif
-

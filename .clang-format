@@ -1,0 +1,64 @@
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: Cpp11
+
+# align if arguments span multiple lines
+AlignAfterOpenBracket: Align
+
+# align '=', names, defines, operants and comments
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+AlignConsecutiveMacros: true
+AlignOperands: true
+AlignTrailingComments: true
+
+# align line breaks using '\' as left as possible
+AlignEscapedNewlines: Left
+
+# allow enums and functions inside a class or empty on a single line
+AllowShortEnumsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Inline
+
+# put template declaraton and some keywords on a single line
+AlwaysBreakTemplateDeclarations: Yes
+StatementMacros: ['HIPSYCL_KERNEL_TARGET', 'HIPSYCL_UNIVERSAL_TARGET', '__device__']
+
+# Braces on same line as function/loop/if
+BreakBeforeBraces: Attach
+
+# put constructor initializer on single line
+BreakConstructorInitializers: BeforeColon
+
+# don't break strings or comments
+BreakStringLiterals: false
+ReflowComments: false
+
+# don't sort includes
+SortIncludes: false
+
+# linewidth of 90
+ColumnLimit: 90
+# indentation using 2 spaces, no tabs
+IndentWidth: 2
+UseTab: Never
+
+# one namespace declaration per line
+CompactNamespaces: false
+# add comment on closing namespace with namespace name
+FixNamespaceComments: true
+
+# => {1, 2, 3, 4}
+Cpp11BracedListStyle: true
+
+# pointer attached to variable name
+DerivePointerAlignment: false
+PointerAlignment: Right
+
+# indent function name after long return value
+IndentWrappedFunctionNames: true
+
+# remove more tan 2 empty lines
+MaxEmptyLinesToKeep: 2
+
+# no space between template and '<>'
+SpaceAfterTemplateKeyword: false

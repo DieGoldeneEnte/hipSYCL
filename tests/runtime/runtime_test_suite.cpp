@@ -27,7 +27,6 @@
  */
 
 
-
 #define BOOST_TEST_MODULE hipSYCL runtime tests
 #if !defined(_WIN32) || defined(__MINGW32__)
 #define BOOST_TEST_DYN_LINK

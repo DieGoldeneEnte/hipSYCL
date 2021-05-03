@@ -37,135 +37,81 @@ namespace sycl {
 namespace detail {
 
 template<class T, size_t N>
-struct device_array
-{
-  using iterator = T*;
-  using const_iterator = const T*;
+struct device_array {
+  using iterator       = T *;
+  using const_iterator = const T *;
 
   HIPSYCL_UNIVERSAL_TARGET
-  T& operator[] (size_t i) noexcept
-  {
-    return _data[i];
-  }
+  T &operator[](size_t i) noexcept { return _data[i]; }
 
   HIPSYCL_UNIVERSAL_TARGET
-  const T& operator[] (size_t i) const noexcept
-  {
-    return _data[i];
-  }
+  const T &operator[](size_t i) const noexcept { return _data[i]; }
 
   HIPSYCL_UNIVERSAL_TARGET
-  size_t size() const noexcept
-  {
-    return N;
-  }
+  size_t size() const noexcept { return N; }
 
   HIPSYCL_UNIVERSAL_TARGET
-  iterator begin() noexcept
-  {
-    return &(_data[0]);
-  }
+  iterator begin() noexcept { return &(_data[0]); }
 
   HIPSYCL_UNIVERSAL_TARGET
-  const_iterator begin() const noexcept
-  {
-    return &(_data[0]);
-  }
+  const_iterator begin() const noexcept { return &(_data[0]); }
 
   HIPSYCL_UNIVERSAL_TARGET
-  iterator end() noexcept
-  {
-    return begin() + N;
-  }
+  iterator end() noexcept { return begin() + N; }
 
   HIPSYCL_UNIVERSAL_TARGET
-  const_iterator end() const noexcept
-  {
-    return begin() + N;
-  }
+  const_iterator end() const noexcept { return begin() + N; }
 
   HIPSYCL_UNIVERSAL_TARGET
-  bool operator== (const device_array& other) const noexcept
-  {
-    for(size_t i = 0; i < N; ++i)
-      if(_data[i] != other._data[i])
+  bool operator==(const device_array &other) const noexcept {
+    for (size_t i = 0; i < N; ++i)
+      if (_data[i] != other._data[i])
         return false;
     return true;
   }
 
   HIPSYCL_UNIVERSAL_TARGET
-  bool operator!= (const device_array& other) const noexcept
-  {
-    return !(*this == other);
-  }
+  bool operator!=(const device_array &other) const noexcept { return !(*this == other); }
 
-  T _data [N];
+  T _data[N];
 };
 
 template<class T>
-struct device_array<T, 0>
-{
-  using iterator = T*;
-  using const_iterator = const T*;
+struct device_array<T, 0> {
+  using iterator       = T *;
+  using const_iterator = const T *;
 
   HIPSYCL_UNIVERSAL_TARGET
-  size_t size() const noexcept
-  {
-    return 0;
-  }
+  size_t size() const noexcept { return 0; }
 
   HIPSYCL_UNIVERSAL_TARGET
-  bool operator== (const device_array&) const noexcept
-  {
-    return true;
-  }
+  bool operator==(const device_array &) const noexcept { return true; }
 
   HIPSYCL_UNIVERSAL_TARGET
-  bool operator!= (const device_array& other) const noexcept
-  {
-    return !(*this == other);
-  }
+  bool operator!=(const device_array &other) const noexcept { return !(*this == other); }
 
   HIPSYCL_UNIVERSAL_TARGET
-  T& operator[] (size_t) noexcept
-  {
-    return *reinterpret_cast<T*>(0);
-  }
+  T &operator[](size_t) noexcept { return *reinterpret_cast<T *>(0); }
 
   HIPSYCL_UNIVERSAL_TARGET
-  const T& operator[] (size_t) const noexcept
-  {
-    return *reinterpret_cast<T*>(0);
-  }
+  const T &operator[](size_t) const noexcept { return *reinterpret_cast<T *>(0); }
 
   HIPSYCL_UNIVERSAL_TARGET
-  iterator begin() noexcept
-  {
-    return nullptr;
-  }
+  iterator begin() noexcept { return nullptr; }
 
   HIPSYCL_UNIVERSAL_TARGET
-  const_iterator begin() const noexcept
-  {
-    return nullptr;
-  }
+  const_iterator begin() const noexcept { return nullptr; }
 
   HIPSYCL_UNIVERSAL_TARGET
-  iterator end() noexcept
-  {
-    return nullptr;
-  }
+  iterator end() noexcept { return nullptr; }
 
   HIPSYCL_UNIVERSAL_TARGET
-  const_iterator end() const noexcept
-  {
-    return nullptr;
-  }
+  const_iterator end() const noexcept { return nullptr; }
 };
 
 
-}
-}
-}
+} // namespace detail
+} // namespace sycl
+} // namespace hipsycl
 
 #endif

@@ -50,23 +50,21 @@ namespace sycl {
 
 // Explicit USM
 
-inline void *malloc_device(size_t num_bytes, const device &dev,
-                           const context &ctx) {
+inline void *malloc_device(size_t num_bytes, const device &dev, const context &ctx) {
   return detail::select_device_allocator(dev)->allocate(0, num_bytes);
 }
 
-template <typename T>
-T* malloc_device(std::size_t count, const device &dev,
-                       const context &ctx) {
-  return static_cast<T*>(malloc_device(count * sizeof(T), dev, ctx));
+template<typename T>
+T *malloc_device(std::size_t count, const device &dev, const context &ctx) {
+  return static_cast<T *>(malloc_device(count * sizeof(T), dev, ctx));
 }
 
 inline void *malloc_device(size_t num_bytes, const queue &q) {
   return malloc_device(num_bytes, q.get_device(), q.get_context());
 }
 
-template <typename T>
-T* malloc_device(std::size_t count, const queue &q) {
+template<typename T>
+T *malloc_device(std::size_t count, const queue &q) {
   return malloc_device<T>(count, q.get_device(), q.get_context());
 }
 
@@ -75,11 +73,10 @@ inline void *aligned_alloc_device(std::size_t alignment, std::size_t num_bytes,
   return detail::select_device_allocator(dev)->allocate(alignment, num_bytes);
 }
 
-template <typename T>
-T *aligned_alloc_device(std::size_t alignment, std::size_t count,
-                        const device &dev, const context &ctx) {
-  return static_cast<T *>(
-      aligned_alloc_device(alignment, count * sizeof(T), dev, ctx));
+template<typename T>
+T *aligned_alloc_device(std::size_t alignment, std::size_t count, const device &dev,
+                        const context &ctx) {
+  return static_cast<T *>(aligned_alloc_device(alignment, count * sizeof(T), dev, ctx));
 }
 
 inline void *aligned_alloc_device(std::size_t alignment, std::size_t size,
@@ -87,9 +84,8 @@ inline void *aligned_alloc_device(std::size_t alignment, std::size_t size,
   return aligned_alloc_device(alignment, size, q.get_device(), q.get_context());
 }
 
-template <typename T>
-T *aligned_alloc_device(std::size_t alignment, std::size_t count,
-                        const queue &q) {
+template<typename T>
+T *aligned_alloc_device(std::size_t alignment, std::size_t count, const queue &q) {
   return aligned_alloc_device<T>(alignment, count, q.get_device(), q.get_context());
 }
 
@@ -99,55 +95,54 @@ inline void *malloc_host(std::size_t num_bytes, const context &ctx) {
   return detail::select_usm_allocator(ctx)->allocate_optimized_host(0, num_bytes);
 }
 
-template <typename T> T *malloc_host(std::size_t count, const context &ctx) {
-  return static_cast<T*>(malloc_host(count * sizeof(T), ctx));
+template<typename T>
+T *malloc_host(std::size_t count, const context &ctx) {
+  return static_cast<T *>(malloc_host(count * sizeof(T), ctx));
 }
 
 inline void *malloc_host(std::size_t num_bytes, const queue &q) {
   return malloc_host(num_bytes, q.get_context());
 }
 
-template <typename T> T *malloc_host(std::size_t count, const queue &q) {
+template<typename T>
+T *malloc_host(std::size_t count, const queue &q) {
   return malloc_host<T>(count, q.get_context());
 }
 
-inline void *malloc_shared(std::size_t num_bytes, const device &dev,
-                           const context &ctx) {
+inline void *malloc_shared(std::size_t num_bytes, const device &dev, const context &ctx) {
   return detail::select_usm_allocator(ctx, dev)->allocate_usm(num_bytes);
 }
 
-template <typename T>
+template<typename T>
 T *malloc_shared(std::size_t count, const device &dev, const context &ctx) {
-  return static_cast<T*>(malloc_shared(count * sizeof(T), dev, ctx));
+  return static_cast<T *>(malloc_shared(count * sizeof(T), dev, ctx));
 }
 
 inline void *malloc_shared(std::size_t num_bytes, const queue &q) {
   return malloc_shared(num_bytes, q.get_device(), q.get_context());
 }
 
-template <typename T> T *malloc_shared(std::size_t count, const queue &q) {
+template<typename T>
+T *malloc_shared(std::size_t count, const queue &q) {
   return malloc_shared<T>(count, q.get_device(), q.get_context());
 }
 
 inline void *aligned_alloc_host(std::size_t alignment, std::size_t num_bytes,
                                 const context &ctx) {
-  return detail::select_usm_allocator(ctx)->allocate_optimized_host(alignment,
-                                                                    num_bytes);
+  return detail::select_usm_allocator(ctx)->allocate_optimized_host(alignment, num_bytes);
 }
 
-template <typename T>
+template<typename T>
 T *aligned_alloc_host(std::size_t alignment, size_t count, const context &ctx) {
-  return static_cast<T*>(aligned_alloc_host(alignment, count * sizeof(T), ctx));
+  return static_cast<T *>(aligned_alloc_host(alignment, count * sizeof(T), ctx));
 }
 
-inline void *aligned_alloc_host(size_t alignment, size_t num_bytes,
-                                const queue &q) {
+inline void *aligned_alloc_host(size_t alignment, size_t num_bytes, const queue &q) {
   return aligned_alloc_host(alignment, num_bytes, q.get_context());
 }
 
-template <typename T>
-T *aligned_alloc_host(std::size_t alignment, std::size_t count,
-                         const queue &q) {
+template<typename T>
+T *aligned_alloc_host(std::size_t alignment, std::size_t count, const queue &q) {
   return static_cast<T *>(
       aligned_alloc_host(alignment, count * sizeof(T), q.get_context()));
 }
@@ -157,10 +152,10 @@ inline void *aligned_alloc_shared(std::size_t alignment, std::size_t num_bytes,
   return detail::select_usm_allocator(ctx, dev)->allocate_usm(num_bytes);
 }
 
-template <typename T>
-T *aligned_alloc_shared(std::size_t alignment, std::size_t count,
-                        const device &dev, const context &ctx) {
-  return static_cast<T*>(aligned_alloc_shared(alignment, count * sizeof(T), dev, ctx));
+template<typename T>
+T *aligned_alloc_shared(std::size_t alignment, std::size_t count, const device &dev,
+                        const context &ctx) {
+  return static_cast<T *>(aligned_alloc_shared(alignment, count * sizeof(T), dev, ctx));
 }
 
 inline void *aligned_alloc_shared(std::size_t alignment, std::size_t num_bytes,
@@ -168,18 +163,17 @@ inline void *aligned_alloc_shared(std::size_t alignment, std::size_t num_bytes,
   return aligned_alloc_shared(alignment, num_bytes, q.get_device(), q.get_context());
 }
 
-template <typename T>
-T *aligned_alloc_shared(std::size_t alignment, std::size_t count,
-                        const queue &q) {
-  return static_cast<T *>(aligned_alloc_shared(
-      alignment, count * sizeof(T), q.get_device(), q.get_context()));
+template<typename T>
+T *aligned_alloc_shared(std::size_t alignment, std::size_t count, const queue &q) {
+  return static_cast<T *>(aligned_alloc_shared(alignment, count * sizeof(T),
+                                               q.get_device(), q.get_context()));
 }
 
 
 // General
 
-inline void *malloc(std::size_t num_bytes, const device &dev,
-                    const context &ctx, usm::alloc kind) {
+inline void *malloc(std::size_t num_bytes, const device &dev, const context &ctx,
+                    usm::alloc kind) {
 
   if (kind == usm::alloc::device) {
     return malloc_device(num_bytes, dev, ctx);
@@ -191,25 +185,23 @@ inline void *malloc(std::size_t num_bytes, const device &dev,
   return nullptr;
 }
 
-template <typename T>
-T *malloc(std::size_t count, const device &dev, const context &ctx,
-          usm::alloc kind) {
-  return static_cast<T*>(malloc(count * sizeof(T), dev, ctx, kind));
+template<typename T>
+T *malloc(std::size_t count, const device &dev, const context &ctx, usm::alloc kind) {
+  return static_cast<T *>(malloc(count * sizeof(T), dev, ctx, kind));
 }
 
 inline void *malloc(std::size_t num_bytes, const queue &q, usm::alloc kind) {
   return malloc(num_bytes, q.get_device(), q.get_context(), kind);
 }
 
-template <typename T>
+template<typename T>
 T *malloc(std::size_t count, const queue &q, usm::alloc kind) {
   return static_cast<T *>(
       malloc(count * sizeof(T), q.get_device(), q.get_context(), kind));
 }
 
 inline void *aligned_alloc(std::size_t alignment, std::size_t num_bytes,
-                           const device &dev, const context &ctx,
-                           usm::alloc kind) {
+                           const device &dev, const context &ctx, usm::alloc kind) {
   if (kind == usm::alloc::device) {
     return aligned_alloc_device(alignment, num_bytes, dev, ctx);
   } else if (kind == usm::alloc::host) {
@@ -220,24 +212,22 @@ inline void *aligned_alloc(std::size_t alignment, std::size_t num_bytes,
   return nullptr;
 }
 
-template <typename T>
+template<typename T>
 T *aligned_alloc(std::size_t alignment, std::size_t count, const device &dev,
                  const context &ctx, usm::alloc kind) {
-  return static_cast<T *>(
-      aligned_alloc(alignment, count * sizeof(T), dev, ctx, kind));
+  return static_cast<T *>(aligned_alloc(alignment, count * sizeof(T), dev, ctx, kind));
 }
 
 inline void *aligned_alloc(std::size_t alignment, std::size_t num_bytes,
                            const sycl::queue &q, usm::alloc kind) {
-  return aligned_alloc(alignment, num_bytes, q.get_device(), q.get_context(),
-                       kind);
+  return aligned_alloc(alignment, num_bytes, q.get_device(), q.get_context(), kind);
 }
 
-template <typename T>
+template<typename T>
 T *aligned_alloc(std::size_t alignment, std::size_t count, const sycl::queue &q,
                  usm::alloc kind) {
-  return static_cast<T *>(aligned_alloc(alignment, count * sizeof(T),
-                                        q.get_device(), q.get_context(), kind));
+  return static_cast<T *>(
+      aligned_alloc(alignment, count * sizeof(T), q.get_device(), q.get_context(), kind));
 }
 
 inline void free(void *ptr, const sycl::context &ctx) {
@@ -252,53 +242,51 @@ inline void free(void *ptr, const sycl::queue &q) {
 inline void mem_advise(const void *ptr, std::size_t num_bytes, int advise,
                        const context &ctx, const device &dev) {
 
-  rt::backend_allocator* b = detail::select_usm_allocator(ctx, dev);
+  rt::backend_allocator *b = detail::select_usm_allocator(ctx, dev);
   assert(b);
 
-  rt::result r = b->mem_advise(ptr,  num_bytes, advise);
+  rt::result r = b->mem_advise(ptr, num_bytes, advise);
 
-  if(!r.is_success())
+  if (!r.is_success())
     std::rethrow_exception(glue::throw_result(r));
 }
 
 inline void mem_advise(const void *ptr, std::size_t num_bytes, int advise,
-                       const queue& q) {
+                       const queue &q) {
   mem_advise(ptr, num_bytes, advise, q.get_context(), q.get_device());
 }
 
 // USM allocator
-template <typename T, usm::alloc AllocKind, std::size_t Alignment = 0>
+template<typename T, usm::alloc AllocKind, std::size_t Alignment = 0>
 class usm_allocator {
 public:
-  using value_type = T;
+  using value_type                             = T;
   using propagate_on_container_copy_assignment = std::true_type;
   using propagate_on_container_move_assignment = std::true_type;
-  using propagate_on_container_swap = std::true_type;
+  using propagate_on_container_swap            = std::true_type;
 
 public:
-  template <typename U> struct rebind {
+  template<typename U>
+  struct rebind {
     typedef usm_allocator<U, AllocKind, Alignment> other;
   };
 
-  static_assert(
-      AllocKind != usm::alloc::device,
-      "usm_allocator does not support AllocKind == usm::alloc::device");
+  static_assert(AllocKind != usm::alloc::device,
+                "usm_allocator does not support AllocKind == usm::alloc::device");
 
   usm_allocator() noexcept = delete;
-  usm_allocator(const context &ctx, const device &dev) noexcept
-      : _ctx{ctx}, _dev{dev} {}
+  usm_allocator(const context &ctx, const device &dev) noexcept : _ctx{ctx}, _dev{dev} {}
 
 
-  usm_allocator(const queue &q) noexcept
-      : _ctx{q.get_context()}, _dev{q.get_device()} {}
-  
+  usm_allocator(const queue &q) noexcept : _ctx{q.get_context()}, _dev{q.get_device()} {}
+
   usm_allocator(const usm_allocator &) noexcept = default;
-  usm_allocator(usm_allocator &&) noexcept = default;
+  usm_allocator(usm_allocator &&) noexcept      = default;
 
   usm_allocator &operator=(const usm_allocator &) = delete;
   usm_allocator &operator=(usm_allocator &&) = default;
 
-  template <class U>
+  template<class U>
   usm_allocator(const usm_allocator<U, AllocKind, Alignment> &other) noexcept
       : _ctx{other._ctx}, _dev{other._dev} {}
 
@@ -317,26 +305,26 @@ public:
       free(ptr, _ctx);
   }
 
-  template <class U, usm::alloc AllocKindU, size_t AlignmentU>
-  friend bool operator==(const usm_allocator<T, AllocKind, Alignment> &a,
+  template<class U, usm::alloc AllocKindU, size_t AlignmentU>
+  friend bool operator==(const usm_allocator<T, AllocKind, Alignment> &  a,
                          const usm_allocator<U, AllocKindU, AlignmentU> &b) {
     return a._dev == b._dev && a._ctx == b._ctx && AllocKindU == AllocKind &&
            AlignmentU == Alignment;
   }
 
-  template <class U, usm::alloc AllocKindU, size_t AlignmentU>
-  friend bool operator!=(const usm_allocator<T, AllocKind, Alignment> &a,
+  template<class U, usm::alloc AllocKindU, size_t AlignmentU>
+  friend bool operator!=(const usm_allocator<T, AllocKind, Alignment> &  a,
                          const usm_allocator<U, AllocKindU, AlignmentU> &b) {
     return !(a == b);
   }
 
 private:
-  template <class U, usm::alloc AllocKindU, size_t AlignmentU>
+  template<class U, usm::alloc AllocKindU, size_t AlignmentU>
   friend class usm_allocator;
   context _ctx;
-  device _dev;
+  device  _dev;
 };
-}
+} // namespace sycl
 } // namespace hipsycl
 
 #endif

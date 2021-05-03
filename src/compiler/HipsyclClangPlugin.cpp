@@ -34,25 +34,20 @@ namespace hipsycl {
 namespace compiler {
 // Register and activate passes
 
-static clang::FrontendPluginRegistry::Add<hipsycl::compiler::FrontendASTAction> 
-HipsyclFrontendPlugin {
-  "hipsycl_frontend", 
-  "enable hipSYCL frontend action"
-};
+static clang::FrontendPluginRegistry::Add<hipsycl::compiler::FrontendASTAction>
+    HipsyclFrontendPlugin{"hipsycl_frontend", "enable hipSYCL frontend action"};
 
 static void registerFunctionPruningIRPass(const llvm::PassManagerBuilder &,
                                           llvm::legacy::PassManagerBase &PM) {
   PM.add(new FunctionPruningIRPass{});
 }
 
-static llvm::RegisterStandardPasses
-  RegisterFunctionPruningIRPassOptLevel0(llvm::PassManagerBuilder::EP_EnabledOnOptLevel0,
-                                         registerFunctionPruningIRPass);
+static llvm::RegisterStandardPasses RegisterFunctionPruningIRPassOptLevel0(
+    llvm::PassManagerBuilder::EP_EnabledOnOptLevel0, registerFunctionPruningIRPass);
 
 static llvm::RegisterStandardPasses
-  RegisterFunctionPruningIRPassOptimizerLast(llvm::PassManagerBuilder::EP_OptimizerLast,
-                                             registerFunctionPruningIRPass);
+    RegisterFunctionPruningIRPassOptimizerLast(llvm::PassManagerBuilder::EP_OptimizerLast,
+                                               registerFunctionPruningIRPass);
 
 } // namespace compiler
 } // namespace hipsycl
-

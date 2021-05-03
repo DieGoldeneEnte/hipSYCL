@@ -30,33 +30,33 @@
 
 #include "../event.hpp"
 
-// Note: CUevent_st* == cudaEvent_t 
+// Note: CUevent_st* == cudaEvent_t
 struct CUevent_st;
 
 namespace hipsycl {
 namespace rt {
 
 /// Manages a hipEvent_t.
-class cuda_node_event : public dag_node_event
-{
+class cuda_node_event : public dag_node_event {
 public:
   /// Takes ownership of supplied hipEvent_t. \c evt Must
   /// have been properly initialized and recorded.
-  cuda_node_event(device_id dev, CUevent_st* evt);
+  cuda_node_event(device_id dev, CUevent_st *evt);
   ~cuda_node_event();
 
   virtual bool is_complete() const override;
   virtual void wait() override;
 
-  CUevent_st* get_event() const;
-  device_id get_device() const;
+  CUevent_st *get_event() const;
+  device_id   get_device() const;
+
 private:
-  device_id _dev;
-  CUevent_st* _evt;
+  device_id   _dev;
+  CUevent_st *_evt;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 
 #endif

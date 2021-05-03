@@ -74,11 +74,14 @@ T shuffle_down_impl(T x, int offset) {
 
 // dpp sharing instruction abstraction based on rocPRIM
 // the dpp_ctrl can be found in the GCN3 ISA manual
-template<typename T, int dpp_ctrl, int row_mask = 0xf, int bank_mask = 0xf, bool bound_ctrl = false>
+template<typename T, int dpp_ctrl, int row_mask = 0xf, int bank_mask = 0xf,
+         bool bound_ctrl = false>
 __device__
 T warp_move_dpp(T x) {
-  return apply_on_data(
-      x, [=](int data) { return __builtin_amdgcn_update_dpp(0, data, dpp_ctrl, row_mask, bank_mask, bound_ctrl); });
+  return apply_on_data(x, [=](int data) {
+    return __builtin_amdgcn_update_dpp(0, data, dpp_ctrl, row_mask, bank_mask,
+                                       bound_ctrl);
+  });
 }
 #endif // HIPSYCL_PLATFORM_HIP
 
@@ -86,7 +89,8 @@ T warp_move_dpp(T x) {
 constexpr unsigned int AllMask = 0xFFFFFFFF;
 
 // shuffle_impl implemented based on ShuffleIndex in cub
-template<typename T, typename Operation, typename std::enable_if_t<(sizeof(T) == sizeof(unsigned char)), int> = 0>
+template<typename T, typename Operation,
+         typename std::enable_if_t<(sizeof(T) == sizeof(unsigned char)), int> = 0>
 __device__
 T apply_on_data(T x, Operation op) {
   T              data     = x;
@@ -95,7 +99,8 @@ T apply_on_data(T x, Operation op) {
   return data;
 }
 
-template<typename T, typename Operation, typename std::enable_if_t<(sizeof(T) == sizeof(unsigned short)), int> = 0>
+template<typename T, typename Operation,
+         typename std::enable_if_t<(sizeof(T) == sizeof(unsigned short)), int> = 0>
 __device__
 T apply_on_data(T x, Operation op) {
   T               data     = x;
@@ -104,7 +109,8 @@ T apply_on_data(T x, Operation op) {
   return data;
 }
 
-template<typename T, typename Operation, typename std::enable_if_t<(sizeof(T) == sizeof(unsigned int)), int> = 0>
+template<typename T, typename Operation,
+         typename std::enable_if_t<(sizeof(T) == sizeof(unsigned int)), int> = 0>
 __device__
 T apply_on_data(T x, Operation op) {
   T             data     = x;
@@ -114,7 +120,8 @@ T apply_on_data(T x, Operation op) {
 }
 
 template<typename T, typename Operation,
-         typename std::enable_if_t<(sizeof(T) != sizeof(unsigned char) && sizeof(T) != sizeof(unsigned short) &&
+         typename std::enable_if_t<(sizeof(T) != sizeof(unsigned char) &&
+                                    sizeof(T) != sizeof(unsigned short) &&
                                     sizeof(T) != sizeof(unsigned int)),
                                    int> = 0>
 __device__
@@ -142,12 +149,14 @@ T shuffle_impl(T x, int id) {
 template<typename T>
 __device__
 T shuffle_up_impl(T x, int offset) {
-  return apply_on_data(x, [offset](int data) { return __shfl_up_sync(AllMask, data, offset); });
+  return apply_on_data(
+      x, [offset](int data) { return __shfl_up_sync(AllMask, data, offset); });
 }
 template<typename T>
 __device__
 T shuffle_down_impl(T x, int offset) {
-  return apply_on_data(x, [offset](int data) { return __shfl_down_sync(AllMask, data, offset); });
+  return apply_on_data(
+      x, [offset](int data) { return __shfl_down_sync(AllMask, data, offset); });
 }
 
 #endif // HIPSYCL_PLATFORM_CUDA

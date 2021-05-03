@@ -31,59 +31,74 @@
 
 BOOST_FIXTURE_TEST_SUITE(id_range_tests, reset_device_fixture)
 
-template <template<int D> class T, int dimensions>
+template<template<int D> class T, int dimensions>
 void test_id_range_operators() {
-  const auto test_value = make_test_value<T, dimensions>({ 5 }, { 5, 7 }, { 5, 7, 11 });
-  const auto other_test_value = make_test_value<T, dimensions>({ 3 }, { 3, 4 }, { 3, 4, 9 });
+  const auto test_value       = make_test_value<T, dimensions>({5}, {5, 7}, {5, 7, 11});
+  const auto other_test_value = make_test_value<T, dimensions>({3}, {3, 4}, {3, 4, 9});
 
   {
     // T + T
     const auto result = test_value + other_test_value;
-    if(dimensions >= 1) BOOST_TEST(result[0] == 8);
-    if(dimensions >= 2) BOOST_TEST(result[1] == 11);
-    if(dimensions == 3) BOOST_TEST(result[2] == 20);
+    if (dimensions >= 1)
+      BOOST_TEST(result[0] == 8);
+    if (dimensions >= 2)
+      BOOST_TEST(result[1] == 11);
+    if (dimensions == 3)
+      BOOST_TEST(result[2] == 20);
   }
 
   {
     // T + size_t
     const auto result = test_value + 2;
-    if(dimensions >= 1) BOOST_TEST(result[0] == 7);
-    if(dimensions >= 2) BOOST_TEST(result[1] == 9);
-    if(dimensions == 3) BOOST_TEST(result[2] == 13);
+    if (dimensions >= 1)
+      BOOST_TEST(result[0] == 7);
+    if (dimensions >= 2)
+      BOOST_TEST(result[1] == 9);
+    if (dimensions == 3)
+      BOOST_TEST(result[2] == 13);
   }
 
   {
     // T += T
     auto result = test_value;
-    result+= other_test_value;
-    if(dimensions >= 1) BOOST_TEST(result[0] == 8);
-    if(dimensions >= 2) BOOST_TEST(result[1] == 11);
-    if(dimensions == 3) BOOST_TEST(result[2] == 20);
+    result += other_test_value;
+    if (dimensions >= 1)
+      BOOST_TEST(result[0] == 8);
+    if (dimensions >= 2)
+      BOOST_TEST(result[1] == 11);
+    if (dimensions == 3)
+      BOOST_TEST(result[2] == 20);
   }
 
   {
     // T += size_t
     auto result = test_value;
     result += 2;
-    if(dimensions >= 1) BOOST_TEST(result[0] == 7);
-    if(dimensions >= 2) BOOST_TEST(result[1] == 9);
-    if(dimensions == 3) BOOST_TEST(result[2] == 13);
+    if (dimensions >= 1)
+      BOOST_TEST(result[0] == 7);
+    if (dimensions >= 2)
+      BOOST_TEST(result[1] == 9);
+    if (dimensions == 3)
+      BOOST_TEST(result[2] == 13);
   }
 
   {
     // size_t + T
     auto result = 2 + test_value;
-    if(dimensions >= 1) BOOST_TEST(result[0] == 7);
-    if(dimensions >= 2) BOOST_TEST(result[1] == 9);
-    if(dimensions == 3) BOOST_TEST(result[2] == 13);
+    if (dimensions >= 1)
+      BOOST_TEST(result[0] == 7);
+    if (dimensions >= 2)
+      BOOST_TEST(result[1] == 9);
+    if (dimensions == 3)
+      BOOST_TEST(result[2] == 13);
   }
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(range_api, _dimensions, test_dimensions::type) {
-  namespace s = cl::sycl;
+  namespace s      = cl::sycl;
   constexpr auto d = _dimensions::value;
 
-  const auto test_value = make_test_value<s::range, d>({ 5 }, { 5, 7 }, { 5, 7, 11 });
+  const auto test_value = make_test_value<s::range, d>({5}, {5, 7}, {5, 7, 11});
 
   // --- Common by-value semantics ---
 
@@ -135,25 +150,33 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(range_api, _dimensions, test_dimensions::type) {
   {
     // range::get()
     const auto range = test_value;
-    if(d >= 1) BOOST_TEST(range.get(0) == 5);
-    if(d >= 2) BOOST_TEST(range.get(1) == 7);
-    if(d == 3) BOOST_TEST(range.get(2) == 11);
+    if (d >= 1)
+      BOOST_TEST(range.get(0) == 5);
+    if (d >= 2)
+      BOOST_TEST(range.get(1) == 7);
+    if (d == 3)
+      BOOST_TEST(range.get(2) == 11);
   }
   {
     // range::operator[]
     auto range = test_value;
-    if(d >= 1) range[0] += 2;
-    if(d >= 2) range[1] += 3;
-    if(d == 3) range[2] += 5;
-    assert_array_equality(range, make_test_value<s::range, d>(
-      { 7 }, { 7, 10 }, { 7, 10, 16 }));
+    if (d >= 1)
+      range[0] += 2;
+    if (d >= 2)
+      range[1] += 3;
+    if (d == 3)
+      range[2] += 5;
+    assert_array_equality(range, make_test_value<s::range, d>({7}, {7, 10}, {7, 10, 16}));
   }
   {
     // const range::operator[]
     const auto range = test_value;
-    if(d >= 1) BOOST_TEST(range[0] == 5);
-    if(d >= 2) BOOST_TEST(range[1] == 7);
-    if(d == 3) BOOST_TEST(range[2] == 11);
+    if (d >= 1)
+      BOOST_TEST(range[0] == 5);
+    if (d >= 2)
+      BOOST_TEST(range[1] == 7);
+    if (d == 3)
+      BOOST_TEST(range[2] == 11);
   }
   {
     // range::size()
@@ -165,11 +188,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(range_api, _dimensions, test_dimensions::type) {
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(id_api, _dimensions, test_dimensions::type) {
-  namespace s = cl::sycl;
+  namespace s      = cl::sycl;
   constexpr auto d = _dimensions::value;
 
-  const auto test_value = make_test_value<s::id, d>(
-    { 5 }, { 5, 7 }, { 5, 7, 11 });
+  const auto test_value = make_test_value<s::id, d>({5}, {5, 7}, {5, 7, 11});
 
   // --- Common by-value semantics ---
 
@@ -219,37 +241,43 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(id_api, _dimensions, test_dimensions::type) {
   // --- id-specific API ---
 
   {
-    const auto test_range = make_test_value<s::range, d>(
-      { 5 }, { 5, 7 }, { 5, 7, 11 });
-    s::id<d> id{test_range};
+    const auto test_range = make_test_value<s::range, d>({5}, {5, 7}, {5, 7, 11});
+    s::id<d>   id{test_range};
     assert_array_equality(id, test_value);
   }
   {
-    // TODO: Test conversion from item
-    // (This is a bit annoying as items can only be constructed on a __device__)
-  }
-  {
+      // TODO: Test conversion from item
+      // (This is a bit annoying as items can only be constructed on a __device__)
+  } {
     // id::get()
     const auto id = test_value;
-    if(d >= 1) BOOST_TEST(id.get(0) == 5);
-    if(d >= 2) BOOST_TEST(id.get(1) == 7);
-    if(d == 3) BOOST_TEST(id.get(2) == 11);
+    if (d >= 1)
+      BOOST_TEST(id.get(0) == 5);
+    if (d >= 2)
+      BOOST_TEST(id.get(1) == 7);
+    if (d == 3)
+      BOOST_TEST(id.get(2) == 11);
   }
   {
     // id::operator[]
     auto id = test_value;
-    if(d >= 1) id[0] += 2;
-    if(d >= 2) id[1] += 3;
-    if(d == 3) id[2] += 5;
-    assert_array_equality(id, make_test_value<s::id, d>(
-      { 7 }, { 7, 10 }, { 7, 10, 16 }));
+    if (d >= 1)
+      id[0] += 2;
+    if (d >= 2)
+      id[1] += 3;
+    if (d == 3)
+      id[2] += 5;
+    assert_array_equality(id, make_test_value<s::id, d>({7}, {7, 10}, {7, 10, 16}));
   }
   {
     // const id::operator[]
     const auto id = test_value;
-    if(d >= 1) BOOST_TEST(id[0] == 5);
-    if(d >= 2) BOOST_TEST(id[1] == 7);
-    if(d == 3) BOOST_TEST(id[2] == 11);
+    if (d >= 1)
+      BOOST_TEST(id[0] == 5);
+    if (d >= 2)
+      BOOST_TEST(id[1] == 7);
+    if (d == 3)
+      BOOST_TEST(id[2] == 11);
   }
 
   test_id_range_operators<s::id, d>();

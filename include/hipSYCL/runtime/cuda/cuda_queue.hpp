@@ -49,24 +49,23 @@ class cuda_module_invoker : public module_invoker {
 public:
   cuda_module_invoker(cuda_queue *q);
 
-  virtual result
-  submit_kernel(module_id_t id, const std::string &module_variant,
-                const std::string *module_image, const rt::range<3> &num_groups,
-                const rt::range<3>& group_size, unsigned local_mem_size,
-                void **args, std::size_t* arg_sizes, std::size_t num_args,
-                const std::string &kernel_name_tag,
-                const std::string &kernel_body_name) override;
+  virtual result submit_kernel(module_id_t id, const std::string &module_variant,
+                               const std::string * module_image,
+                               const rt::range<3> &num_groups,
+                               const rt::range<3> &group_size, unsigned local_mem_size,
+                               void **args, std::size_t *arg_sizes, std::size_t num_args,
+                               const std::string &kernel_name_tag,
+                               const std::string &kernel_body_name) override;
 
 private:
-  cuda_queue* _queue;
+  cuda_queue *_queue;
 };
 
-class cuda_queue : public inorder_queue
-{
+class cuda_queue : public inorder_queue {
 public:
   cuda_queue(device_id dev);
 
-  CUstream_st* get_stream() const;
+  CUstream_st *get_stream() const;
 
   virtual ~cuda_queue();
 
@@ -87,25 +86,24 @@ public:
 
   virtual void *get_native_type() const override;
 
-  virtual module_invoker* get_module_invoker() override;
-  
+  virtual module_invoker *get_module_invoker() override;
+
   result submit_kernel_from_module(cuda_module_manager &manager,
-                                   const cuda_module &module,
-                                   const std::string &kernel_name,
-                                   const rt::range<3> &grid_size,
-                                   const rt::range<3> &block_size,
-                                   unsigned dynamic_shared_mem,
-                                   void **kernel_args);
+                                   const cuda_module &  module,
+                                   const std::string &  kernel_name,
+                                   const rt::range<3> & grid_size,
+                                   const rt::range<3> & block_size,
+                                   unsigned dynamic_shared_mem, void **kernel_args);
 
 private:
   void activate_device() const;
-  
-  device_id _dev;
-  CUstream_st *_stream;
+
+  device_id           _dev;
+  CUstream_st *       _stream;
   cuda_module_invoker _module_invoker;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

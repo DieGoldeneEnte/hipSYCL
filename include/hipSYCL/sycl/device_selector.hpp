@@ -41,7 +41,7 @@ namespace sycl {
 
 namespace detail {
 
-inline int select_gpu(const device& dev) {
+inline int select_gpu(const device &dev) {
   if (dev.is_gpu()) {
     // Would be good to prefer a device for which
     // we have actually compiled kernel code, because,
@@ -54,9 +54,9 @@ inline int select_gpu(const device& dev) {
   return -1;
 }
 
-inline int select_accelerator(const device& dev) {
-  if(dev.is_accelerator()) {
-    if(dev.hipSYCL_has_compiled_kernels())
+inline int select_accelerator(const device &dev) {
+  if (dev.is_accelerator()) {
+    if (dev.hipSYCL_has_compiled_kernels())
       return 2;
     else
       return 1;
@@ -64,26 +64,25 @@ inline int select_accelerator(const device& dev) {
   return -1;
 }
 
-inline int select_cpu(const device& dev) {
-  if(dev.is_cpu())
+inline int select_cpu(const device &dev) {
+  if (dev.is_cpu())
     return 1;
   return -1;
 }
 
-inline int select_host(const device& dev) {
+inline int select_host(const device &dev) {
   return select_cpu(dev);
 }
 
-inline int select_default(const device& dev) {
-#if defined(__HIPSYCL_ENABLE_CUDA_TARGET__) ||                                 \
-    defined(__HIPSYCL_ENABLE_HIP_TARGET__) ||                                  \
+inline int select_default(const device &dev) {
+#if defined(__HIPSYCL_ENABLE_CUDA_TARGET__) || defined(__HIPSYCL_ENABLE_HIP_TARGET__) || \
     defined(__HIPSYCL_ENABLE_SPIRV_TARGET__)
   // Add 2 to make sure that, if no GPU is found
-  if(!dev.is_cpu() && dev.hipSYCL_has_compiled_kernels()) {
+  if (!dev.is_cpu() && dev.hipSYCL_has_compiled_kernels()) {
     // Prefer GPUs (or other accelerators) that have been targeted
     // and have compiled kernels
     return 2;
-  } else if(dev.is_cpu()) {
+  } else if (dev.is_cpu()) {
     // Prefer CPU over GPUs that don't have compiled kernels
     // and cannot run kernels.
     return 1;
@@ -99,18 +98,18 @@ inline int select_default(const device& dev) {
 }
 
 template<class Selector>
-device select_device(const Selector& s) {
+device select_device(const Selector &s) {
   auto devices = device::get_devices();
   // There should always be at least a CPU device
   assert(devices.size() > 0);
 
-  int best_score = std::numeric_limits<int>::min();
+  int    best_score = std::numeric_limits<int>::min();
   device candidate;
   for (const device &d : devices) {
     int current_score = s(d);
     if (current_score > best_score) {
       best_score = current_score;
-      candidate = d;
+      candidate  = d;
     }
   }
   if (best_score < 0) {
@@ -129,21 +128,17 @@ struct is_device_selector {
 template<class T>
 inline constexpr bool is_device_selector_v = is_device_selector<T>::value;
 
-}
+} // namespace detail
 
 /// Provided only for backwards-compatibility with SYCL 1.2.1
 /// so users can still derive custom selectors from device_selector
-class device_selector
-{
+class device_selector {
 public:
   virtual ~device_selector(){};
-  
-  device select_device() const {
-    return detail::select_device(*this);
-  }
 
-  virtual int operator()(const device& dev) const = 0;
+  device select_device() const { return detail::select_device(*this); }
 
+  virtual int operator()(const device &dev) const = 0;
 };
 
 /// Old SYCL 1.2.1 types are still required for backwards compatibility
@@ -163,9 +158,7 @@ public:
 
 class accelerator_selector {
 public:
-  int operator()(const device &dev) const {
-    return detail::select_accelerator(dev);
-  }
+  int operator()(const device &dev) const { return detail::select_accelerator(dev); }
 };
 
 class cpu_selector {
@@ -180,50 +173,48 @@ public:
 
 class default_selector {
 public:
-  int operator()(const device &dev) const {
-    return detail::select_default(dev);
-  }
+  int operator()(const device &dev) const { return detail::select_default(dev); }
 };
 
 
-inline constexpr default_selector default_selector_v;
-inline constexpr cpu_selector cpu_selector_v;
-inline constexpr gpu_selector gpu_selector_v;
+inline constexpr default_selector     default_selector_v;
+inline constexpr cpu_selector         cpu_selector_v;
+inline constexpr gpu_selector         gpu_selector_v;
 inline constexpr accelerator_selector accelerator_selector_v;
 
 inline auto aspect_selector(const std::vector<aspect> &aspectList,
                             const std::vector<aspect> &denyList = {}) {
 
-  return [=](const device& dev) {
-    if(aspectList.empty() && denyList.empty())
+  return [=](const device &dev) {
+    if (aspectList.empty() && denyList.empty())
       return detail::select_default(dev);
 
-    for(aspect a : aspectList) {
-      if(!dev.has(a))
+    for (aspect a : aspectList) {
+      if (!dev.has(a))
         return -1;
     }
-    for(aspect a : denyList) {
-      if(dev.has(a))
+    for (aspect a : denyList) {
+      if (dev.has(a))
         return -1;
     }
     return 1;
   };
 }
 
-template <typename... aspectListTN>
+template<typename... aspectListTN>
 auto aspect_selector(aspectListTN... aspectList) {
-  return [=](const device& dev) {
-    if(sizeof...(aspectList) == 0)
+  return [=](const device &dev) {
+    if (sizeof...(aspectList) == 0)
       return detail::select_default(dev);
 
     bool satisfies_all = (dev.has(aspectList) && ...);
-    if(satisfies_all)
+    if (satisfies_all)
       return 1;
     return -1;
   };
 }
 
-template <aspect... aspectList>
+template<aspect... aspectList>
 auto aspect_selector() {
   return aspect_selector(aspectList...);
 }
@@ -233,9 +224,7 @@ inline device::device(const device_selector &deviceSelector) {
 }
 
 
-
-
-}
-}
+} // namespace sycl
+} // namespace hipsycl
 
 #endif

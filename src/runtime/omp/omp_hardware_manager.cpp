@@ -48,7 +48,7 @@ bool omp_hardware_context::is_gpu() const {
 std::size_t omp_hardware_context::get_max_kernel_concurrency() const {
   return 1;
 }
-  
+
 // TODO We could actually copy have more memcpy concurrency
 std::size_t omp_hardware_context::get_max_memcpy_concurrency() const {
   return 1;
@@ -90,7 +90,7 @@ bool omp_hardware_context::has(device_support_aspect aspect) const {
     return false;
     break;
   case device_support_aspect::little_endian:
-#if defined(LITTLE_ENDIAN) || defined(__LITTLE_ENDIAN__) ||                    \
+#if defined(LITTLE_ENDIAN) || defined(__LITTLE_ENDIAN__) || \
     defined(__ORDER_LITTLE_ENDIAN__)
     return true;
 #else
@@ -123,8 +123,7 @@ bool omp_hardware_context::has(device_support_aspect aspect) const {
   return false;
 }
 
-std::size_t
-omp_hardware_context::get_property(device_uint_property prop) const {
+std::size_t omp_hardware_context::get_property(device_uint_property prop) const {
   switch (prop) {
   case device_uint_property::max_compute_units:
     return omp_get_num_procs();
@@ -264,7 +263,7 @@ omp_hardware_context::get_property(device_uint_property prop) const {
 }
 
 std::vector<std::size_t>
-omp_hardware_context::get_property(device_uint_list_property prop) const {
+    omp_hardware_context::get_property(device_uint_list_property prop) const {
   switch (prop) {
   case device_uint_list_property::sub_group_sizes:
     return std::vector<std::size_t>{1};
@@ -274,17 +273,21 @@ omp_hardware_context::get_property(device_uint_list_property prop) const {
   std::terminate();
 }
 
-std::string omp_hardware_context::get_driver_version() const { return "1.2"; }
+std::string omp_hardware_context::get_driver_version() const {
+  return "1.2";
+}
 
 std::string omp_hardware_context::get_profile() const {
   return "FULL_PROFILE";
 }
 
-std::size_t omp_hardware_manager::get_num_devices() const { return 1; }
+std::size_t omp_hardware_manager::get_num_devices() const {
+  return 1;
+}
 
 
-hardware_context* omp_hardware_manager::get_device(std::size_t index) {
-  if(index != 0) {
+hardware_context *omp_hardware_manager::get_device(std::size_t index) {
+  if (index != 0) {
     register_error(__hipsycl_here(),
                    error_info{"omp_hardware_manager: Requested device " +
                                   std::to_string(index) + " does not exist.",
@@ -296,11 +299,10 @@ hardware_context* omp_hardware_manager::get_device(std::size_t index) {
 }
 
 device_id omp_hardware_manager::get_device_id(std::size_t index) const {
-  return device_id{
-      backend_descriptor{hardware_platform::cpu, api_platform::omp},
-      static_cast<int>(index)};
+  return device_id{backend_descriptor{hardware_platform::cpu, api_platform::omp},
+                   static_cast<int>(index)};
 }
 
 
-}
-}
+} // namespace rt
+} // namespace hipsycl

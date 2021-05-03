@@ -42,11 +42,11 @@ namespace hipsycl {
 namespace sycl {
 
 
-template <typename T>
+template<typename T>
 using buffer_allocator = std::allocator<T>;
 
 }
-}
+} // namespace hipsycl
 
 
-#endif 
+#endif

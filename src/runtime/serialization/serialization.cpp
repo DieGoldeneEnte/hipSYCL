@@ -98,18 +98,18 @@ std::string get_indentation(int indentation) {
 }
 
 // operations
-void buffer_memory_requirement::dump(std::ostream &ostr,
-                                     int indentation) const {
+void buffer_memory_requirement::dump(std::ostream &ostr, int indentation) const {
   ostr << get_indentation(indentation);
-  ostr << "MEM_REQ: " << _mode << " " << _target << " " << _offset << "+"
-       << _range << " #" << _element_size;
+  ostr << "MEM_REQ: " << _mode << " " << _target << " " << _offset << "+" << _range
+       << " #" << _element_size;
 }
 
 void kernel_operation::dump(std::ostream &ostr, int indentation) const {
   std::string indent = get_indentation(indentation);
   ostr << indent << "kernel: " << _kernel_name;
   for (auto requirement : _requirements) {
-    ostr << std::endl; requirement->dump(ostr, indentation + 1);
+    ostr << std::endl;
+    requirement->dump(ostr, indentation + 1);
   }
 }
 
@@ -123,15 +123,14 @@ void memcpy_operation::dump(std::ostream &ostr, int indentation) const {
   ostr << _num_elements;
 }
 
-void prefetch_operation::dump(std::ostream& ostr, int indentation) const {
+void prefetch_operation::dump(std::ostream &ostr, int indentation) const {
   ostr << get_indentation(indentation);
   ostr << "Prefetch: " << _num_bytes << " bytes from " << _ptr;
 }
 
 void memset_operation::dump(std::ostream &ostr, int indentation) const {
   ostr << get_indentation(indentation);
-  ostr << "Memset: @" << _ptr << " " << _num_bytes << " bytes of value "
-       << get_pattern();
+  ostr << "Memset: @" << _ptr << " " << _num_bytes << " bytes of value " << get_pattern();
 }
 
 void memory_location::dump(std::ostream &ostr) const {

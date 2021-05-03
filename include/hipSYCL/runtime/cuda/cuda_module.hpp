@@ -48,24 +48,23 @@ class cuda_module {
 public:
   cuda_module(cuda_module_id_t module_id, const std::string &target,
               const std::string &code_content);
-  
-  const std::vector<std::string>& get_kernel_names() const;
+
+  const std::vector<std::string> &get_kernel_names() const;
 
   std::string get_content() const;
 
   bool guess_kernel_name(const std::string &kernel_group_name,
                          const std::string &kernel_component_name,
-                         std::string &guessed_name) const;
+                         std::string &      guessed_name) const;
 
-  cuda_module_id_t get_id() const;
-  const std::string& get_target() const;
-  
+  cuda_module_id_t   get_id() const;
+  const std::string &get_target() const;
+
 private:
-  cuda_module_id_t _id;
-  std::string _target;
-  std::string _content;
+  cuda_module_id_t         _id;
+  std::string              _target;
+  std::string              _content;
   std::vector<std::string> _kernel_names;
-  
 };
 
 class cuda_module_manager {
@@ -74,11 +73,10 @@ public:
   cuda_module_manager(std::size_t num_devices);
   ~cuda_module_manager();
 
-  const cuda_module &obtain_module(cuda_module_id_t id,
-                                   const std::string &target,
+  const cuda_module &obtain_module(cuda_module_id_t id, const std::string &target,
                                    const std::string &content);
 
-  result load(rt::device_id dev, const cuda_module &module, CUmod_st*& out);
+  result load(rt::device_id dev, const cuda_module &module, CUmod_st *&out);
 
 private:
   std::size_t _num_devices;
@@ -87,11 +85,11 @@ private:
   std::vector<cuda_module> _modules;
 
   // Store active CUDA module per device
-  std::vector<CUmod_st *> _cuda_modules;
+  std::vector<CUmod_st *>       _cuda_modules;
   std::vector<cuda_module_id_t> _active_modules;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

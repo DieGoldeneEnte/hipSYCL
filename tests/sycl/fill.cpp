@@ -32,27 +32,24 @@
 BOOST_FIXTURE_TEST_SUITE(fill_tests, reset_device_fixture)
 
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(fill_buffer, _dimensions,
-  test_dimensions::type) {
-  
+BOOST_AUTO_TEST_CASE_TEMPLATE(fill_buffer, _dimensions, test_dimensions::type) {
+
   constexpr auto d = _dimensions::value;
-  namespace s = cl::sycl;
+  namespace s      = cl::sycl;
 
   cl::sycl::queue q;
 
   auto buff_size = make_test_value<s::range, d>({64}, {64, 64}, {64, 64, 64});
   s::buffer<s::id<d>, d> buff{buff_size};
-  
-  q.submit([&](s::handler& cgh){
+
+  q.submit([&](s::handler &cgh) {
     auto buff_acc = buff.template get_access<s::access::mode::discard_write>(cgh);
-    cgh.parallel_for<kernel_name<class fill_init_kernel, d>>(buff_size,
-      [=](s::id<d> idx){
-      buff_acc[idx] = idx;
-    });
+    cgh.parallel_for<kernel_name<class fill_init_kernel, d>>(
+        buff_size, [=](s::id<d> idx) { buff_acc[idx] = idx; });
   });
 
-  auto fill_value = make_test_value<s::id, d>({3}, {3,3}, {3,3,3});
-  q.submit([&](s::handler& cgh){
+  auto fill_value = make_test_value<s::id, d>({3}, {3, 3}, {3, 3, 3});
+  q.submit([&](s::handler &cgh) {
     auto buff_acc = buff.template get_access<s::access::mode::write>(cgh);
     cgh.fill(buff_acc, fill_value);
   });
@@ -62,11 +59,10 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(fill_buffer, _dimensions,
   size_t j_validation_range = (d >= 2) ? buff_size[1] : 1;
   size_t k_validation_range = (d == 3) ? buff_size[2] : 1;
 
-  for(size_t i = 0; i < buff_size[0]; ++i)
-    for(size_t j = 0; j < j_validation_range; ++j)
-      for(size_t k = 0; k < k_validation_range; ++k)
-      {
-        auto idx = make_test_value<s::id, d>({i}, {i,j}, {i,j,k});
+  for (size_t i = 0; i < buff_size[0]; ++i)
+    for (size_t j = 0; j < j_validation_range; ++j)
+      for (size_t k = 0; k < k_validation_range; ++k) {
+        auto idx = make_test_value<s::id, d>({i}, {i, j}, {i, j, k});
         assert_array_equality(buff_host[idx], fill_value);
       }
 }

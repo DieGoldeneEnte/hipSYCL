@@ -48,16 +48,14 @@ namespace sycl {
 class context;
 
 namespace detail {
-const rt::unique_device_list& extract_context_devices(const context&);
+const rt::unique_device_list &extract_context_devices(const context &);
 }
 
-class context
-{
+class context {
 public:
   friend class queue;
 
-  friend const rt::unique_device_list &
-  detail::extract_context_devices(const context &);
+  friend const rt::unique_device_list &detail::extract_context_devices(const context &);
 
   explicit context(async_handler handler = [](exception_list e) {
     glue::default_async_handler(e);
@@ -66,16 +64,14 @@ public:
   }
 
   explicit context(
-      const device &dev, async_handler handler = [](exception_list e) {
-        glue::default_async_handler(e);
-      }) {
+      const device &dev,
+      async_handler handler = [](exception_list e) { glue::default_async_handler(e); }) {
     this->init(handler, dev);
   }
 
   explicit context(
-      const platform &plt, async_handler handler = [](exception_list e) {
-        glue::default_async_handler(e);
-      }) {
+      const platform &plt,
+      async_handler handler = [](exception_list e) { glue::default_async_handler(e); }) {
     this->init(handler);
     std::vector<device> devices = plt.get_devices();
     for (const auto &dev : devices) {
@@ -85,15 +81,13 @@ public:
 
   explicit context(
       const std::vector<device> &deviceList,
-      async_handler handler = [](exception_list e) {
-        glue::default_async_handler(e);
-      }) {
-    
-    if(deviceList.empty())
+      async_handler handler = [](exception_list e) { glue::default_async_handler(e); }) {
+
+    if (deviceList.empty())
       throw platform_error{"context: Cannot construct context for empty device list"};
 
     this->init(handler);
-    for(const device& dev : deviceList) {
+    for (const device &dev : deviceList) {
       _impl->devices.add(dev._device_id);
     }
   }
@@ -108,7 +102,7 @@ public:
   }
 
   platform get_platform() const {
-    std::size_t num_backends = 0;
+    std::size_t    num_backends = 0;
     rt::backend_id last_backend;
     this->_impl->devices.for_each_backend([&](rt::backend_id b) {
       ++num_backends;
@@ -127,49 +121,50 @@ public:
 
   vector_class<device> get_devices() const {
     std::vector<device> devs;
-    _impl->devices.for_each_device([&](rt::device_id d) {
-      devs.push_back(d);
-    });
+    _impl->devices.for_each_device([&](rt::device_id d) { devs.push_back(d); });
     return devs;
   }
 
-  template <info::context param>
+  template<info::context param>
   typename info::param_traits<info::context, param>::return_type get_info() const {
     throw unimplemented{"context::get_info() is unimplemented"};
   }
 
 private:
   void init(async_handler handler) {
-    _impl = std::make_shared<context_impl>();
+    _impl          = std::make_shared<context_impl>();
     _impl->handler = handler;
   }
 
   void init(async_handler handler, const device &d) {
     init(handler);
     _impl->devices.add(d._device_id);
-    if(!d.is_host()) {
+    if (!d.is_host()) {
       // Always need to add the host device
       _impl->devices.add(detail::get_host_device());
     }
   }
-  
+
   struct context_impl {
     rt::unique_device_list devices;
-    async_handler handler;
+    async_handler          handler;
   };
 
   std::shared_ptr<context_impl> _impl;
 };
 
 
-HIPSYCL_SPECIALIZE_GET_INFO(context, reference_count)
-{ return _impl.use_count(); }
+HIPSYCL_SPECIALIZE_GET_INFO(context, reference_count) {
+  return _impl.use_count();
+}
 
-HIPSYCL_SPECIALIZE_GET_INFO(context, platform)
-{ return get_platform(); }
+HIPSYCL_SPECIALIZE_GET_INFO(context, platform) {
+  return get_platform();
+}
 
-HIPSYCL_SPECIALIZE_GET_INFO(context, devices)
-{ return get_devices(); }
+HIPSYCL_SPECIALIZE_GET_INFO(context, devices) {
+  return get_devices();
+}
 
 inline context exception::get_context() const {
   // ToDo In hipSYCL, most operations are not associated
@@ -183,11 +178,10 @@ inline const rt::unique_device_list &extract_context_devices(const context &ctx)
   return ctx._impl->devices;
 }
 
-}
+} // namespace detail
 
 } // namespace sycl
 } // namespace hipsycl
-
 
 
 #endif

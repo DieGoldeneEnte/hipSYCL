@@ -42,40 +42,38 @@ class interop_handle {
 public:
   interop_handle() = delete;
   interop_handle(rt::device_id assigned_device, void *kernel_launcher_params)
-      : _dev{assigned_device}, _launcher_params{kernel_launcher_params},
-        _executor{nullptr} {}
+      : _dev{assigned_device}, _launcher_params{kernel_launcher_params}, _executor{
+                                                                             nullptr} {}
 
-  interop_handle(rt::device_id assigned_device,
-                 rt::backend_executor *executor)
+  interop_handle(rt::device_id assigned_device, rt::backend_executor *executor)
       : _dev{assigned_device}, _launcher_params{nullptr}, _executor{executor} {}
-  
-  template <backend Backend, typename dataT, int dims, access::mode accessMode,
-            access::target accessTarget, access::placeholder isPlaceholder>
-  dataT* get_native_mem(const accessor<dataT, dims, accessMode, accessTarget,
-                                isPlaceholder> &accessor) const {
+
+  template<backend Backend, typename dataT, int dims, access::mode accessMode,
+           access::target accessTarget, access::placeholder isPlaceholder>
+  dataT *get_native_mem(const accessor<dataT, dims, accessMode, accessTarget,
+                                       isPlaceholder> &accessor) const {
 
     static_assert(accessTarget == access::target::global_buffer ||
                       accessTarget == access::target::host_buffer ||
                       accessTarget == access::target::constant_buffer,
                   "Invalid access target for accessor interop");
 
-    return static_cast<dataT *>(
-        glue::backend_interop<Backend>::get_native_mem(accessor));
+    return static_cast<dataT *>(glue::backend_interop<Backend>::get_native_mem(accessor));
   }
 
   // We don't have image types yet
-  // 
+  //
   //template <backend Backend, typename dataT, int dims, access::mode accessMode,
   //          access::target accessTarget, access::placeholder isPlaceholder>
   //typename backend_traits<Backend>::template native_type<image>
   //get_native_mem(const accessor<dataT, dims, accessMode, accessTarget,
   //                              isPlaceholder> &imageAccessor) const;
 
-  template <backend Backend>
+  template<backend Backend>
   typename backend_traits<Backend>::template native_type<queue>
-  get_native_queue() const noexcept {
-    
-    if(_launcher_params)
+      get_native_queue() const noexcept {
+
+    if (_launcher_params)
       return glue::backend_interop<Backend>::get_native_queue(_launcher_params);
     else if (_executor)
       return glue::backend_interop<Backend>::get_native_queue(_executor);
@@ -84,23 +82,23 @@ public:
         << "interop_handle: Neither executor nor kernel launcher was provided, "
            "cannot construct native queue"
         << std::endl;
-    
+
     return typename backend_traits<Backend>::template native_type<queue>{};
   }
 
-  template <backend Backend>
+  template<backend Backend>
   typename backend_traits<Backend>::template native_type<device>
-  get_native_device() const noexcept {
+      get_native_device() const noexcept {
     return glue::backend_interop<Backend>::get_native_device(device{_dev});
   }
 
-  template <backend Backend>
+  template<backend Backend>
   typename backend_traits<Backend>::template native_type<context>
-  get_native_context() const noexcept {}
+      get_native_context() const noexcept {}
 
 private:
-  rt::device_id _dev;
-  void *_launcher_params;
+  rt::device_id         _dev;
+  void *                _launcher_params;
   rt::backend_executor *_executor;
 };
 } // namespace sycl

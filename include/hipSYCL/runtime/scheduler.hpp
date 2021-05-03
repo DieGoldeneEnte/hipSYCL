@@ -33,13 +33,12 @@
 namespace hipsycl {
 namespace rt {
 
-class scheduler
-{
+class scheduler {
 public:
   backend_queue_manager _queues;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

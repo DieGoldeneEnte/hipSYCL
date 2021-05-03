@@ -49,40 +49,33 @@
 namespace hipsycl {
 namespace compiler {
 
-struct FunctionPruningIRPass : public llvm::ModulePass
-{
+struct FunctionPruningIRPass : public llvm::ModulePass {
   static char ID;
 
-  FunctionPruningIRPass()
-    : llvm::ModulePass(ID)
-  {}
+  FunctionPruningIRPass() : llvm::ModulePass(ID) {}
 
-  llvm::StringRef getPassName() const
-  {
-    return "hipSYCL function pruning pass";
-  }
+  llvm::StringRef getPassName() const { return "hipSYCL function pruning pass"; }
 
-  bool runOnModule(llvm::Module& M) override
-  {
-    if(!CompilationStateManager::getASTPassState().isDeviceCompilation())
+  bool runOnModule(llvm::Module &M) override {
+    if (!CompilationStateManager::getASTPassState().isDeviceCompilation())
       return false;
 
-    for(auto& F : M.getFunctionList())
-    {
+    for (auto &F : M.getFunctionList()) {
       Functions.push_back(&F);
       // If this function has been marked as a kernel, add it to our list of
       // "entrypoints" that must remain present in the code.
-      bool IsEntrypoint = CompilationStateManager::getASTPassState().isKernel(F.getName().str());
+      bool IsEntrypoint =
+          CompilationStateManager::getASTPassState().isKernel(F.getName().str());
       // NOTE: We currently don't consider explicit device functions as entrypoints by default.
       // This is because they can cause problems in certain situations (needs
       // further investigation) and Clang currently does not support device object
       // linking anyways.
 #if HIPSYCL_EXPERIMENTAL_DEVICE_LINKAGE
-      IsEntrypoint = IsEntrypoint ||
-        CompilationStateManager::getASTPassState().isExplicitlyDevice(F.getName().str());
+      IsEntrypoint =
+          IsEntrypoint || CompilationStateManager::getASTPassState().isExplicitlyDevice(
+                              F.getName().str());
 #endif
-      if (IsEntrypoint)
-      {
+      if (IsEntrypoint) {
         Entrypoints.push_back(&F);
       }
     }
@@ -98,48 +91,42 @@ struct FunctionPruningIRPass : public llvm::ModulePass
   }
 
 private:
-  void findChildrenOf(llvm::CallGraph& CG,
-                      llvm::Function* F,
-                      std::unordered_set<llvm::Function*>& Children)
-  {
-    if(F == nullptr)
+  void findChildrenOf(llvm::CallGraph &CG, llvm::Function *F,
+                      std::unordered_set<llvm::Function *> &Children) {
+    if (F == nullptr)
       return;
 
-    if(Children.find(F) != Children.end())
+    if (Children.find(F) != Children.end())
       return;
 
     Children.insert(F);
     auto Node = CG[F];
-    for(auto C : *Node)
+    for (auto C : *Node)
       findChildrenOf(CG, C.second->getFunction(), Children);
   }
 
-  void pruneUnusedFunctions(llvm::Module& M)
-  {
+  void pruneUnusedFunctions(llvm::Module &M) {
     llvm::CallGraph CG{M};
 
     // Find all functions used by entrypoints
     // Note that this does not include LLVM intrinsics
-    std::unordered_set<llvm::Function*> FunctionsToKeep;
-    for(llvm::Function* F : Entrypoints)
-    {
+    std::unordered_set<llvm::Function *> FunctionsToKeep;
+    for (llvm::Function *F : Entrypoints) {
       findChildrenOf(CG, F, FunctionsToKeep);
     }
 
-    HIPSYCL_DEBUG_INFO << "IR Processing: Keeping " << FunctionsToKeep.size() << " out of "
-                       << Functions.size() << " functions"<< std::endl;
+    HIPSYCL_DEBUG_INFO << "IR Processing: Keeping " << FunctionsToKeep.size()
+                       << " out of " << Functions.size() << " functions" << std::endl;
 
-    for(llvm::Function* F : FunctionsToKeep)
-    {
-      HIPSYCL_DEBUG_INFO << "IR Processing: Keeping function " << F->getName().str() << std::endl;
+    for (llvm::Function *F : FunctionsToKeep) {
+      HIPSYCL_DEBUG_INFO << "IR Processing: Keeping function " << F->getName().str()
+                         << std::endl;
     }
 
     std::size_t NumRemovedFunctions = 0;
     // Remove all non-intrinsic functions that are not in FunctionsToKeep
-    for(llvm::Function* F : Functions)
-    {
-      if (FunctionsToKeep.find(F) == FunctionsToKeep.end() && !F->isIntrinsic())
-      {
+    for (llvm::Function *F : Functions) {
+      if (FunctionsToKeep.find(F) == FunctionsToKeep.end() && !F->isIntrinsic()) {
         HIPSYCL_DEBUG_INFO << "IR Processing: Pruning unused function from device code: "
                            << F->getName().str() << std::endl;
 
@@ -150,32 +137,28 @@ private:
     }
 
     HIPSYCL_DEBUG_INFO << "===> IR Processing: Function pruning complete, removed "
-                      << NumRemovedFunctions << " function(s)."
-                      << std::endl;
+                       << NumRemovedFunctions << " function(s)." << std::endl;
   }
 
-  void pruneUnusedGlobals(llvm::Module& M)
-  {
+  void pruneUnusedGlobals(llvm::Module &M) {
 
     HIPSYCL_DEBUG_INFO << " ****** Starting pruning of global variables ******"
                        << std::endl;
 
-    std::vector<llvm::GlobalVariable*> VariablesForPruning;
+    std::vector<llvm::GlobalVariable *> VariablesForPruning;
 
-    for(auto G =  M.global_begin(); G != M.global_end(); ++G)
-    {
-      llvm::GlobalVariable* GPtr = &(*G);
-      if(canGlobalVariableBeRemoved(GPtr))
-      {
+    for (auto G = M.global_begin(); G != M.global_end(); ++G) {
+      llvm::GlobalVariable *GPtr = &(*G);
+      if (canGlobalVariableBeRemoved(GPtr)) {
         VariablesForPruning.push_back(GPtr);
 
-        HIPSYCL_DEBUG_INFO << "IR Processing: Pruning unused global variable from device code: "
-                           << G->getName().str() << std::endl;
+        HIPSYCL_DEBUG_INFO
+            << "IR Processing: Pruning unused global variable from device code: "
+            << G->getName().str() << std::endl;
       }
     }
 
-    for(auto G: VariablesForPruning)
-    {
+    for (auto G : VariablesForPruning) {
       G->replaceAllUsesWith(llvm::UndefValue::get(G->getType()));
       G->eraseFromParent();
     }
@@ -184,20 +167,19 @@ private:
                        << std::endl;
   }
 
-  bool canGlobalVariableBeRemoved(llvm::GlobalVariable* G) const
-  {
+  bool canGlobalVariableBeRemoved(llvm::GlobalVariable *G) const {
     G->removeDeadConstantUsers();
     return G->getNumUses() == 0;
   }
 
 
-  std::vector<llvm::Function*> Entrypoints;
-  std::vector<llvm::Function*> Functions;
+  std::vector<llvm::Function *> Entrypoints;
+  std::vector<llvm::Function *> Functions;
 };
 
 char FunctionPruningIRPass::ID = 0;
 
-}
-}
+} // namespace compiler
+} // namespace hipsycl
 
 #endif

@@ -42,34 +42,33 @@ namespace hipsycl {
 namespace rt {
 
 
-class cuda_backend : public backend
-{
+class cuda_backend : public backend {
 public:
   cuda_backend();
-  virtual api_platform get_api_platform() const override;
+  virtual api_platform      get_api_platform() const override;
   virtual hardware_platform get_hardware_platform() const override;
-  virtual backend_id get_unique_backend_id() const override;
-  
-  virtual backend_hardware_manager* get_hardware_manager() const override;
-  virtual backend_executor* get_executor(device_id dev) const override;
-  virtual backend_allocator *get_allocator(device_id dev) const override;
+  virtual backend_id        get_unique_backend_id() const override;
+
+  virtual backend_hardware_manager *get_hardware_manager() const override;
+  virtual backend_executor *        get_executor(device_id dev) const override;
+  virtual backend_allocator *       get_allocator(device_id dev) const override;
 
   virtual std::string get_name() const override;
-  
-  virtual ~cuda_backend(){}
+
+  virtual ~cuda_backend() {}
 
   const cuda_module_manager &get_module_manager() const { return _modules; }
-  cuda_module_manager &get_module_manager() { return _modules; }
+  cuda_module_manager &      get_module_manager() { return _modules; }
 
 private:
-  mutable cuda_hardware_manager _hw_manager;
-  mutable multi_queue_executor _executor;
+  mutable cuda_hardware_manager       _hw_manager;
+  mutable multi_queue_executor        _executor;
   mutable std::vector<cuda_allocator> _allocators;
-  cuda_module_manager _modules;
+  cuda_module_manager                 _modules;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 
 #endif

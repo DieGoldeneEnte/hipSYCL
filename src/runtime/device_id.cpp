@@ -32,12 +32,9 @@ namespace hipsycl {
 namespace rt {
 
 
-device_id::device_id(backend_descriptor b, int id)
-: _backend{b}, _device_id{id}
-{}
+device_id::device_id(backend_descriptor b, int id) : _backend{b}, _device_id{id} {}
 
-bool device_id::is_host() const
-{
+bool device_id::is_host() const {
   return _backend.hw_platform == hardware_platform::cpu;
 }
 
@@ -53,5 +50,5 @@ backend_descriptor device_id::get_full_backend_descriptor() const {
   return _backend;
 }
 
-}
-}
+} // namespace rt
+} // namespace hipsycl

@@ -52,14 +52,14 @@ enum class execution_hint_type
   node_group
 };
 
-class execution_hint
-{
+class execution_hint {
 public:
   execution_hint(execution_hint_type type);
 
   execution_hint_type get_hint_type() const;
 
   virtual ~execution_hint();
+
 private:
   execution_hint_type _type;
 };
@@ -67,85 +67,72 @@ private:
 using execution_hint_ptr = std::shared_ptr<execution_hint>;
 
 template<class T, typename... Args>
-execution_hint_ptr make_execution_hint(Args... args)
-{
-  return execution_hint_ptr{
-    new T{args...}
-  };
+execution_hint_ptr make_execution_hint(Args... args) {
+  return execution_hint_ptr{new T{args...}};
 }
 
 namespace hints {
 
-class bind_to_device : public execution_hint
-{
+class bind_to_device : public execution_hint {
 public:
-  static constexpr execution_hint_type type = 
-    execution_hint_type::bind_to_device;
+  static constexpr execution_hint_type type = execution_hint_type::bind_to_device;
 
   bind_to_device(device_id d);
 
   device_id get_device_id() const;
+
 private:
   device_id _dev;
 };
 
-class prefer_execution_lane : public execution_hint
-{
+class prefer_execution_lane : public execution_hint {
 public:
-  static constexpr execution_hint_type type =
-      execution_hint_type::prefer_execution_lane;
+  static constexpr execution_hint_type type = execution_hint_type::prefer_execution_lane;
 
   prefer_execution_lane(std::size_t lane_id)
-      : execution_hint{execution_hint_type::prefer_execution_lane},
-        _lane_id{lane_id} {}
+      : execution_hint{execution_hint_type::prefer_execution_lane}, _lane_id{lane_id} {}
 
-  std::size_t get_lane_id() const {
-    return _lane_id;
-  }
+  std::size_t get_lane_id() const { return _lane_id; }
+
 private:
   std::size_t _lane_id;
 };
 
-class node_group : public execution_hint
-{
+class node_group : public execution_hint {
 public:
-  static constexpr execution_hint_type type =
-      execution_hint_type::node_group;
+  static constexpr execution_hint_type type = execution_hint_type::node_group;
 
   node_group(std::size_t group_id)
       : execution_hint{execution_hint_type::node_group}, _group_id{group_id} {}
 
-  std::size_t get_id() const {
-    return _group_id;
-  }
+  std::size_t get_id() const { return _group_id; }
+
 private:
   std::size_t _group_id;
 };
 
-} // hints
+} // namespace hints
 
 
-
-class execution_hints
-{
+class execution_hints {
 public:
   void add_hint(execution_hint_ptr hint);
   void overwrite_with(const execution_hints &other);
   void overwrite_with(execution_hint_ptr hint);
-  
-  bool has_hint(execution_hint_type type) const;
-  execution_hint* get_hint(execution_hint_type type) const;
+
+  bool            has_hint(execution_hint_type type) const;
+  execution_hint *get_hint(execution_hint_type type) const;
 
   template<class Hint_type>
-  Hint_type* get_hint() const
-  {
-    execution_hint* ptr = get_hint(Hint_type::type);
-    if(ptr)
+  Hint_type *get_hint() const {
+    execution_hint *ptr = get_hint(Hint_type::type);
+    if (ptr)
       return cast<Hint_type>(ptr);
     return nullptr;
   }
 
-  template <class Hint_type> bool has_hint() const {
+  template<class Hint_type>
+  bool has_hint() const {
     return get_hint(Hint_type::type) != nullptr;
   }
 
@@ -154,14 +141,15 @@ public:
   }
 
   friend bool operator!=(const execution_hints &a, const execution_hints &b) {
-    return !(a==b);
+    return !(a == b);
   }
+
 private:
   std::vector<execution_hint_ptr> _hints;
 };
 
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

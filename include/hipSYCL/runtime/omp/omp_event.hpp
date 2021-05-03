@@ -38,13 +38,9 @@ namespace rt {
 
 class signal_channel {
 public:
-  signal_channel() {
-    _shared_future = _promise.get_future().share();
-  }
+  signal_channel() { _shared_future = _promise.get_future().share(); }
 
-  void signal() {
-    _promise.set_value(true);
-  }
+  void signal() { _promise.set_value(true); }
 
   void wait() {
     auto future = _shared_future;
@@ -53,19 +49,16 @@ public:
 
   bool has_signalled() const {
     auto future = _shared_future;
-    return future.wait_for(std::chrono::seconds(0)) ==
-           std::future_status::ready;
+    return future.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
   }
 
 private:
-  std::promise<bool> _promise;
+  std::promise<bool>       _promise;
   std::shared_future<bool> _shared_future;
 };
 
-class omp_node_event : public dag_node_event
-{
+class omp_node_event : public dag_node_event {
 public:
-  
   omp_node_event();
   ~omp_node_event();
 
@@ -73,13 +66,13 @@ public:
   virtual void wait() override;
 
   std::shared_ptr<signal_channel> get_signal_channel() const;
-private:
 
+private:
   std::shared_ptr<signal_channel> _signal_channel;
 };
 
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

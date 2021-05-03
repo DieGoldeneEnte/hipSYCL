@@ -31,12 +31,9 @@
 namespace hipsycl {
 namespace rt {
 
-omp_node_event::omp_node_event()
-: _signal_channel{std::make_shared<signal_channel>()}
-{}
+omp_node_event::omp_node_event() : _signal_channel{std::make_shared<signal_channel>()} {}
 
-omp_node_event::~omp_node_event()
-{}
+omp_node_event::~omp_node_event() {}
 
 bool omp_node_event::is_complete() const {
   return _signal_channel->has_signalled();
@@ -46,10 +43,9 @@ void omp_node_event::wait() {
   _signal_channel->wait();
 }
 
-std::shared_ptr<signal_channel>
-omp_node_event::get_signal_channel() const {
+std::shared_ptr<signal_channel> omp_node_event::get_signal_channel() const {
   return _signal_channel;
 }
 
-}
-}
+} // namespace rt
+} // namespace hipsycl

@@ -39,12 +39,11 @@ struct cudaDeviceProp;
 namespace hipsycl {
 namespace rt {
 
-class cuda_hardware_context : public hardware_context
-{
+class cuda_hardware_context : public hardware_context {
 public:
   cuda_hardware_context() = default;
   cuda_hardware_context(int dev);
-  cuda_hardware_context(cuda_hardware_context&&) = default;
+  cuda_hardware_context(cuda_hardware_context &&) = default;
 
   virtual bool is_cpu() const override;
   virtual bool is_gpu() const override;
@@ -59,11 +58,11 @@ public:
   virtual std::string get_vendor_name() const override;
   virtual std::string get_device_arch() const override;
 
-  virtual bool has(device_support_aspect aspect) const override;
+  virtual bool        has(device_support_aspect aspect) const override;
   virtual std::size_t get_property(device_uint_property prop) const override;
   virtual std::vector<std::size_t>
-  get_property(device_uint_list_property prop) const override;
-  
+      get_property(device_uint_list_property prop) const override;
+
   virtual std::string get_driver_version() const override;
   virtual std::string get_profile() const override;
 
@@ -71,26 +70,25 @@ public:
 
 private:
   std::unique_ptr<cudaDeviceProp> _properties;
-  int _dev;
+  int                             _dev;
 };
 
-class cuda_hardware_manager : public backend_hardware_manager
-{
+class cuda_hardware_manager : public backend_hardware_manager {
 public:
   cuda_hardware_manager(hardware_platform hw_platform);
 
-  virtual std::size_t get_num_devices() const override;
+  virtual std::size_t       get_num_devices() const override;
   virtual hardware_context *get_device(std::size_t index) override;
-  virtual device_id get_device_id(std::size_t index) const override;
+  virtual device_id         get_device_id(std::size_t index) const override;
 
   virtual ~cuda_hardware_manager() {}
-  
+
 private:
   std::vector<cuda_hardware_context> _devices;
-  hardware_platform _hw_platform;
+  hardware_platform                  _hw_platform;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

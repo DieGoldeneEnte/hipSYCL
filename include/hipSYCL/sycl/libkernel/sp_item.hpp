@@ -37,18 +37,15 @@ namespace sycl {
 namespace detail {
 
 template<int Dim>
-class sp_item
-{
+class sp_item {
   template<int D>
   HIPSYCL_KERNEL_TARGET
-  friend sp_item<D> make_sp_item(
-    sycl::id<D> local_id, sycl::id<D> group_id,
-    sycl::range<D> local_range, sycl::range<D> num_groups);
+  friend sp_item<D> make_sp_item(sycl::id<D> local_id, sycl::id<D> group_id,
+                                 sycl::range<D> local_range, sycl::range<D> num_groups);
+
 public:
   HIPSYCL_KERNEL_TARGET
-  sycl::range<Dim> get_global_range() const {
-    return _num_groups * _local_range;
-  }
+  sycl::range<Dim> get_global_range() const { return _num_groups * _local_range; }
 
   HIPSYCL_KERNEL_TARGET
   size_t get_global_range(int dimension) const {
@@ -56,14 +53,11 @@ public:
   }
 
   HIPSYCL_KERNEL_TARGET
-  sycl::id<Dim> get_global_id() const {
-    return _local_id + _group_id * _local_range;
-  }
+  sycl::id<Dim> get_global_id() const { return _local_id + _group_id * _local_range; }
 
   HIPSYCL_KERNEL_TARGET
   size_t get_global_id(int dimension) const {
-    return _local_id[dimension] + 
-      _group_id[dimension] * _local_range[dimension];
+    return _local_id[dimension] + _group_id[dimension] * _local_range[dimension];
   }
 
   HIPSYCL_KERNEL_TARGET
@@ -72,36 +66,28 @@ public:
   }
 
   HIPSYCL_KERNEL_TARGET
-  sycl::range<Dim> get_local_range() const {
-    return _local_range;
-  }
+  sycl::range<Dim> get_local_range() const { return _local_range; }
 
   HIPSYCL_KERNEL_TARGET
-  size_t get_local_range(int dimension) const {
-    return _local_range[dimension];
-  }
+  size_t get_local_range(int dimension) const { return _local_range[dimension]; }
 
   HIPSYCL_KERNEL_TARGET
-  sycl::id<Dim> get_local_id() const {
-    return _local_id;
-  }
+  sycl::id<Dim> get_local_id() const { return _local_id; }
 
   HIPSYCL_KERNEL_TARGET
-  size_t get_local_id(int dimension) const {
-    return _local_id[dimension];
-  }
+  size_t get_local_id(int dimension) const { return _local_id[dimension]; }
 
   HIPSYCL_KERNEL_TARGET
   size_t get_local_linear_id() const {
     return detail::linear_id<Dim>::get(_local_id, _local_range);
   }
+
 private:
-  sp_item(sycl::id<Dim> local_id, sycl::id<Dim> group_id,
-          sycl::range<Dim> local_range, sycl::range<Dim> num_groups)
-    : _local_id{local_id}, _group_id{group_id}, 
-      _local_range{local_range}, _num_groups{num_groups}
-  {}
-  
+  sp_item(sycl::id<Dim> local_id, sycl::id<Dim> group_id, sycl::range<Dim> local_range,
+          sycl::range<Dim> num_groups)
+      : _local_id{local_id}, _group_id{group_id}, _local_range{local_range},
+        _num_groups{num_groups} {}
+
   sycl::id<Dim> _local_id;
   sycl::id<Dim> _group_id;
 
@@ -112,20 +98,20 @@ private:
 template<int Dim>
 HIPSYCL_KERNEL_TARGET
 sp_item<Dim> make_sp_item(sycl::id<Dim> local_id, sycl::id<Dim> group_id,
-                          sycl::range<Dim> local_range, sycl::range<Dim> num_groups){
+                          sycl::range<Dim> local_range, sycl::range<Dim> num_groups) {
 
   return sp_item<Dim>{local_id, group_id, local_range, num_groups};
 }
 
-}
+} // namespace detail
 
 template<int Dim>
-using logical_item=detail::sp_item<Dim>;
+using logical_item = detail::sp_item<Dim>;
 
 template<int Dim>
-using physical_item=detail::sp_item<Dim>;
+using physical_item = detail::sp_item<Dim>;
 
-}
-}
+} // namespace sycl
+} // namespace hipsycl
 
 #endif

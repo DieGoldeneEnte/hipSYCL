@@ -49,12 +49,13 @@ HIPSYCL_PARAM_TRAIT_RETURN_VALUE(platform, platform::profile, string_class);
 HIPSYCL_PARAM_TRAIT_RETURN_VALUE(platform, platform::version, string_class);
 HIPSYCL_PARAM_TRAIT_RETURN_VALUE(platform, platform::name, string_class);
 HIPSYCL_PARAM_TRAIT_RETURN_VALUE(platform, platform::vendor, string_class);
-HIPSYCL_PARAM_TRAIT_RETURN_VALUE(platform, platform::extensions, vector_class<string_class>);
+HIPSYCL_PARAM_TRAIT_RETURN_VALUE(platform, platform::extensions,
+                                 vector_class<string_class>);
 
 
-}
-}
-}
+} // namespace info
+} // namespace sycl
+} // namespace hipsycl
 
 
 #endif

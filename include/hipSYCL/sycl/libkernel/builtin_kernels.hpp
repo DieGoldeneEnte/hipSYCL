@@ -51,26 +51,25 @@ public:
 
 private:
   sycl::accessor<T, Dim, Mode, Tgt> _dest;
-  T _src;
+  T                                 _src;
 };
 
 template<class T>
 class fill_kernel_usm {
 public:
-  fill_kernel_usm(T* ptr, T value)
-      : _dest{ptr}, _src{value} {}
+  fill_kernel_usm(T *ptr, T value) : _dest{ptr}, _src{value} {}
 
   void operator()(sycl::id<1> tid) const { _dest[tid[0]] = _src; }
 
 private:
-  T* _dest;
-  T _src;
+  T *_dest;
+  T  _src;
 };
 
-}
+} // namespace detail::kernels
 
 
-}
-}
+} // namespace sycl
+} // namespace hipsycl
 
 #endif

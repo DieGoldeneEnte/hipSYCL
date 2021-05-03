@@ -80,31 +80,31 @@ using hash_class = std::hash<T>;
 using exception_ptr_class = std::exception_ptr;
 
 
-using exception_ptr = exception_ptr_class;
+using exception_ptr  = exception_ptr_class;
 using exception_list = vector_class<exception_ptr>;
-using async_handler = function_class<void(sycl::exception_list)>;
+using async_handler  = function_class<void(sycl::exception_list)>;
 
 // \todo Better use uint32_t etc
 namespace detail {
 // Define types in analogy to OpenCL cl_* types
-using u_char = unsigned char;
+using u_char  = unsigned char;
 using u_short = unsigned short;
-using u_int = unsigned;
-using u_long = unsigned long long;
+using u_int   = unsigned;
+using u_long  = unsigned long long;
 
-using s_char = char;
+using s_char  = char;
 using s_short = short;
-using s_int = int;
-using s_long = long long;
+using s_int   = int;
+using s_long  = long long;
 
 // ToDo: Proper half type
 using hp_float = u_short;
 using sp_float = float;
 using dp_float = double;
-} //detail
+} // namespace detail
 
-} // sycl
-} // hipsycl
+} // namespace sycl
+} // namespace hipsycl
 
 // Only pull typedefs into global namespace if the OpenCL headers
 // defining them haven't yet been pulled in

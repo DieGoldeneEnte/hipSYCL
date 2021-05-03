@@ -57,17 +57,16 @@ namespace glue {
 /// Construct kernel launchers.
 /// Note: For basic parallel for kernels, local range may argument may be ignored.
 ///       If it is non-0, it *may* be used as a hint for the backend.
-template <class KernelNameTag, rt::kernel_type Type, int Dim, class Kernel,
-          typename... Reductions>
+template<class KernelNameTag, rt::kernel_type Type, int Dim, class Kernel,
+         typename... Reductions>
 std::vector<std::unique_ptr<rt::backend_kernel_launcher>>
-make_kernel_launchers(sycl::id<Dim> offset, sycl::range<Dim> local_range,
-                      sycl::range<Dim> global_range,
-                      std::size_t dynamic_local_memory, Kernel k,
-                      Reductions... reductions) {
+    make_kernel_launchers(sycl::id<Dim> offset, sycl::range<Dim> local_range,
+                          sycl::range<Dim> global_range, std::size_t dynamic_local_memory,
+                          Kernel k, Reductions... reductions) {
 
-  using complete_name = complete_kernel_name_t<KernelNameTag, Kernel>;
+  using complete_name  = complete_kernel_name_t<KernelNameTag, Kernel>;
   using effective_name = effective_kernel_name_t<KernelNameTag, Kernel>;
-  
+
   std::vector<std::unique_ptr<rt::backend_kernel_launcher>> launchers;
 #ifdef __HIPSYCL_ENABLE_HIP_TARGET__
   {
@@ -93,14 +92,13 @@ make_kernel_launchers(sycl::id<Dim> offset, sycl::range<Dim> local_range,
 
     auto launcher = std::make_unique<ze_kernel_launcher>();
     launcher->bind<effective_name, Type>(offset, global_range, local_range,
-                                        dynamic_local_memory, k, reductions...);
+                                         dynamic_local_memory, k, reductions...);
     launchers.emplace_back(std::move(launcher));
   }
 #endif
 
   // Don't try to compile host kernel during device passes
-#if defined(__HIPSYCL_ENABLE_OMPHOST_TARGET__) && \
-   !defined(HIPSYCL_LIBKERNEL_DEVICE_PASS)
+#if defined(__HIPSYCL_ENABLE_OMPHOST_TARGET__) && !defined(HIPSYCL_LIBKERNEL_DEVICE_PASS)
   {
     auto launcher = std::make_unique<omp_kernel_launcher>();
     launcher->bind<complete_name, Type>(offset, global_range, local_range,
@@ -110,7 +108,7 @@ make_kernel_launchers(sycl::id<Dim> offset, sycl::range<Dim> local_range,
 #endif
   return launchers;
 }
-}
-}
+} // namespace glue
+} // namespace hipsycl
 
 #endif

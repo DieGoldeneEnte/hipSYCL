@@ -35,10 +35,9 @@
 namespace hipsycl {
 namespace glue {
 
-using hip_kernel_launcher =
-    hiplike_kernel_launcher<rt::backend_id::hip, rt::hip_queue>;
+using hip_kernel_launcher = hiplike_kernel_launcher<rt::backend_id::hip, rt::hip_queue>;
 
 }
-}
+} // namespace hipsycl
 
 #endif

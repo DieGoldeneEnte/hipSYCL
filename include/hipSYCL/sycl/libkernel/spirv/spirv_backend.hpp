@@ -30,36 +30,36 @@
 #define HIPSYCL_LIBKERNEL_SPIRV_BACKEND_HPP
 
 #if defined(__HIPSYCL_SPIRV__)
- #define HIPSYCL_LIBKERNEL_COMPILER_SUPPORTS_SPIRV 1
+#define HIPSYCL_LIBKERNEL_COMPILER_SUPPORTS_SPIRV 1
 
- #ifdef __HIPSYCL_ENABLE_SPIRV_TARGET__
-  // Needed for SPIR-V headers
-  #ifndef SYCL_EXTERNAL
-   #define SYCL_EXTERNAL
-  #endif
+#ifdef __HIPSYCL_ENABLE_SPIRV_TARGET__
+// Needed for SPIR-V headers
+#ifndef SYCL_EXTERNAL
+#define SYCL_EXTERNAL
+#endif
 
-  #include "spirv_ops.hpp"
-  #include "spirv_vars.hpp"
-  #include "spirv_types.hpp"
- #endif
+#include "spirv_ops.hpp"
+#include "spirv_vars.hpp"
+#include "spirv_types.hpp"
+#endif
 #else
- #define HIPSYCL_LIBKERNEL_COMPILER_SUPPORTS_SPIRV 0
+#define HIPSYCL_LIBKERNEL_COMPILER_SUPPORTS_SPIRV 0
 #endif
 
 #if defined(__HIPSYCL_SPIRV__)
- #define HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_SPIRV 1
+#define HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_SPIRV 1
 
- #ifndef HIPSYCL_LIBKERNEL_DEVICE_PASS
-  #define HIPSYCL_LIBKERNEL_DEVICE_PASS
- #endif
+#ifndef HIPSYCL_LIBKERNEL_DEVICE_PASS
+#define HIPSYCL_LIBKERNEL_DEVICE_PASS
+#endif
 
- #define HIPSYCL_UNIVERSAL_TARGET
- #define HIPSYCL_KERNEL_TARGET
- #define HIPSYCL_HOST_TARGET
+#define HIPSYCL_UNIVERSAL_TARGET
+#define HIPSYCL_KERNEL_TARGET
+#define HIPSYCL_HOST_TARGET
 
- #define HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
+#define HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
 #else
- #define HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_SPRIV 0
+#define HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_SPRIV 0
 #endif
 
 #endif

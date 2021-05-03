@@ -55,8 +55,7 @@ inline rt::backend_id select_usm_backend(const context &ctx) {
         "the context!"};
 
 
-  std::size_t num_host_backends =
-      devs.get_num_backends(rt::hardware_platform::cpu);
+  std::size_t num_host_backends = devs.get_num_backends(rt::hardware_platform::cpu);
 
   assert(devs.get_num_backends() >= num_host_backends);
   std::size_t num_device_backends = devs.get_num_backends() - num_host_backends;
@@ -105,7 +104,7 @@ inline rt::backend_id select_usm_backend(const context &ctx) {
     throw memory_allocation_error{
         "USM: Could not select backend to use for USM memory operation"};
   }
-  
+
   return selected_backend;
 }
 
@@ -123,13 +122,13 @@ inline rt::backend_allocator *select_usm_allocator(const context &ctx) {
 }
 
 inline rt::backend_allocator *select_usm_allocator(const context &ctx,
-                                                   const device &dev) {
+                                                   const device & dev) {
   rt::backend_id selected_backend = select_usm_backend(ctx);
 
-  rt::backend &backend_object = rt::application::get_backend(selected_backend);
-  rt::device_id d = detail::extract_rt_device(dev);
-  
-  if(d.get_backend() == selected_backend)
+  rt::backend & backend_object = rt::application::get_backend(selected_backend);
+  rt::device_id d              = detail::extract_rt_device(dev);
+
+  if (d.get_backend() == selected_backend)
     return backend_object.get_allocator(detail::extract_rt_device(dev));
   else
     return backend_object.get_allocator(
@@ -139,20 +138,26 @@ inline rt::backend_allocator *select_usm_allocator(const context &ctx,
 inline rt::backend_allocator *select_device_allocator(const device &dev) {
   rt::device_id d = detail::extract_rt_device(dev);
 
-  rt::backend& backend_object = rt::application::get_backend(d.get_backend());
+  rt::backend &backend_object = rt::application::get_backend(d.get_backend());
   return backend_object.get_allocator(d);
 }
 
-}
+} // namespace detail
 
 namespace usm {
-enum class alloc { host, device, shared, unknown };
-}
+enum class alloc
+{
+  host,
+  device,
+  shared,
+  unknown
+};
+} // namespace usm
 
 
 inline usm::alloc get_pointer_type(const void *ptr, const context &ctx) {
   rt::pointer_info info;
-  rt::result res = detail::select_usm_allocator(ctx)->query_pointer(ptr, info);
+  rt::result       res = detail::select_usm_allocator(ctx)->query_pointer(ptr, info);
 
   if (!res.is_success())
     return usm::alloc::unknown;
@@ -167,18 +172,17 @@ inline usm::alloc get_pointer_type(const void *ptr, const context &ctx) {
 
 inline sycl::device get_pointer_device(const void *ptr, const context &ctx) {
   rt::pointer_info info;
-  rt::result res = detail::select_usm_allocator(ctx)->query_pointer(ptr, info);
+  rt::result       res = detail::select_usm_allocator(ctx)->query_pointer(ptr, info);
 
   if (!res.is_success())
     std::rethrow_exception(glue::throw_result(res));
 
-  if (info.is_from_host_backend){
+  if (info.is_from_host_backend) {
     // TODO Spec says to return *the* host device, but it might be better
     // to return a device from the actual host backend used
     // (we might want to have multiple host devices/backends in the future)
     return detail::get_host_device();
-  }
-  else if (info.is_optimized_host) {
+  } else if (info.is_optimized_host) {
     // Return first (non-host?) device from context
     const rt::unique_device_list &devs = detail::extract_context_devices(ctx);
 
@@ -187,12 +191,11 @@ inline sycl::device get_pointer_device(const void *ptr, const context &ctx) {
 
     assert(device_iterator != devs.devices_end());
     return device{*device_iterator};
-  }
-  else
+  } else
     return device{info.dev};
 }
 
-}
+} // namespace sycl
 } // namespace hipsycl
 
 #endif

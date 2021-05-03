@@ -61,8 +61,6 @@ namespace glue {
 namespace ze_dispatch {
 
 
-
-
 #ifdef SYCL_DEVICE_ONLY
 #define __sycl_kernel __attribute__((sycl_kernel))
 #else
@@ -75,12 +73,12 @@ namespace ze_dispatch {
 // memory objects such as cl_mem and instead rely on buffers/accessors
 // on top of USM pointers.
 // The problem with the clang SYCL approach is that it requires either
-// compiler support in the host pass to know the captures, or requires 
+// compiler support in the host pass to know the captures, or requires
 // using the clang SYCL generated integration header which does not work
 // with the hipSYCL syclcc driver.
-// To prevent clang from disassembling the kernel, we type-erase kernel 
+// To prevent clang from disassembling the kernel, we type-erase kernel
 // lambdas by putting their memory into array<uint, size>, and reinterpret
-// this memory as lambda once we are inside the kernel. 
+// this memory as lambda once we are inside the kernel.
 // Arrays are passed by clang into kernels by passing their individual
 // elements as arguments. Because we know sizeof(KernelLambda), we can
 // easily know how to pass arrays on the host side.
@@ -90,61 +88,49 @@ public:
   using component_type = uint32_t;
 
   packed_kernel() = default;
-  packed_kernel(KernelType k) {
-    init(reinterpret_cast<const unsigned char*>(&k));
-  }
+  packed_kernel(KernelType k) { init(reinterpret_cast<const unsigned char *>(&k)); }
 
   template<typename... Args>
-  void operator()(Args&&... args) const {
-    const KernelType* k = reinterpret_cast<const KernelType*>(&(_data[0]));
+  void operator()(Args &&...args) const {
+    const KernelType *k = reinterpret_cast<const KernelType *>(&(_data[0]));
     (*k)(args...);
   }
 
-  constexpr std::size_t get_num_components() const {
-    return num_components;
-  }
+  constexpr std::size_t get_num_components() const { return num_components; }
 
-  constexpr std::size_t get_component_size() const {
-    return sizeof(component_type);
-  }
+  constexpr std::size_t get_component_size() const { return sizeof(component_type); }
 
-  component_type* get_components() {
-    return &(_data[0]);
-  }
+  component_type *get_components() { return &(_data[0]); }
 
-  const component_type* get_components() const {
-    return &(_data[0]);
-  }
+  const component_type *get_components() const { return &(_data[0]); }
+
 private:
+  void init(const unsigned char *kernel_bytes) {
 
-  void init(const unsigned char* kernel_bytes) {
-
-    for(int i = 0; i < static_cast<int>(num_components); ++i) {
+    for (int i = 0; i < static_cast<int>(num_components); ++i) {
       union component {
         component_type c;
-        unsigned char bytes[sizeof(component_type)];
+        unsigned char  bytes[sizeof(component_type)];
       };
 
       component current_component;
 
-      for(int byte = 0; byte < sizeof(component_type); ++byte) {
+      for (int byte = 0; byte < sizeof(component_type); ++byte) {
         std::size_t pos = i * sizeof(component_type) + byte;
-        if(pos < kernel_size){
-          current_component.bytes[byte] =
-            kernel_bytes[pos];
+        if (pos < kernel_size) {
+          current_component.bytes[byte] = kernel_bytes[pos];
         } else {
           current_component.bytes[byte] = 0;
         }
       }
 
       _data[i] = current_component.c;
-
     }
   }
 
   static constexpr std::size_t kernel_size = sizeof(KernelType);
   static constexpr std::size_t num_components =
-    (kernel_size + sizeof(component_type)-1) / sizeof(component_type);
+      (kernel_size + sizeof(component_type) - 1) / sizeof(component_type);
 
   using array_type = sycl::detail::device_array<component_type, num_components>;
 
@@ -154,51 +140,45 @@ private:
                 "device_array size is invalid");
 };
 
-template <typename KernelName, typename KernelType>
-__sycl_kernel void
-kernel_single_task(const packed_kernel<KernelType> &kernel) {
+template<typename KernelName, typename KernelType>
+__sycl_kernel void kernel_single_task(const packed_kernel<KernelType> &kernel) {
   kernel();
 }
 
-template <typename KernelName, typename KernelType>
-__sycl_kernel void
-kernel_parallel_for(const packed_kernel<KernelType>& kernel) {
+template<typename KernelName, typename KernelType>
+__sycl_kernel void kernel_parallel_for(const packed_kernel<KernelType> &kernel) {
   kernel();
 }
 
-}
+} // namespace ze_dispatch
 
-class ze_kernel_launcher : public rt::backend_kernel_launcher
-{
+class ze_kernel_launcher : public rt::backend_kernel_launcher {
 public:
 #ifdef SYCL_DEVICE_ONLY
-#define __hipsycl_invoke_kernel(f, KernelNameT, KernelBodyT, num_groups,       \
-                                group_size, local_mem, ...)                    \
+#define __hipsycl_invoke_kernel(f, KernelNameT, KernelBodyT, num_groups, group_size, \
+                                local_mem, ...)                                      \
   f(__VA_ARGS__);
 #else
-#define __hipsycl_invoke_kernel(f, KernelNameT, KernelBodyT, num_groups,       \
-                                group_size, local_mem, ...)                    \
-  invoke_from_module<KernelName, KernelBodyT>(num_groups, group_size,          \
-                                              local_mem, __VA_ARGS__);
+#define __hipsycl_invoke_kernel(f, KernelNameT, KernelBodyT, num_groups, group_size, \
+                                local_mem, ...)                                      \
+  invoke_from_module<KernelName, KernelBodyT>(num_groups, group_size, local_mem,     \
+                                              __VA_ARGS__);
 #endif
 
-  ze_kernel_launcher() : _queue{nullptr}{}
-  virtual ~ze_kernel_launcher(){}
+  ze_kernel_launcher() : _queue{nullptr} {}
+  virtual ~ze_kernel_launcher() {}
 
-  virtual void set_params(void* q) override {
-    _queue = static_cast<rt::ze_queue*>(q);
-  }
+  virtual void set_params(void *q) override { _queue = static_cast<rt::ze_queue *>(q); }
 
-  template <class KernelName, rt::kernel_type type, int Dim, class Kernel,
-            typename... Reductions>
+  template<class KernelName, rt::kernel_type type, int Dim, class Kernel,
+           typename... Reductions>
   void bind(sycl::id<Dim> offset, sycl::range<Dim> global_range,
-            sycl::range<Dim> local_range, std::size_t dynamic_local_memory,
-            Kernel k, Reductions... reductions) {
+            sycl::range<Dim> local_range, std::size_t dynamic_local_memory, Kernel k,
+            Reductions... reductions) {
 
     this->_type = type;
-    
-    this->_invoker = [=](rt::dag_node* node) mutable {
-      
+
+    this->_invoker = [=](rt::dag_node *node) mutable {
       static_cast<rt::kernel_operation *>(node->get_operation())
           ->initialize_embedded_pointers(k, reductions...);
 
@@ -206,7 +186,7 @@ public:
       if constexpr (type == rt::kernel_type::basic_parallel_for) {
         // If local range is non 0, we use it as a hint to override
         // the default selection
-        if(local_range.size() == 0) {
+        if (local_range.size() == 0) {
           if constexpr (Dim == 1)
             effective_local_range = sycl::range<1>{128};
           else if constexpr (Dim == 2)
@@ -216,43 +196,42 @@ public:
         }
         HIPSYCL_DEBUG_INFO << "ze_kernel_launcher: Submitting high-level "
                               "parallel for with selected total group size of "
-                          << effective_local_range.size() << std::endl;
+                           << effective_local_range.size() << std::endl;
       }
 
       sycl::range<Dim> num_groups;
-      for(int i = 0; i < Dim; ++i) {
-        num_groups[i] = (global_range[i] + effective_local_range[i] - 1) /
-                        effective_local_range[i];
+      for (int i = 0; i < Dim; ++i) {
+        num_groups[i] =
+            (global_range[i] + effective_local_range[i] - 1) / effective_local_range[i];
       }
 
       bool is_with_offset = false;
-      for(int i = 0; i < Dim; ++i)
-        if(offset[i] != 0)
+      for (int i = 0; i < Dim; ++i)
+        if (offset[i] != 0)
           is_with_offset = true;
 
-      if constexpr(type == rt::kernel_type::single_task){
-        rt::range<3> single_item{1,1,1};
+      if constexpr (type == rt::kernel_type::single_task) {
+        rt::range<3> single_item{1, 1, 1};
 
-        __hipsycl_invoke_kernel(ze_dispatch::kernel_single_task<KernelName>,
-                                KernelName, Kernel, single_item, single_item, 0,
+        __hipsycl_invoke_kernel(ze_dispatch::kernel_single_task<KernelName>, KernelName,
+                                Kernel, single_item, single_item, 0,
                                 ze_dispatch::packed_kernel{k});
 
       } else if constexpr (type == rt::kernel_type::basic_parallel_for) {
 
-        auto kernel_wrapper = [global_range, k, offset, is_with_offset](){
+        auto kernel_wrapper = [global_range, k, offset, is_with_offset]() {
 #ifdef SYCL_DEVICE_ONLY
           sycl::id<Dim> gid = sycl::detail::get_global_id<Dim>();
 
           bool is_within_range = true;
 
-          for(int i = 0; i < Dim; ++i)
-            if(gid[i] >= global_range[i])
+          for (int i = 0; i < Dim; ++i)
+            if (gid[i] >= global_range[i])
               is_within_range = false;
 
-          if(is_within_range) {
-            if(is_with_offset) {
-              auto item = sycl::detail::make_item(gid + offset, 
-                            global_range, offset);
+          if (is_within_range) {
+            if (is_with_offset) {
+              auto item = sycl::detail::make_item(gid + offset, global_range, offset);
               k(item);
             } else {
               auto item = sycl::detail::make_item(gid, global_range);
@@ -267,25 +246,23 @@ public:
 #endif
         };
 
-        __hipsycl_invoke_kernel(ze_dispatch::kernel_parallel_for<KernelName>,
-                                KernelName, Kernel,
-                                make_kernel_launch_range(num_groups),
+        __hipsycl_invoke_kernel(ze_dispatch::kernel_parallel_for<KernelName>, KernelName,
+                                Kernel, make_kernel_launch_range(num_groups),
                                 make_kernel_launch_range(effective_local_range),
-                                dynamic_local_memory, ze_dispatch::packed_kernel{kernel_wrapper});
+                                dynamic_local_memory,
+                                ze_dispatch::packed_kernel{kernel_wrapper});
 
       } else if constexpr (type == rt::kernel_type::ndrange_parallel_for) {
 
-        auto kernel_wrapper = [k, offset](){
+        auto kernel_wrapper = [k, offset]() {
 #ifdef SYCL_DEVICE_ONLY
 #ifdef HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
           sycl::nd_item<Dim> this_item{&offset};
 #else
-          sycl::nd_item<Dim> this_item{
-            &offset, sycl::detail::get_group_id<Dim>(),
-            sycl::detail::get_local_id<Dim>(),
-            sycl::detail::get_local_size<Dim>(),
-            sycl::detail::get_grid_size<Dim>()
-          };
+          sycl::nd_item<Dim> this_item{&offset, sycl::detail::get_group_id<Dim>(),
+                                       sycl::detail::get_local_id<Dim>(),
+                                       sycl::detail::get_local_size<Dim>(),
+                                       sycl::detail::get_grid_size<Dim>()};
 #endif
           k(this_item);
 #else
@@ -294,34 +271,33 @@ public:
 #endif
         };
 
-        __hipsycl_invoke_kernel(ze_dispatch::kernel_parallel_for<KernelName>,
-                                KernelName, Kernel,
-                                make_kernel_launch_range(num_groups),
+        __hipsycl_invoke_kernel(ze_dispatch::kernel_parallel_for<KernelName>, KernelName,
+                                Kernel, make_kernel_launch_range(num_groups),
                                 make_kernel_launch_range(effective_local_range),
-                                dynamic_local_memory, ze_dispatch::packed_kernel{kernel_wrapper});
+                                dynamic_local_memory,
+                                ze_dispatch::packed_kernel{kernel_wrapper});
 
       } else if constexpr (type == rt::kernel_type::hierarchical_parallel_for) {
-        rt::register_error(__hipsycl_here(), rt::error_info{
-          "ze_kernel_launcher: hierarchical parallel for is not yet supported"});
+        rt::register_error(
+            __hipsycl_here(),
+            rt::error_info{
+                "ze_kernel_launcher: hierarchical parallel for is not yet supported"});
 
-      } else if constexpr( type == rt::kernel_type::scoped_parallel_for) {
+      } else if constexpr (type == rt::kernel_type::scoped_parallel_for) {
 
-        auto kernel_wrapper = [k](){
+        auto kernel_wrapper = [k]() {
 #ifdef SYCL_DEVICE_ONLY
 
 #ifdef HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
           sycl::group<Dim> this_group;
 #else
-          sycl::group<Dim> this_group{
-            sycl::detail::get_group_id<Dim>(),
-            sycl::detail::get_local_size<Dim>(),
-            sycl::detail::get_grid_size<Dim>()};
+          sycl::group<Dim>   this_group{sycl::detail::get_group_id<Dim>(),
+                                      sycl::detail::get_local_size<Dim>(),
+                                      sycl::detail::get_grid_size<Dim>()};
 #endif
           sycl::physical_item<Dim> phys_idx = sycl::detail::make_sp_item(
-            sycl::detail::get_local_id<Dim>(),
-            sycl::detail::get_group_id<Dim>(),
-            sycl::detail::get_local_size<Dim>(),
-            sycl::detail::get_grid_size<Dim>());
+              sycl::detail::get_local_id<Dim>(), sycl::detail::get_group_id<Dim>(),
+              sycl::detail::get_local_size<Dim>(), sycl::detail::get_grid_size<Dim>());
 
           k(this_group, phys_idx);
 #else
@@ -329,11 +305,11 @@ public:
 #endif
         };
 
-        __hipsycl_invoke_kernel(ze_dispatch::kernel_parallel_for<KernelName>,
-                                KernelName, Kernel,
-                                make_kernel_launch_range(num_groups),
+        __hipsycl_invoke_kernel(ze_dispatch::kernel_parallel_for<KernelName>, KernelName,
+                                Kernel, make_kernel_launch_range(num_groups),
                                 make_kernel_launch_range(effective_local_range),
-                                dynamic_local_memory, ze_dispatch::packed_kernel{kernel_wrapper});
+                                dynamic_local_memory,
+                                ze_dispatch::packed_kernel{kernel_wrapper});
 
 
       } else if constexpr (type == rt::kernel_type::custom) {
@@ -341,14 +317,12 @@ public:
             rt::device_id{rt::backend_descriptor{rt::hardware_platform::level_zero,
                                                  rt::api_platform::level_zero},
                           0},
-            static_cast<void*>(nullptr)};
+            static_cast<void *>(nullptr)};
 
         k(handle);
-      }
-      else {
+      } else {
         assert(false && "Unsupported kernel type");
       }
-      
     };
   }
 
@@ -356,43 +330,37 @@ public:
     return rt::backend_id::level_zero;
   }
 
-  virtual void invoke(rt::dag_node* node) final override {
-    _invoker(node);
-  }
+  virtual void invoke(rt::dag_node *node) final override { _invoker(node); }
 
-  virtual rt::kernel_type get_kernel_type() const final override {
-    return _type;
-  }
+  virtual rt::kernel_type get_kernel_type() const final override { return _type; }
 
 private:
   template<int Dim>
   rt::range<3> make_kernel_launch_range(sycl::range<Dim> r) const {
-    if constexpr(Dim == 1) {
+    if constexpr (Dim == 1) {
       return rt::range<3>{r[0], 1, 1};
-    } else if constexpr(Dim == 2) {
+    } else if constexpr (Dim == 2) {
       return rt::range<3>{r[1], r[0], 1};
     } else {
       return rt::range<3>{r[2], r[1], r[0]};
     }
   }
 
-  template <class KernelName, class KernelBodyT,
-            class WrappedLambdaT>
+  template<class KernelName, class KernelBodyT, class WrappedLambdaT>
   void invoke_from_module(rt::range<3> num_groups, rt::range<3> group_size,
-                          unsigned dynamic_local_mem,
+                          unsigned                                   dynamic_local_mem,
                           ze_dispatch::packed_kernel<WrappedLambdaT> kernel) {
-    
-    
+
+
 #ifdef __HIPSYCL_MULTIPASS_SPIRV_HEADER__
 #if !defined(__clang_major__) || __clang_major__ < 11
-  #error Multipass compilation requires clang >= 11
+#error Multipass compilation requires clang >= 11
 #endif
     if (this_module::get_num_objects<rt::backend_id::level_zero>() == 0) {
       rt::register_error(
           __hipsycl_here(),
-          rt::error_info{
-              "hiplike_kernel_launcher: Cannot invoke SPIR-V kernel: No code "
-              "objects present in this module."});
+          rt::error_info{"hiplike_kernel_launcher: Cannot invoke SPIR-V kernel: No code "
+                         "objects present in this module."});
       return;
     }
 
@@ -400,43 +368,40 @@ private:
         this_module::get_code_object<rt::backend_id::level_zero>("spirv");
     assert(kernel_image && "Invalid kernel image object");
 
-    std::array<void *, kernel.get_num_components()> kernel_args;
+    std::array<void *, kernel.get_num_components()>      kernel_args;
     std::array<std::size_t, kernel.get_num_components()> arg_sizes;
 
-    for(std::size_t i = 0; i < kernel.get_num_components(); ++i) {
-      arg_sizes[i] = kernel.get_component_size();
-      kernel_args[i] = static_cast<void*>(kernel.get_components() + i);
+    for (std::size_t i = 0; i < kernel.get_num_components(); ++i) {
+      arg_sizes[i]   = kernel.get_component_size();
+      kernel_args[i] = static_cast<void *>(kernel.get_components() + i);
     }
 
-    std::string kernel_name_tag = __builtin_unique_stable_name(KernelName);
+    std::string kernel_name_tag  = __builtin_unique_stable_name(KernelName);
     std::string kernel_body_name = __builtin_unique_stable_name(KernelBodyT);
 
     rt::module_invoker *invoker = _queue->get_module_invoker();
 
-    assert(invoker &&
-            "Runtime backend does not support invoking kernels from modules");
+    assert(invoker && "Runtime backend does not support invoking kernels from modules");
 
     rt::result err = invoker->submit_kernel(
-        this_module::get_module_id<rt::backend_id::level_zero>(), "spirv",
-        kernel_image, num_groups, group_size, dynamic_local_mem,
-        kernel_args.data(), arg_sizes.data(), kernel_args.size(), kernel_name_tag,
-        kernel_body_name);
+        this_module::get_module_id<rt::backend_id::level_zero>(), "spirv", kernel_image,
+        num_groups, group_size, dynamic_local_mem, kernel_args.data(), arg_sizes.data(),
+        kernel_args.size(), kernel_name_tag, kernel_body_name);
 
     if (!err.is_success())
       rt::register_error(err);
 #else
     assert(false && "No module available to invoke kernels from");
 #endif
-  
   }
 
-  std::function<void (rt::dag_node*)> _invoker;
-  rt::kernel_type _type;
-  rt::ze_queue* _queue;
+  std::function<void(rt::dag_node *)> _invoker;
+  rt::kernel_type                     _type;
+  rt::ze_queue *                      _queue;
 };
 
-}
-}
+} // namespace glue
+} // namespace hipsycl
 
 #undef __hipsycl_invoke_kernel
 #undef __sycl_kernel

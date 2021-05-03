@@ -21,12 +21,13 @@ namespace __spv {
 
 struct Scope {
 
-  enum Flag : uint32_t {
+  enum Flag : uint32_t
+  {
     CrossDevice = 0,
-    Device = 1,
-    Workgroup = 2,
-    Subgroup = 3,
-    Invocation = 4,
+    Device      = 1,
+    Workgroup   = 2,
+    Subgroup    = 3,
+    Invocation  = 4,
   };
 
   constexpr Scope(Flag flag) : flag_value(flag) {}
@@ -38,18 +39,19 @@ struct Scope {
 
 struct MemorySemanticsMask {
 
-  enum Flag : uint32_t {
-    None = 0x0,
-    Acquire = 0x2,
-    Release = 0x4,
-    AcquireRelease = 0x8,
+  enum Flag : uint32_t
+  {
+    None                   = 0x0,
+    Acquire                = 0x2,
+    Release                = 0x4,
+    AcquireRelease         = 0x8,
     SequentiallyConsistent = 0x10,
-    UniformMemory = 0x40,
-    SubgroupMemory = 0x80,
-    WorkgroupMemory = 0x100,
-    CrossWorkgroupMemory = 0x200,
-    AtomicCounterMemory = 0x400,
-    ImageMemory = 0x800,
+    UniformMemory          = 0x40,
+    SubgroupMemory         = 0x80,
+    WorkgroupMemory        = 0x100,
+    CrossWorkgroupMemory   = 0x200,
+    AtomicCounterMemory    = 0x400,
+    ImageMemory            = 0x800,
   };
 
   constexpr MemorySemanticsMask(Flag flag) : flag_value(flag) {}
@@ -59,8 +61,9 @@ struct MemorySemanticsMask {
   Flag flag_value;
 };
 
-enum class GroupOperation : uint32_t {
-  Reduce = 0,
+enum class GroupOperation : uint32_t
+{
+  Reduce        = 0,
   InclusiveScan = 1,
   ExclusiveScan = 2
 };
@@ -69,13 +72,13 @@ enum class GroupOperation : uint32_t {
 
 #ifdef __SYCL_DEVICE_ONLY__
 // OpenCL pipe types
-template <typename dataT>
+template<typename dataT>
 using RPipeTy = __attribute__((pipe("read_only"))) const dataT;
-template <typename dataT>
+template<typename dataT>
 using WPipeTy = __attribute__((pipe("write_only"))) const dataT;
 
 // OpenCL vector types
-template <typename dataT, int dims>
+template<typename dataT, int dims>
 using __ocl_vec_t = dataT __attribute__((ext_vector_type(dims)));
 
 // Struct representing layout of pipe storage
@@ -86,7 +89,8 @@ struct ConstantPipeStorage {
 };
 
 // Arbitrary precision integer type
-template <int Bits> using ap_int = _ExtInt(Bits);
+template<int Bits>
+using ap_int = _ExtInt(Bits);
 #endif // __SYCL_DEVICE_ONLY__
 
 // This class does not have definition, it is only predeclared here.
@@ -94,14 +98,14 @@ template <int Bits> using ap_int = _ExtInt(Bits);
 // SPIRV built-in functions.
 // Only in such cases the class is recognized as SPIRV type __ocl_event_t.
 #ifndef __SYCL_DEVICE_ONLY__
-typedef void* __ocl_event_t;
-typedef void* __ocl_sampler_t;
+typedef void *__ocl_event_t;
+typedef void *__ocl_sampler_t;
 // Adding only the datatypes that can be currently used in SYCL,
 // as per SYCL spec 1.2.1
 #define __SYCL_SPV_IMAGE_TYPE(NAME) typedef void *__ocl_##NAME##_t
 
-#define __SYCL_SPV_SAMPLED_AND_IMAGE_TYPE(NAME)                                \
-  __SYCL_SPV_IMAGE_TYPE(NAME);                                                 \
+#define __SYCL_SPV_SAMPLED_AND_IMAGE_TYPE(NAME) \
+  __SYCL_SPV_IMAGE_TYPE(NAME);                  \
   typedef void *__ocl_sampled_##NAME##_t
 
 __SYCL_SPV_SAMPLED_AND_IMAGE_TYPE(image1d_ro);

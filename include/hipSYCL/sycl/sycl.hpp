@@ -31,13 +31,13 @@
 
 // Use this macro to detect hipSYCL from SYCL code
 #ifndef __HIPSYCL__
- #define __HIPSYCL__
+#define __HIPSYCL__
 #endif
 
 #define SYCL_IMPLEMENTATION_HIPSYCL
 
 #define CL_SYCL_LANGUAGE_VERSION 202003
-#define SYCL_LANGUAGE_VERSION 202003
+#define SYCL_LANGUAGE_VERSION    202003
 #define SYCL_FEATURE_SET_FULL
 
 #include "extensions.hpp"
@@ -63,8 +63,8 @@
 #include "libkernel/sub_group.hpp"
 #include "libkernel/memory.hpp"
 #if !HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_SPIRV
- // Not yet supported for SPIR-V
- #include "libkernel/group_functions.hpp"
+// Not yet supported for SPIR-V
+#include "libkernel/group_functions.hpp"
 #endif
 #include "libkernel/functional.hpp"
 #include "libkernel/reduction.hpp"
@@ -86,4 +86,3 @@
 #include "buffer_explicit_behavior.hpp"
 
 #endif
-

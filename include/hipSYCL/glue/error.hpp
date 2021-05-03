@@ -43,29 +43,25 @@ namespace glue {
 
 inline void print_async_errors(sycl::exception_list error_list) {
   if (error_list.size() > 0) {
-    std::ostream& output_stream = common::output_stream::get().get_stream();
-    output_stream << "============== hipSYCL error report ============== "
+    std::ostream &output_stream = common::output_stream::get().get_stream();
+    output_stream << "============== hipSYCL error report ============== " << std::endl;
+
+    output_stream << "hipSYCL has caught the following undhandled asynchronous errors: "
+                  << std::endl
                   << std::endl;
 
-    output_stream
-        << "hipSYCL has caught the following undhandled asynchronous errors: "
-        << std::endl << std::endl;
-
     int idx = 0;
-    for(std::exception_ptr err : error_list) {
-      
-      try{
-        if(err) {
+    for (std::exception_ptr err : error_list) {
+
+      try {
+        if (err) {
           std::rethrow_exception(err);
         }
-      }
-      catch(sycl::exception &e) {
-        output_stream << "   " <<  idx << ". " << e.what() << std::endl;
-      }
-      catch(std::exception &e) {
-        output_stream << "   " <<  idx << ". " << e.what() << std::endl;
-      }
-      catch(...) {
+      } catch (sycl::exception &e) {
+        output_stream << "   " << idx << ". " << e.what() << std::endl;
+      } catch (std::exception &e) {
+        output_stream << "   " << idx << ". " << e.what() << std::endl;
+      } catch (...) {
         output_stream << "   " << idx << ". <unknown exception>" << std::endl;
       }
 
@@ -83,8 +79,8 @@ inline void default_async_handler(sycl::exception_list error_list) {
   }
 }
 
-inline std::exception_ptr throw_result(const rt::result& r){
-  if(!r.is_success()) {
+inline std::exception_ptr throw_result(const rt::result &r) {
+  if (!r.is_success()) {
     rt::error_type etype = r.info().get_error_type();
 
     try {
@@ -135,11 +131,9 @@ inline std::exception_ptr throw_result(const rt::result& r){
         throw sycl::feature_not_supported{r};
         break;
       default:
-        HIPSYCL_DEBUG_WARNING
-            << "throw_result(): Encountered unknown exception type"
-            << std::endl;
-        throw sycl::runtime_error{"Unknown error type encountered: " +
-                                  r.what()};
+        HIPSYCL_DEBUG_WARNING << "throw_result(): Encountered unknown exception type"
+                              << std::endl;
+        throw sycl::runtime_error{"Unknown error type encountered: " + r.what()};
       }
     } catch (...) {
       return std::current_exception();
@@ -149,24 +143,22 @@ inline std::exception_ptr throw_result(const rt::result& r){
 }
 
 template<class Handler>
-void throw_asynchronous_errors(Handler h){
+void throw_asynchronous_errors(Handler h) {
   sycl::exception_list exceptions;
 
   std::vector<rt::result> async_errors;
   rt::application::get_runtime().errors().pop_each_error(
-      [&](const rt::result &err) {
-        async_errors.push_back(err);
-      });
+      [&](const rt::result &err) { async_errors.push_back(err); });
 
-  for(const auto& err : async_errors) {
+  for (const auto &err : async_errors) {
     exceptions.push_back(throw_result(err));
   }
 
-  if(!exceptions.empty())
+  if (!exceptions.empty())
     h(exceptions);
 }
 
-}
-}
+} // namespace glue
+} // namespace hipsycl
 
 #endif

@@ -71,97 +71,90 @@ namespace detail {
 /// implictly or explictly reachable from some initial declaration.
 ///
 class CompleteCallSet : public clang::RecursiveASTVisitor<CompleteCallSet> {
-  public:
-    using FunctionSet = std::unordered_set<clang::FunctionDecl*>;
+public:
+  using FunctionSet = std::unordered_set<clang::FunctionDecl *>;
 
-    CompleteCallSet(clang::Decl* D)
-    {
-      TraverseDecl(D);
+  CompleteCallSet(clang::Decl *D) { TraverseDecl(D); }
+
+  bool VisitFunctionDecl(clang::FunctionDecl *FD) {
+    visitedDecls.insert(FD);
+    return true;
+  }
+
+  bool VisitCallExpr(clang::CallExpr *CE) {
+    if (auto Callee = CE->getDirectCallee())
+      TraverseDecl(Callee);
+    return true;
+  }
+
+  bool VisitCXXConstructExpr(clang::CXXConstructExpr *CE) {
+    if (auto Callee = CE->getConstructor()) {
+      TraverseDecl(Callee);
+      // Since for destructor calls no explicit AST nodes are created, we simply use this opportunity to
+      // find the corresponding destructor for all constructed types (since we assume that every
+      // type that can be constructed on the GPU also can and will be destructed).
+      if (auto Ptr = llvm::dyn_cast_or_null<clang::PointerType>(
+              Callee->getThisType()->getCanonicalTypeUnqualified()))
+        if (auto Record = llvm::dyn_cast<clang::RecordType>(Ptr->getPointeeType()))
+          if (auto RecordDecl = llvm::dyn_cast<clang::CXXRecordDecl>(Record->getDecl()))
+            if (auto DtorDecl = RecordDecl->getDestructor())
+              TraverseDecl(DtorDecl);
     }
+    return true;
+  }
 
-    bool VisitFunctionDecl(clang::FunctionDecl* FD)
-    {
-      visitedDecls.insert(FD);
+  bool TraverseDecl(clang::Decl *D) {
+    // fixme: investigate where the invalid decls come from..
+    if (!D)
       return true;
-    }
 
-    bool VisitCallExpr(clang::CallExpr* CE)
-    {
-      if(auto Callee = CE->getDirectCallee())
-        TraverseDecl(Callee);
-      return true;
-    }
+    clang::Decl *        DefinitionDecl = D;
+    clang::FunctionDecl *FD             = clang::dyn_cast<clang::FunctionDecl>(D);
 
-    bool VisitCXXConstructExpr(clang::CXXConstructExpr* CE)
-    {
-      if(auto Callee = CE->getConstructor())
-      {
-        TraverseDecl(Callee);
-        // Since for destructor calls no explicit AST nodes are created, we simply use this opportunity to
-        // find the corresponding destructor for all constructed types (since we assume that every
-        // type that can be constructed on the GPU also can and will be destructed).
-        if(auto Ptr = llvm::dyn_cast_or_null<clang::PointerType>(Callee->getThisType()->getCanonicalTypeUnqualified()))
-          if(auto Record = llvm::dyn_cast<clang::RecordType>(Ptr->getPointeeType()))
-            if(auto RecordDecl = llvm::dyn_cast<clang::CXXRecordDecl>(Record->getDecl()))
-              if(auto DtorDecl = RecordDecl->getDestructor())
-                TraverseDecl(DtorDecl);
+    if (FD) {
+      const clang::FunctionDecl *ActualDefinition;
+      if (FD->isDefined(ActualDefinition)) {
+
+        DefinitionDecl = const_cast<clang::FunctionDecl *>(ActualDefinition);
       }
-      return true;
     }
 
-    bool TraverseDecl(clang::Decl* D)
-    {
-      // fixme: investigate where the invalid decls come from..
-      if(!D)
-        return true;
+    if (visitedDecls.find(llvm::dyn_cast_or_null<clang::FunctionDecl>(DefinitionDecl)) ==
+        visitedDecls.end())
+      return clang::RecursiveASTVisitor<CompleteCallSet>::TraverseDecl(DefinitionDecl);
 
-      clang::Decl* DefinitionDecl = D;
-      clang::FunctionDecl* FD = clang::dyn_cast<clang::FunctionDecl>(D);
+    return true;
+  }
 
-      if(FD){
-        const clang::FunctionDecl* ActualDefinition;
-        if(FD->isDefined(ActualDefinition)) {
-          
-          DefinitionDecl = const_cast<clang::FunctionDecl*>(ActualDefinition);
-        }
-      }
+  bool shouldWalkTypesOfTypeLocs() const { return false; }
+  bool shouldVisitTemplateInstantiations() const { return true; }
+  bool shouldVisitImplicitCode() const { return true; }
 
-      if (visitedDecls.find(llvm::dyn_cast_or_null<clang::FunctionDecl>(
-              DefinitionDecl)) == visitedDecls.end())
-        return clang::RecursiveASTVisitor<CompleteCallSet>::TraverseDecl(
-            DefinitionDecl);
-      
-      return true;
-    }
+  const FunctionSet &getReachableDecls() const { return visitedDecls; }
 
-    bool shouldWalkTypesOfTypeLocs() const { return false; }
-    bool shouldVisitTemplateInstantiations() const { return true; }
-    bool shouldVisitImplicitCode() const { return true; }
-
-    const FunctionSet& getReachableDecls() const { return visitedDecls; }
-
-  private:
-    FunctionSet visitedDecls;
+private:
+  FunctionSet visitedDecls;
 };
 
 ///
 /// Builds a kernel name from a RecordDecl, taking into account template specializations.
 /// Returns an empty string if the name is not a valid kernel name.
 ///
-inline std::string buildKernelNameFromRecordType(const clang::QualType &RecordType, clang::MangleContext *Mangler) {
-  std::string KernelName;
+inline std::string buildKernelNameFromRecordType(const clang::QualType &RecordType,
+                                                 clang::MangleContext * Mangler) {
+  std::string              KernelName;
   llvm::raw_string_ostream SS(KernelName);
   Mangler->mangleTypeName(RecordType, SS);
 
   return KernelName;
 }
 
-inline std::string buildKernelName(clang::TemplateArgument SyclTagTypeTA, clang::MangleContext *Mangler) {
+inline std::string buildKernelName(clang::TemplateArgument SyclTagTypeTA,
+                                   clang::MangleContext *  Mangler) {
   assert(SyclTagTypeTA.getKind() == clang::TemplateArgument::ArgKind::Type);
   auto SyclTagType = SyclTagTypeTA.getAsType();
-  auto RecordType = llvm::dyn_cast<clang::RecordType>(SyclTagType.getTypePtr());
-  if(RecordType == nullptr || !llvm::isa<clang::RecordDecl>(RecordType->getDecl()))
-  {
+  auto RecordType  = llvm::dyn_cast<clang::RecordType>(SyclTagType.getTypePtr());
+  if (RecordType == nullptr || !llvm::isa<clang::RecordDecl>(RecordType->getDecl())) {
     // We only support structs/classes as kernel names
     return "";
   }
@@ -169,59 +162,56 @@ inline std::string buildKernelName(clang::TemplateArgument SyclTagTypeTA, clang:
   return "__hipsycl_kernel_" + DeclName;
 }
 
-}
+} // namespace detail
 
-class FrontendASTVisitor : public clang::RecursiveASTVisitor<FrontendASTVisitor>
-{
+class FrontendASTVisitor : public clang::RecursiveASTVisitor<FrontendASTVisitor> {
   clang::CompilerInstance &Instance;
-  
+
 public:
   FrontendASTVisitor(clang::CompilerInstance &instance)
       : Instance{instance},
 #ifdef HIPSYCL_ENABLE_UNIQUE_NAME_MANGLING
         // Construct unique name mangler if supported
-      KernelNameMangler(clang::ItaniumMangleContext::create(
-          instance.getASTContext(), instance.getASTContext().getDiagnostics(), true))
+        KernelNameMangler(clang::ItaniumMangleContext::create(
+            instance.getASTContext(), instance.getASTContext().getDiagnostics(), true))
 #else
-      KernelNameMangler(clang::ItaniumMangleContext::create(
-          instance.getASTContext(), instance.getASTContext().getDiagnostics()))
+        KernelNameMangler(clang::ItaniumMangleContext::create(
+            instance.getASTContext(), instance.getASTContext().getDiagnostics()))
 #endif
   {
 #ifdef _WIN32
-    // necessary, to rely on device mangling. API introduced in 
+    // necessary, to rely on device mangling. API introduced in
     // https://reviews.llvm.org/D69322 thus only available if merged.. LLVM 12+ hopefully...
     KernelNameMangler->setDeviceMangleContext(
-      Instance.getASTContext().getTargetInfo().getCXXABI().isMicrosoft()
-      && Instance.getASTContext().getAuxTargetInfo()->getCXXABI().isItaniumFamily());
+        Instance.getASTContext().getTargetInfo().getCXXABI().isMicrosoft() &&
+        Instance.getASTContext().getAuxTargetInfo()->getCXXABI().isItaniumFamily());
 #endif // _WIN32
   }
 
-  ~FrontendASTVisitor()
-  {}
-  
+  ~FrontendASTVisitor() {}
+
   bool shouldVisitTemplateInstantiations() const { return true; }
 
   /// Return whether this visitor should recurse into implicit
   /// code, e.g., implicit constructors and destructors.
   bool shouldVisitImplicitCode() const { return true; }
-  
+
   // We also need to have look at all statements to identify Lambda declarations
   bool VisitStmt(clang::Stmt *S) {
 
-    if(clang::isa<clang::LambdaExpr>(S))
-    {
-      clang::LambdaExpr* lambda = clang::cast<clang::LambdaExpr>(S);
-      clang::FunctionDecl* callOp = lambda->getCallOperator();
-      if(callOp)
+    if (clang::isa<clang::LambdaExpr>(S)) {
+      clang::LambdaExpr *  lambda = clang::cast<clang::LambdaExpr>(S);
+      clang::FunctionDecl *callOp = lambda->getCallOperator();
+      if (callOp)
         this->VisitFunctionDecl(callOp);
     }
-    
+
     return true;
   }
-  
-  bool VisitDecl(clang::Decl* D){
-    if(clang::VarDecl* V = clang::dyn_cast<clang::VarDecl>(D)){
-      if(isLocalMemory(V))
+
+  bool VisitDecl(clang::Decl *D) {
+    if (clang::VarDecl *V = clang::dyn_cast<clang::VarDecl>(D)) {
+      if (isLocalMemory(V))
         // Maybe we should additionally check that this is in kernels?
         storeVariableInLocalMemory(V);
     }
@@ -229,9 +219,9 @@ public:
   }
 
   bool VisitFunctionDecl(clang::FunctionDecl *f) {
-    if(!f)
+    if (!f)
       return true;
-    
+
     this->processFunctionDecl(f);
 
     return true;
@@ -239,26 +229,26 @@ public:
 
   bool VisitCallExpr(clang::CallExpr *Call) {
     auto F = llvm::dyn_cast_or_null<clang::FunctionDecl>(Call->getDirectCallee());
-    if(!F) return true;
-    if(!CustomAttributes::SyclKernel.isAttachedTo(F)) return true;
+    if (!F)
+      return true;
+    if (!CustomAttributes::SyclKernel.isAttachedTo(F))
+      return true;
 
-    auto KernelFunctorType = llvm::dyn_cast<clang::RecordType>(Call->getArg(0)
-      ->getType()->getCanonicalTypeUnqualified());
+    auto KernelFunctorType = llvm::dyn_cast<clang::RecordType>(
+        Call->getArg(0)->getType()->getCanonicalTypeUnqualified());
 
     // Store user kernel for it to be marked as device code later on
-    if(KernelFunctorType)
-    {
-      auto Methods = llvm::dyn_cast<clang::CXXRecordDecl>(
-        KernelFunctorType->getDecl())->methods();
-      for(auto&& M : Methods)
-      {
-        if(M->getNameAsString() == "operator()")
+    if (KernelFunctorType) {
+      auto Methods =
+          llvm::dyn_cast<clang::CXXRecordDecl>(KernelFunctorType->getDecl())->methods();
+      for (auto &&M : Methods) {
+        if (M->getNameAsString() == "operator()")
           UserKernels.insert(M);
       }
     }
 
     // Determine unique kernel name to be used for symbol name in device IR
-    clang::FunctionTemplateSpecializationInfo* Info = F->getTemplateSpecializationInfo();
+    clang::FunctionTemplateSpecializationInfo *Info = F->getTemplateSpecializationInfo();
 
     // Check whether a unique kernel name is required.
     //
@@ -276,9 +266,10 @@ public:
 
     const auto KernelNameArgument = Info->TemplateArguments->get(0);
     if (KernelNameArgument.getKind() == clang::TemplateArgument::ArgKind::Type) {
-      if (auto RecordType = llvm::dyn_cast<clang::RecordType>(KernelNameArgument.getAsType().getTypePtr())) {
+      if (auto RecordType = llvm::dyn_cast<clang::RecordType>(
+              KernelNameArgument.getAsType().getTypePtr())) {
         const auto RecordDecl = RecordType->getDecl();
-        auto KernelName = RecordDecl->getNameAsString();
+        auto       KernelName = RecordDecl->getNameAsString();
         if (KernelName == "__hipsycl_unnamed_kernel") {
           // If no name is provided, rely on clang name mangling
 
@@ -286,15 +277,18 @@ public:
           // lambda numbering across host and device passes
 #if LLVM_VERSION_MAJOR < 10
           const auto KernelFunctorArgument = Info->TemplateArguments->get(1);
-          
+
           if (KernelFunctorArgument.getAsType().getTypePtr()->getAsCXXRecordDecl() &&
-               KernelFunctorArgument.getAsType().getTypePtr()->getAsCXXRecordDecl()->isLambda())
-          {
-            auto SL = llvm::dyn_cast<clang::CXXRecordDecl>(
-                KernelFunctorType->getDecl())->getSourceRange().getBegin();
-            auto ID = Instance.getASTContext().getDiagnostics()
-              .getCustomDiagID(clang::DiagnosticsEngine::Level::Error,
-                  "Optional kernel lambda naming requires clang >= 10");
+              KernelFunctorArgument.getAsType()
+                  .getTypePtr()
+                  ->getAsCXXRecordDecl()
+                  ->isLambda()) {
+            auto SL = llvm::dyn_cast<clang::CXXRecordDecl>(KernelFunctorType->getDecl())
+                          ->getSourceRange()
+                          .getBegin();
+            auto ID = Instance.getASTContext().getDiagnostics().getCustomDiagID(
+                clang::DiagnosticsEngine::Level::Error,
+                "Optional kernel lambda naming requires clang >= 10");
             Instance.getASTContext().getDiagnostics().Report(SL, ID);
           }
 #endif
@@ -305,58 +299,53 @@ public:
     }
 
     bool ForceCustomNameMangling = LLVM_VERSION_MAJOR >= 11;
-    
-    if (NameRequired || ForceCustomNameMangling)
-    {
+
+    if (NameRequired || ForceCustomNameMangling) {
       std::string KernelName;
 
       // If we are dealing with a named kernel, construct the name
       // based on the kernel name argument
-      if(NameRequired) {
-        KernelName = detail::buildKernelName(KernelNameArgument,
-                                             KernelNameMangler.get());
+      if (NameRequired) {
+        KernelName = detail::buildKernelName(KernelNameArgument, KernelNameMangler.get());
       } else {
         // Otherwise (for unnamed kernels or non-lambda kernels)
         // construct name based on kernel functor type.
         const auto KernelFunctorArgument = Info->TemplateArguments->get(1);
         if (KernelFunctorArgument.getAsType().getTypePtr()->getAsCXXRecordDecl()) {
-          KernelName = detail::buildKernelName(KernelFunctorArgument,
-                                               KernelNameMangler.get());
+          KernelName =
+              detail::buildKernelName(KernelFunctorArgument, KernelNameMangler.get());
         }
       }
 
       // Abort with error diagnostic if no kernel name could be built
-      if(KernelName.empty())
-      {
+      if (KernelName.empty()) {
         // Since we cannot easily get the source location of the template
         // specialization where the name is passed by the user (e.g. a
         // parallel_for call), we attach the diagnostic to the kernel
         // functor instead.
         // TODO: Improve on this.
-        auto SL = llvm::dyn_cast<clang::CXXRecordDecl>(
-            KernelFunctorType->getDecl())->getSourceRange().getBegin();
-        auto ID = Instance.getASTContext().getDiagnostics()
-          .getCustomDiagID(clang::DiagnosticsEngine::Level::Error,
-              "Not a valid kernel name: %0");
-        Instance.getASTContext().getDiagnostics().Report(SL, ID) <<
-          Info->TemplateArguments->get(0);
+        auto SL = llvm::dyn_cast<clang::CXXRecordDecl>(KernelFunctorType->getDecl())
+                      ->getSourceRange()
+                      .getBegin();
+        auto ID = Instance.getASTContext().getDiagnostics().getCustomDiagID(
+            clang::DiagnosticsEngine::Level::Error, "Not a valid kernel name: %0");
+        Instance.getASTContext().getDiagnostics().Report(SL, ID)
+            << Info->TemplateArguments->get(0);
       }
 
       // Add the AsmLabel attribute which, if present,
       // is used by Clang instead of the function's mangled name.
-      F->addAttr(clang::AsmLabelAttr::CreateImplicit(Instance.getASTContext(),
-            KernelName));
+      F->addAttr(
+          clang::AsmLabelAttr::CreateImplicit(Instance.getASTContext(), KernelName));
       HIPSYCL_DEBUG_INFO << "AST processing: Adding ASM label attribute with kernel name "
-        << KernelName << "\n";
+                         << KernelName << "\n";
     }
 
     return true;
   }
 
-  void applyAttributes()
-  {
-    for(auto F : MarkedHostDeviceFunctions)
-    {
+  void applyAttributes() {
+    for (auto F : MarkedHostDeviceFunctions) {
       // Strictly speaking, setting these attributes is not even necessary!
       // It's only important that the kernel has the right attribute.
       if (!F->hasAttr<clang::CUDAHostAttr>())
@@ -365,25 +354,22 @@ public:
         F->addAttr(clang::CUDADeviceAttr::CreateImplicit(Instance.getASTContext()));
     }
 
-    for(auto F : MarkedKernels)
-    {
+    for (auto F : MarkedKernels) {
       if (!F->hasAttr<clang::CUDAGlobalAttr>() &&
           CustomAttributes::SyclKernel.isAttachedTo(F)) {
 
-        auto* NewAttr = clang::CUDAGlobalAttr::CreateImplicit(Instance.getASTContext());
-        
+        auto *NewAttr = clang::CUDAGlobalAttr::CreateImplicit(Instance.getASTContext());
+
         F->addAttr(NewAttr);
       }
     }
 
-    for(auto F : UserKernels)
-    {
-      std::unordered_set<clang::FunctionDecl*> UserKernels;
+    for (auto F : UserKernels) {
+      std::unordered_set<clang::FunctionDecl *> UserKernels;
 
       // Mark all functions called by user kernels as host / device.
       detail::CompleteCallSet CCS(F);
-      for (auto&& RD : CCS.getReachableDecls())
-      {
+      for (auto &&RD : CCS.getReachableDecls()) {
         HIPSYCL_DEBUG_INFO << "AST processing: Marking function as __host__ __device__: "
                            << RD->getQualifiedNameAsString() << std::endl;
         markAsHostDevice(RD);
@@ -395,89 +381,73 @@ public:
     }
   }
 
-  std::unordered_set<clang::FunctionDecl*>& getMarkedHostDeviceFunctions()
-  {
+  std::unordered_set<clang::FunctionDecl *> &getMarkedHostDeviceFunctions() {
     return MarkedHostDeviceFunctions;
   }
 
-  std::unordered_set<clang::FunctionDecl*>& getKernels()
-  {
-    return MarkedKernels;
-  }
+  std::unordered_set<clang::FunctionDecl *> &getKernels() { return MarkedKernels; }
 
 private:
-  std::unordered_set<clang::FunctionDecl*> MarkedHostDeviceFunctions;
-  std::unordered_set<clang::FunctionDecl*> MarkedKernels;
-  std::unordered_set<clang::FunctionDecl*> UserKernels;
-  std::unique_ptr<clang::MangleContext> KernelNameMangler;
+  std::unordered_set<clang::FunctionDecl *> MarkedHostDeviceFunctions;
+  std::unordered_set<clang::FunctionDecl *> MarkedKernels;
+  std::unordered_set<clang::FunctionDecl *> UserKernels;
+  std::unique_ptr<clang::MangleContext>     KernelNameMangler;
 
-  void markAsHostDevice(clang::FunctionDecl* F)
-  {
+  void markAsHostDevice(clang::FunctionDecl *F) {
     this->MarkedHostDeviceFunctions.insert(F);
   }
 
-  void markAsKernel(clang::FunctionDecl* F)
-  {
-    this->MarkedKernels.insert(F);
-  }
+  void markAsKernel(clang::FunctionDecl *F) { this->MarkedKernels.insert(F); }
 
-  void processFunctionDecl(clang::FunctionDecl* f)
-  {
-    if(!f)
+  void processFunctionDecl(clang::FunctionDecl *f) {
+    if (!f)
       return;
 
-    if(f->getQualifiedNameAsString() 
-        == "hipsycl::glue::hiplike_dispatch::parallel_for_workgroup")
-    {
-      clang::FunctionDecl* Kernel = f;
-      
+    if (f->getQualifiedNameAsString() ==
+        "hipsycl::glue::hiplike_dispatch::parallel_for_workgroup") {
+      clang::FunctionDecl *Kernel = f;
+
       HIPSYCL_DEBUG_INFO << "AST Processing: Detected parallel_for_workgroup kernel "
-                        << Kernel->getQualifiedNameAsString() << std::endl;
+                         << Kernel->getQualifiedNameAsString() << std::endl;
 
       // Mark local variables as shared memory, unless they are explicitly marked private.
       // Do this not only for the kernel itself, but consider all functions called by the kernel.
       detail::CompleteCallSet CCS(Kernel);
-      for(auto&& RD : CCS.getReachableDecls())
-      {
+      for (auto &&RD : CCS.getReachableDecls()) {
         // To prevent every local variable in any function being marked as shared,
         // we only consider functions that receive a hipsycl::sycl::group as their parameter.
-        for(auto Param = RD->param_begin(); Param != RD->param_end(); ++Param)
-        {
+        for (auto Param = RD->param_begin(); Param != RD->param_end(); ++Param) {
           auto Type = (*Param)->getOriginalType().getTypePtr();
-          if(auto DeclType = Type->getAsCXXRecordDecl()) {
-            if(DeclType->getQualifiedNameAsString() == "hipsycl::sycl::group")
-            {
+          if (auto DeclType = Type->getAsCXXRecordDecl()) {
+            if (DeclType->getQualifiedNameAsString() == "hipsycl::sycl::group") {
               storeLocalVariablesInLocalMemory(RD->getBody(), RD);
               break;
             }
           }
         }
       }
-    
     }
-  
-    
-    if(CustomAttributes::SyclKernel.isAttachedTo(f)){
-      markAsKernel(f); 
+
+
+    if (CustomAttributes::SyclKernel.isAttachedTo(f)) {
+      markAsKernel(f);
     }
   }
 
 
-  bool isPrivateMemory(const clang::VarDecl* V) const
-  {
-    const clang::CXXRecordDecl* R = V->getType()->getAsCXXRecordDecl();
-    if(R)
+  bool isPrivateMemory(const clang::VarDecl *V) const {
+    const clang::CXXRecordDecl *R = V->getType()->getAsCXXRecordDecl();
+    if (R)
       return R->getQualifiedNameAsString() == "hipsycl::sycl::private_memory";
-  
+
     return false;
   }
 
-  bool isLocalMemory(const clang::VarDecl* V) const
-  {
-    const clang::CXXRecordDecl* R = V->getType()->getAsCXXRecordDecl();
-    if(R)
+  bool isLocalMemory(const clang::VarDecl *V) const {
+    const clang::CXXRecordDecl *R = V->getType()->getAsCXXRecordDecl();
+    if (R)
       return R->getQualifiedNameAsString() == "hipsycl::sycl::local_memory";
-  
+
     return false;
   }
 
@@ -490,74 +460,61 @@ private:
   /// NOTE TODO: It is unclear how certain other statement types should be handled.
   /// For example, should the loop variable of a for-loop be marked as shared? Probably not.
   ///
-  void storeLocalVariablesInLocalMemory(clang::Stmt* BlockStmt, clang::FunctionDecl* F) const
-  {
-    for(auto S = BlockStmt->child_begin(); S != BlockStmt->child_end(); ++S)
-    {
-      if(auto D = clang::dyn_cast<clang::DeclStmt>(*S))
-      {
-        for(auto decl = D->decl_begin(); decl != D->decl_end(); ++decl)
-        {
-          if(clang::VarDecl* V = clang::dyn_cast<clang::VarDecl>(*decl))
-          {
-            if(!isPrivateMemory(V))
+  void storeLocalVariablesInLocalMemory(clang::Stmt *        BlockStmt,
+                                        clang::FunctionDecl *F) const {
+    for (auto S = BlockStmt->child_begin(); S != BlockStmt->child_end(); ++S) {
+      if (auto D = clang::dyn_cast<clang::DeclStmt>(*S)) {
+        for (auto decl = D->decl_begin(); decl != D->decl_end(); ++decl) {
+          if (clang::VarDecl *V = clang::dyn_cast<clang::VarDecl>(*decl)) {
+            if (!isPrivateMemory(V))
               storeVariableInLocalMemory(V);
           }
         }
-      }
-      else if(clang::dyn_cast<clang::CompoundStmt>(*S))
-      {
+      } else if (clang::dyn_cast<clang::CompoundStmt>(*S)) {
         storeLocalVariablesInLocalMemory(*S, F);
       }
     }
   }
-  
-  void storeVariableInLocalMemory(clang::VarDecl* V) const {
-    HIPSYCL_DEBUG_INFO
-                  << "AST Processing: Marking variable "
-                  << V->getNameAsString()
-                  << " as __shared__"
-                  << std::endl;
+
+  void storeVariableInLocalMemory(clang::VarDecl *V) const {
+    HIPSYCL_DEBUG_INFO << "AST Processing: Marking variable " << V->getNameAsString()
+                       << " as __shared__" << std::endl;
 
     if (!V->hasAttr<clang::CUDASharedAttr>()) {
-      V->addAttr(clang::CUDASharedAttr::CreateImplicit(
-          Instance.getASTContext()));
+      V->addAttr(clang::CUDASharedAttr::CreateImplicit(Instance.getASTContext()));
       V->setStorageClass(clang::SC_Static);
     }
   }
-
 };
 
 
-
-
 class FrontendASTConsumer : public clang::ASTConsumer {
-  
-  FrontendASTVisitor Visitor;
-  clang::CompilerInstance& Instance;
-  
+
+  FrontendASTVisitor       Visitor;
+  clang::CompilerInstance &Instance;
+
 public:
-  FrontendASTConsumer(clang::CompilerInstance &I)
-      : Visitor{I}, Instance{I}
-  {
+  FrontendASTConsumer(clang::CompilerInstance &I) : Visitor{I}, Instance{I} {
     CompilationStateManager::get().reset();
   }
 
   bool HandleTopLevelDecl(clang::DeclGroupRef DG) override {
-    for (auto&& D : DG)
+    for (auto &&D : DG)
       Visitor.TraverseDecl(D);
     return true;
   }
 
-  void HandleTranslationUnit(clang::ASTContext& context) override {
-    
+  void HandleTranslationUnit(clang::ASTContext &context) override {
+
     CompilationStateManager::getASTPassState().setDeviceCompilation(
         Instance.getSema().getLangOpts().CUDAIsDevice);
 
-    if(CompilationStateManager::getASTPassState().isDeviceCompilation())
-      HIPSYCL_DEBUG_INFO << " ****** Entering compilation mode for __device__ ****** " << std::endl;
+    if (CompilationStateManager::getASTPassState().isDeviceCompilation())
+      HIPSYCL_DEBUG_INFO << " ****** Entering compilation mode for __device__ ****** "
+                         << std::endl;
     else
-      HIPSYCL_DEBUG_INFO << " ****** Entering compilation mode for __host__ ****** " << std::endl;
+      HIPSYCL_DEBUG_INFO << " ****** Entering compilation mode for __host__ ****** "
+                         << std::endl;
 
     Visitor.applyAttributes();
 
@@ -586,14 +543,12 @@ public:
     // attributes. Since we do not implement HandleTopLevelDecl(), the only
     // consumers affected are the BackendConsumers which will then generate the
     // required IR for device code.
-    clang::ASTConsumer& C = Instance.getASTConsumer();
-    if(clang::isa<clang::MultiplexConsumer>(&C))
-    {
-      clang::MultiplexConsumer& MC = static_cast<clang::MultiplexConsumer&>(C);
-      if(CompilationStateManager::getASTPassState().isDeviceCompilation()){
-      
-        for (clang::FunctionDecl *HDFunction :
-            Visitor.getMarkedHostDeviceFunctions()) {
+    clang::ASTConsumer &C = Instance.getASTConsumer();
+    if (clang::isa<clang::MultiplexConsumer>(&C)) {
+      clang::MultiplexConsumer &MC = static_cast<clang::MultiplexConsumer &>(C);
+      if (CompilationStateManager::getASTPassState().isDeviceCompilation()) {
+
+        for (clang::FunctionDecl *HDFunction : Visitor.getMarkedHostDeviceFunctions()) {
           clang::DeclGroupRef DG{HDFunction};
 
           MC.HandleTopLevelDecl(DG);
@@ -601,16 +556,16 @@ public:
       }
       // We need to reemit kernels both in host and device passes
       // to make sure the right stubs are generated
-      for(clang::FunctionDecl* Kernel : Visitor.getKernels()){
-          clang::DeclGroupRef DG{Kernel};
+      for (clang::FunctionDecl *Kernel : Visitor.getKernels()) {
+        clang::DeclGroupRef DG{Kernel};
 
-          MC.HandleTopLevelDecl(DG);
+        MC.HandleTopLevelDecl(DG);
       }
     }
   }
 };
 
-}
-}
+} // namespace compiler
+} // namespace hipsycl
 
 #endif

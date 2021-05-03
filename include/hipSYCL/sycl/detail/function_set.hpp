@@ -39,41 +39,34 @@ class handler;
 namespace detail {
 
 template<class Arg>
-class function_set
-{
+class function_set {
 public:
-  using function_type = function_class<void (Arg)>;
-  using id = std::size_t;
+  using function_type = function_class<void(Arg)>;
+  using id            = std::size_t;
 
-  void run_all(Arg arg) const
-  {
-    for(const auto& element : _functions)
+  void run_all(Arg arg) const {
+    for (const auto &element : _functions)
       element.second(arg);
   }
 
-  id add(function_type&& f)
-  {
-    id new_id = static_cast<id>(_functions.size());
+  id add(function_type &&f) {
+    id new_id          = static_cast<id>(_functions.size());
     _functions[new_id] = f;
     return new_id;
   }
 
-  void remove(id function_id)
-  {
-    _functions.erase(function_id);
-  }
+  void remove(id function_id) { _functions.erase(function_id); }
 
 private:
-  using function_map_type = 
-    std::unordered_map<id, function_type>;
-  
+  using function_map_type = std::unordered_map<id, function_type>;
+
   function_map_type _functions;
 };
 
 
-}
-}
-}
+} // namespace detail
+} // namespace sycl
+} // namespace hipsycl
 
 
 #endif

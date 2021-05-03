@@ -38,23 +38,24 @@
 namespace hipsycl {
 namespace rt {
 
-dag_node::dag_node(const execution_hints &hints,
+dag_node::dag_node(const execution_hints &          hints,
                    const std::vector<dag_node_ptr> &requirements,
-                   std::unique_ptr<operation> op)
-    : _hints{hints}, _requirements{requirements},
-      _assigned_executor{nullptr}, _event{nullptr}, _operation{std::move(op)},
-      _is_submitted{false}, _is_complete{false}, _is_virtual{false},
-      _is_cancelled{false} {}
+                   std::unique_ptr<operation>       op)
+    : _hints{hints}, _requirements{requirements}, _assigned_executor{nullptr},
+      _event{nullptr}, _operation{std::move(op)}, _is_submitted{false},
+      _is_complete{false}, _is_virtual{false}, _is_cancelled{false} {}
 
 dag_node::~dag_node() {
-  if(!is_complete()){
+  if (!is_complete()) {
     HIPSYCL_DEBUG_WARNING << "dag_node: Destructor invoked before operation "
                              "has completed, this should never happen."
                           << std::endl;
   }
 }
 
-bool dag_node::is_submitted() const { return _is_submitted; }
+bool dag_node::is_submitted() const {
+  return _is_submitted;
+}
 
 bool dag_node::is_complete() const {
   if (_is_complete)
@@ -77,18 +78,20 @@ bool dag_node::is_known_complete() const {
   return _is_complete;
 }
 
-bool dag_node::is_cancelled() const { return _is_cancelled; }
+bool dag_node::is_cancelled() const {
+  return _is_cancelled;
+}
 
-bool dag_node::is_virtual() const { return _is_virtual; }
+bool dag_node::is_virtual() const {
+  return _is_virtual;
+}
 
-void dag_node::mark_submitted(std::shared_ptr<dag_node_event> completion_evt)
-{
-  this->_event = std::move(completion_evt);
+void dag_node::mark_submitted(std::shared_ptr<dag_node_event> completion_evt) {
+  this->_event        = std::move(completion_evt);
   this->_is_submitted = true;
 }
 
-void dag_node::mark_virtually_submitted()
-{
+void dag_node::mark_virtually_submitted() {
   _is_virtual = true;
   std::vector<std::shared_ptr<dag_node_event>> events;
   for (auto req : get_requirements()) {
@@ -97,15 +100,14 @@ void dag_node::mark_virtually_submitted()
   }
   mark_submitted(std::make_shared<dag_multi_node_event>(events));
 }
-    
+
 void dag_node::cancel() {
   mark_virtually_submitted();
-  this->_is_complete = true;
+  this->_is_complete  = true;
   this->_is_cancelled = true;
 }
 
-void dag_node::assign_to_executor(backend_executor *ctx)
-{
+void dag_node::assign_to_executor(backend_executor *ctx) {
   this->_assigned_executor = ctx;
 }
 
@@ -114,36 +116,37 @@ void dag_node::assign_to_device(device_id dev) {
   this->_assigned_device = dev;
 }
 
-void dag_node::assign_to_execution_lane(std::size_t lane_id)
-{
+void dag_node::assign_to_execution_lane(std::size_t lane_id) {
   this->_assigned_execution_lane = lane_id;
 }
 
-void dag_node::assign_execution_index(std::size_t index)
-{
+void dag_node::assign_execution_index(std::size_t index) {
   this->_assigned_execution_index = index;
 }
 
-std::size_t dag_node::get_assigned_execution_index() const
-{
+std::size_t dag_node::get_assigned_execution_index() const {
   return this->_assigned_execution_index;
 }
 
-device_id dag_node::get_assigned_device() const { return _assigned_device; }
+device_id dag_node::get_assigned_device() const {
+  return _assigned_device;
+}
 
-backend_executor *dag_node::get_assigned_executor() const
-{
+backend_executor *dag_node::get_assigned_executor() const {
   return _assigned_executor;
 }
 
-std::size_t dag_node::get_assigned_execution_lane() const
-{
+std::size_t dag_node::get_assigned_execution_lane() const {
   return _assigned_execution_lane;
 }
 
-const execution_hints &dag_node::get_execution_hints() const { return _hints; }
+const execution_hints &dag_node::get_execution_hints() const {
+  return _hints;
+}
 
-execution_hints &dag_node::get_execution_hints() { return _hints; }
+execution_hints &dag_node::get_execution_hints() {
+  return _hints;
+}
 
 namespace {
 
@@ -152,27 +155,26 @@ namespace {
 // descend into requirements that are known to be complete.
 bool recursive_find(const dag_node_ptr &current, int current_level,
                     const dag_node_ptr &x) {
-  if(!current)
+  if (!current)
     return false;
-  if(current == x)
+  if (current == x)
     return true;
-  if(current_level <= 0)
+  if (current_level <= 0)
     return false;
 
-  for(const auto& req : current->get_requirements()) {
-    if(!req->is_known_complete()) {
-      if(recursive_find(req, current_level - 1, x))
+  for (const auto &req : current->get_requirements()) {
+    if (!req->is_known_complete()) {
+      if (recursive_find(req, current_level - 1, x))
         return true;
     }
   }
   return false;
 }
 
-}
+} // namespace
 
 // Add requirement if not already present
-void dag_node::add_requirement(dag_node_ptr requirement)
-{
+void dag_node::add_requirement(dag_node_ptr requirement) {
   for (auto req : _requirements) {
     if (req == requirement)
       return;
@@ -186,8 +188,8 @@ void dag_node::add_requirement(dag_node_ptr requirement)
   const int search_depth =
       application::get_settings().get<setting::dag_req_optimization_depth>();
 
-  for(auto existing_req : _requirements) {
-    if(is_reachable_from(existing_req, requirement, search_depth)) {
+  for (auto existing_req : _requirements) {
+    if (is_reachable_from(existing_req, requirement, search_depth)) {
       // The requirement is already reachable from an existing requirement,
       // inserting is unnecessary since the existing requirement
       // already provides sufficient synchronization.
@@ -196,45 +198,44 @@ void dag_node::add_requirement(dag_node_ptr requirement)
   }
 
   // Remove requirements that are weaker than the new nequirement
-  for(std::size_t i = 0; i < _requirements.size(); ++i) {
-    if(is_reachable_from(requirement, _requirements[i], search_depth)) {
+  for (std::size_t i = 0; i < _requirements.size(); ++i) {
+    if (is_reachable_from(requirement, _requirements[i], search_depth)) {
       _requirements[i] = nullptr;
     }
   }
-  _requirements.erase(
-      std::remove_if(_requirements.begin(), _requirements.end(),
-                     [](dag_node_ptr req) { return req == nullptr; }),
-      _requirements.end());
+  _requirements.erase(std::remove_if(_requirements.begin(), _requirements.end(),
+                                     [](dag_node_ptr req) { return req == nullptr; }),
+                      _requirements.end());
 
   _requirements.push_back(requirement);
 }
 
-operation *dag_node::get_operation() const { return _operation.get(); }
+operation *dag_node::get_operation() const {
+  return _operation.get();
+}
 
-const std::vector<dag_node_ptr> &dag_node::get_requirements() const
-{
+const std::vector<dag_node_ptr> &dag_node::get_requirements() const {
   return _requirements;
 }
 
-void dag_node::wait() const
-{
-  while (!_is_submitted);
+void dag_node::wait() const {
+  while (!_is_submitted)
+    ;
 
   _event->wait();
   _is_complete = true;
 }
 
-std::shared_ptr<dag_node_event>
-dag_node::get_event() const{
+std::shared_ptr<dag_node_event> dag_node::get_event() const {
   return _event;
 }
 
 void dag_node::for_each_nonvirtual_requirement(
     std::function<void(dag_node_ptr)> handler) const {
-  
+
   if (is_complete())
     return;
-  
+
   for (auto req : get_requirements()) {
     if (!req->is_virtual()) {
       handler(req);
@@ -244,5 +245,5 @@ void dag_node::for_each_nonvirtual_requirement(
   }
 }
 
-}
-}
+} // namespace rt
+} // namespace hipsycl

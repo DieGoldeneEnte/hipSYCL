@@ -50,8 +50,8 @@ HIPSYCL_PARAM_TRAIT_RETURN_VALUE(program, program::reference_count, detail::u_in
 HIPSYCL_PARAM_TRAIT_RETURN_VALUE(program, program::context, sycl::context);
 HIPSYCL_PARAM_TRAIT_RETURN_VALUE(program, program::devices, vector_class<sycl::device>);
 
-} // info
-} // sycl
-} // hipsycl
+} // namespace info
+} // namespace sycl
+} // namespace hipsycl
 
 #endif

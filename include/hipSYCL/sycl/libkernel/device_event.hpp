@@ -33,18 +33,17 @@
 namespace hipsycl {
 namespace sycl {
 
-class device_event
-{
+class device_event {
 public:
   HIPSYCL_KERNEL_TARGET
-  device_event(){}
+  device_event() {}
 
   HIPSYCL_KERNEL_TARGET
-  void wait(){}
+  void wait() {}
 };
 
-}
-}
+} // namespace sycl
+} // namespace hipsycl
 
 
 #endif

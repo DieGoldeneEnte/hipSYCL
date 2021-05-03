@@ -39,11 +39,10 @@ namespace rt {
 
 class dag_direct_scheduler {
 public:
-
   void submit(dag_node_ptr node);
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

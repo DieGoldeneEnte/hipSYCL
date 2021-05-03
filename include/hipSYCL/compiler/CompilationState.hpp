@@ -34,75 +34,51 @@
 namespace hipsycl {
 namespace compiler {
 
-class ASTPassState
-{
+class ASTPassState {
   std::unordered_set<std::string> ImplicitlyMarkedHostDeviceFunctions;
   std::unordered_set<std::string> ExplicitDeviceFunctions;
   std::unordered_set<std::string> KernelFunctions;
-  bool IsDeviceCompilation;
+  bool                            IsDeviceCompilation;
+
 public:
-  ASTPassState()
-  : IsDeviceCompilation{false}
-  {}
+  ASTPassState() : IsDeviceCompilation{false} {}
 
-  bool isDeviceCompilation() const
-  {
-    return IsDeviceCompilation;
-  }
+  bool isDeviceCompilation() const { return IsDeviceCompilation; }
 
-  void setDeviceCompilation(bool IsDevice)
-  {
-    this->IsDeviceCompilation = IsDevice;
-  }
+  void setDeviceCompilation(bool IsDevice) { this->IsDeviceCompilation = IsDevice; }
 
-  void addImplicitHostDeviceFunction(const std::string& Name)
-  {
+  void addImplicitHostDeviceFunction(const std::string &Name) {
     ImplicitlyMarkedHostDeviceFunctions.insert(Name);
   }
 
-  void addKernelFunction(const std::string& Name)
-  {
-    KernelFunctions.insert(Name);
-  }
+  void addKernelFunction(const std::string &Name) { KernelFunctions.insert(Name); }
 
-  void addExplicitDeviceFunction(const std::string& Name)
-  {
+  void addExplicitDeviceFunction(const std::string &Name) {
     ExplicitDeviceFunctions.insert(Name);
   }
 
-  bool isImplicitlyHostDevice(const std::string& FunctionName) const
-  {
-    return ImplicitlyMarkedHostDeviceFunctions.find(FunctionName) 
-      != ImplicitlyMarkedHostDeviceFunctions.end();
+  bool isImplicitlyHostDevice(const std::string &FunctionName) const {
+    return ImplicitlyMarkedHostDeviceFunctions.find(FunctionName) !=
+           ImplicitlyMarkedHostDeviceFunctions.end();
   }
 
-  bool isExplicitlyDevice(const std::string& FunctionName) const
-  {
-    return ExplicitDeviceFunctions.find(FunctionName)
-      != ExplicitDeviceFunctions.end();
+  bool isExplicitlyDevice(const std::string &FunctionName) const {
+    return ExplicitDeviceFunctions.find(FunctionName) != ExplicitDeviceFunctions.end();
   }
 
-  bool isKernel(const std::string& FunctionName) const
-  {
-    return KernelFunctions.find(FunctionName)
-      != KernelFunctions.end();
+  bool isKernel(const std::string &FunctionName) const {
+    return KernelFunctions.find(FunctionName) != KernelFunctions.end();
   }
-
 };
 
-class CompilationStateManager
-{
+class CompilationStateManager {
 public:
-  static CompilationStateManager& get()
-  {
+  static CompilationStateManager &get() {
     static CompilationStateManager m;
     return m;
   }
 
-  void reset()
-  {
-    ASTState = ASTPassState();
-  }
+  void reset() { ASTState = ASTPassState(); }
 
   static ASTPassState &getASTPassState() { return get().ASTState; }
 

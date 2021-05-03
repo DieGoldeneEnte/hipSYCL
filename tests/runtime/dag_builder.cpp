@@ -38,27 +38,22 @@ BOOST_FIXTURE_TEST_SUITE(dag_builder, reset_device_fixture)
 BOOST_AUTO_TEST_CASE(default_hints) {
   rt::execution_hints hints;
   // Construct imaginary device
-  rt::device_id id{rt::backend_descriptor{rt::hardware_platform::cpu,
-                                          rt::api_platform::omp},
-                   12345};
-  
+  rt::device_id id{
+      rt::backend_descriptor{rt::hardware_platform::cpu, rt::api_platform::omp}, 12345};
+
   hints.add_hint(rt::make_execution_hint<rt::hints::bind_to_device>(id));
   rt::dag_builder builder{};
 
   auto reqs = rt::requirements_list{};
-  
-  auto dummy_kernel_op = rt::make_operation<rt::kernel_operation>(
-      "test_kernel",
-      std::vector<std::unique_ptr<rt::backend_kernel_launcher>>{},
-      reqs);
-  
-  rt::dag_node_ptr node = builder.add_kernel(
-      std::move(dummy_kernel_op), reqs, hints);
 
-  rt::execution_hints& node_hints = node->get_execution_hints();
+  auto dummy_kernel_op = rt::make_operation<rt::kernel_operation>(
+      "test_kernel", std::vector<std::unique_ptr<rt::backend_kernel_launcher>>{}, reqs);
+
+  rt::dag_node_ptr node = builder.add_kernel(std::move(dummy_kernel_op), reqs, hints);
+
+  rt::execution_hints &node_hints = node->get_execution_hints();
   BOOST_CHECK(node_hints.has_hint<rt::hints::bind_to_device>());
-  BOOST_CHECK(
-      node_hints.get_hint<rt::hints::bind_to_device>()->get_device_id() == id);
+  BOOST_CHECK(node_hints.get_hint<rt::hints::bind_to_device>()->get_device_id() == id);
 
   node->cancel();
 }

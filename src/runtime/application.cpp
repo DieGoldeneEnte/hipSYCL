@@ -39,8 +39,7 @@ namespace rt {
 
 namespace {
 
-class rt_manager
-{
+class rt_manager {
 public:
   void shutdown() {
     // TODO Thread safety...
@@ -53,7 +52,7 @@ public:
 
     // TODO: This is not really thread-safe.
     runtime *old_rt = get_runtime();
-    if (old_rt){
+    if (old_rt) {
       old_rt->dag().flush_sync();
       old_rt->dag().wait();
     }
@@ -67,55 +66,49 @@ public:
       delete old_rt;
   }
 
-  runtime *get_runtime() {
-    return _rt.load();
-  }
+  runtime *get_runtime() { return _rt.load(); }
 
-  static rt_manager& get() {
+  static rt_manager &get() {
     static rt_manager mgr;
     return mgr;
   }
 
 
 private:
-  rt_manager() {
-    _rt.store(new runtime{});
-  }
+  rt_manager() { _rt.store(new runtime{}); }
   // We cannot use a mutex since this can easily lead to a deadlock:
   // during destruction of the runtime, the destructor waits for
   // the async worker threads (processing scheduling) to finish.
   // The scheduler however also needs to access the runtime to do its work
   // -> deadlock
-  std::atomic<runtime*> _rt;
+  std::atomic<runtime *> _rt;
 };
 
-class global_settings
-{
+class global_settings {
 public:
-  static global_settings& get() {
+  static global_settings &get() {
     static global_settings g;
     return g;
   }
 
-  settings &get_settings() {
-    return _settings;
-  }
+  settings &get_settings() { return _settings; }
+
 private:
   global_settings() {}
   settings _settings;
 };
 
-}
+} // namespace
 
-runtime& application::get_runtime(){
+runtime &application::get_runtime() {
   return *rt_manager::get().get_runtime();
 }
 
-dag_manager &application::dag()
-{ return get_runtime().dag(); }
+dag_manager &application::dag() {
+  return get_runtime().dag();
+}
 
-backend &application::get_backend(hipsycl::rt::backend_id id)
-{
+backend &application::get_backend(hipsycl::rt::backend_id id) {
   return *(get_runtime().backends().get(id));
 }
 
@@ -123,14 +116,14 @@ backend_manager &application::backends() {
   return get_runtime().backends();
 }
 
-void application::reset() { rt_manager::get().reset(); }
+void application::reset() {
+  rt_manager::get().reset();
+}
 
 settings &application::get_settings() {
   return global_settings::get().get_settings();
 }
 
 
-
-}
-}
-
+} // namespace rt
+} // namespace hipsycl

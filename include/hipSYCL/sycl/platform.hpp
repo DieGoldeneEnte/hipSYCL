@@ -49,22 +49,20 @@ class platform {
 
 public:
   platform() : _platform{detail::get_host_device().get_backend(), 0} {}
-  
-  platform(rt::backend_id backend)
-      : _platform{backend, 0} {}
+
+  platform(rt::backend_id backend) : _platform{backend, 0} {}
 
   template<class DeviceSelector>
   explicit platform(const DeviceSelector &deviceSelector) {
-    auto dev = detail::select_device(deviceSelector);
+    auto dev        = detail::select_device(deviceSelector);
     this->_platform = rt::platform_id{dev._device_id};
   }
 
 
-  std::vector<device>
-  get_devices(info::device_type type = info::device_type::all) const {
+  std::vector<device> get_devices(info::device_type type = info::device_type::all) const {
     std::vector<device> result;
-    rt::backend *b = rt::application::backends().get(_platform.get_backend());
-    
+    rt::backend *       b = rt::application::backends().get(_platform.get_backend());
+
     int num_devices = b->get_hardware_manager()->get_num_devices();
     for (int dev = 0; dev < num_devices; ++dev) {
       bool is_cpu = b->get_hardware_manager()->get_device(dev)->is_cpu();
@@ -82,19 +80,17 @@ public:
       if (include_device)
         result.push_back(device{rt::device_id{b->get_backend_descriptor(), dev}});
     }
-  
+
     return result;
   }
 
 
-  template <info::platform param>
+  template<info::platform param>
   typename info::param_traits<info::platform, param>::return_type get_info() const;
 
 
   /// \todo Think of a better solution
-  bool has_extension(const string_class &extension) const {
-    return false;
-  }
+  bool has_extension(const string_class &extension) const { return false; }
 
 
   bool is_host() const {
@@ -107,8 +103,8 @@ public:
   /// specified aspect
   bool has(aspect asp) const {
     auto devs = get_devices();
-    for(const device& d : devs) {
-      if(!d.has(asp))
+    for (const device &d : devs) {
+      if (!d.has(asp))
         return false;
     }
     return true;
@@ -116,9 +112,8 @@ public:
 
   static std::vector<platform> get_platforms() {
     std::vector<platform> result;
-    rt::application::backends().for_each_backend([&](rt::backend *b) {
-      result.push_back(platform{b->get_unique_backend_id()});
-    });
+    rt::application::backends().for_each_backend(
+        [&](rt::backend *b) { result.push_back(platform{b->get_unique_backend_id()}); });
 
     return result;
   }
@@ -136,38 +131,36 @@ private:
 };
 
 
-HIPSYCL_SPECIALIZE_GET_INFO(device, platform)
-{ return this->get_platform(); }
+HIPSYCL_SPECIALIZE_GET_INFO(device, platform) {
+  return this->get_platform();
+}
 
-HIPSYCL_SPECIALIZE_GET_INFO(platform, profile)
-{ return "FULL_PROFILE"; }
+HIPSYCL_SPECIALIZE_GET_INFO(platform, profile) {
+  return "FULL_PROFILE";
+}
 
-HIPSYCL_SPECIALIZE_GET_INFO(platform, version)
-{
+HIPSYCL_SPECIALIZE_GET_INFO(platform, version) {
   return detail::version_string();
 }
 
-HIPSYCL_SPECIALIZE_GET_INFO(platform, name)
-{
+HIPSYCL_SPECIALIZE_GET_INFO(platform, name) {
   rt::backend_id b = _platform.get_backend();
   return rt::application::get_backend(b).get_name();
 }
 
-HIPSYCL_SPECIALIZE_GET_INFO(platform, vendor)
-{
+HIPSYCL_SPECIALIZE_GET_INFO(platform, vendor) {
   return "The hipSYCL project";
 }
 
-HIPSYCL_SPECIALIZE_GET_INFO(platform, extensions)
-{
+HIPSYCL_SPECIALIZE_GET_INFO(platform, extensions) {
   return vector_class<string_class>{};
 }
 
-inline platform device::get_platform() const  {
+inline platform device::get_platform() const {
   return platform{_device_id.get_backend()};
 }
 
-}// namespace sycl
-}// namespace hipsycl
+} // namespace sycl
+} // namespace hipsycl
 
 #endif

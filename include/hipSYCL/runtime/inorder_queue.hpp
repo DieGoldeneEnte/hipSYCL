@@ -40,35 +40,33 @@
 namespace hipsycl {
 namespace rt {
 
-class inorder_queue
-{
+class inorder_queue {
 public:
-
   /// Inserts an event into the stream
   virtual std::shared_ptr<dag_node_event> insert_event() = 0;
 
-  virtual result submit_memcpy(const memcpy_operation&, dag_node_ptr) = 0;
-  virtual result submit_kernel(const kernel_operation&, dag_node_ptr) = 0;
+  virtual result submit_memcpy(const memcpy_operation &, dag_node_ptr)     = 0;
+  virtual result submit_kernel(const kernel_operation &, dag_node_ptr)     = 0;
   virtual result submit_prefetch(const prefetch_operation &, dag_node_ptr) = 0;
-  virtual result submit_memset(const memset_operation&, dag_node_ptr) = 0;
-  
+  virtual result submit_memset(const memset_operation &, dag_node_ptr)     = 0;
+
   /// Causes the queue to wait until an event on another queue has occured.
   /// the other queue must be from the same backend
   virtual result submit_queue_wait_for(std::shared_ptr<dag_node_event> evt) = 0;
-  virtual result submit_external_wait_for(dag_node_ptr node) = 0;
+  virtual result submit_external_wait_for(dag_node_ptr node)                = 0;
 
   virtual device_id get_device() const = 0;
   /// Return native type if supported, nullptr otherwise
-  virtual void* get_native_type() const = 0;
+  virtual void *get_native_type() const = 0;
 
   /// Get a module invoker to launch kernels from module images,
   /// if the backend supports this. Returns nullptr if unsupported.
-  virtual module_invoker* get_module_invoker() = 0;
+  virtual module_invoker *get_module_invoker() = 0;
 
-  virtual ~inorder_queue(){}
+  virtual ~inorder_queue() {}
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

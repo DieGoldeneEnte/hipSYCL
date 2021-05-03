@@ -32,92 +32,90 @@ namespace hipsycl {
 namespace rt {
 
 kernel_operation::kernel_operation(
-    const std::string &kernel_name, 
+    const std::string &                                   kernel_name,
     std::vector<std::unique_ptr<backend_kernel_launcher>> kernels,
-    const requirements_list& reqs)
-    : _kernel_name{kernel_name}, _launcher{std::move(kernels)}
-{
-  for(auto req_node : reqs.get()){
-    operation* op = req_node->get_operation();
+    const requirements_list &                             reqs)
+    : _kernel_name{kernel_name}, _launcher{std::move(kernels)} {
+  for (auto req_node : reqs.get()) {
+    operation *op = req_node->get_operation();
     assert(op);
-    if(op->is_requirement()){
-      requirement* req = cast<requirement>(op);
-      if(req->is_memory_requirement()){
-        memory_requirement* mreq = cast<memory_requirement>(req);
+    if (op->is_requirement()) {
+      requirement *req = cast<requirement>(op);
+      if (req->is_memory_requirement()) {
+        memory_requirement *mreq = cast<memory_requirement>(req);
         _requirements.push_back(mreq);
       }
     }
   }
 }
 
-kernel_launcher& 
-kernel_operation::get_launcher()
-{ return _launcher; }
+kernel_launcher &kernel_operation::get_launcher() {
+  return _launcher;
+}
 
-const kernel_launcher& 
-kernel_operation::get_launcher() const
-{ return _launcher; }
+const kernel_launcher &kernel_operation::get_launcher() const {
+  return _launcher;
+}
 
-const std::vector<memory_requirement*>& 
-kernel_operation::get_memory_requirements() const
-{ return _requirements; }
+const std::vector<memory_requirement *> &
+    kernel_operation::get_memory_requirements() const {
+  return _requirements;
+}
 
 
+void requirements_list::add_requirement(std::unique_ptr<requirement> req) {
+  auto node = std::make_shared<dag_node>(execution_hints{}, std::vector<dag_node_ptr>{},
+                                         std::move(req));
 
-void requirements_list::add_requirement(std::unique_ptr<requirement> req)
-{
-  auto node = std::make_shared<dag_node>(
-    execution_hints{}, 
-    std::vector<dag_node_ptr>{},
-    std::move(req));
-  
   add_node_requirement(node);
 }
 
-void requirements_list::add_node_requirement(dag_node_ptr node)
-{
+void requirements_list::add_node_requirement(dag_node_ptr node) {
   // Don't store invalid requirements
-  if(node)
+  if (node)
     _reqs.push_back(node);
 }
 
-const std::vector<dag_node_ptr>& requirements_list::get() const
-{ return _reqs; }
+const std::vector<dag_node_ptr> &requirements_list::get() const {
+  return _reqs;
+}
 
-memory_location::memory_location(
-    device_id d, id<3> access_offset,
-    std::shared_ptr<buffer_data_region> data_region)
-    : _dev{d}, _offset{access_offset},
-      _allocation_shape{data_region->get_num_elements()},
+memory_location::memory_location(device_id d, id<3> access_offset,
+                                 std::shared_ptr<buffer_data_region> data_region)
+    : _dev{d}, _offset{access_offset}, _allocation_shape{data_region->get_num_elements()},
       _element_size{data_region->get_element_size()}, _has_data_region{true},
-      _data_region{data_region} 
-{}
+      _data_region{data_region} {}
 
 
-memory_location::memory_location(device_id d, void *base_ptr,
-                                 id<3> access_offset,
-                                 range<3> allocation_shape,
-                                 std::size_t element_size)
+memory_location::memory_location(device_id d, void *base_ptr, id<3> access_offset,
+                                 range<3> allocation_shape, std::size_t element_size)
     : _dev{d}, _offset{access_offset}, _allocation_shape{allocation_shape},
-      _element_size{element_size}, _has_data_region{false}, _raw_data{base_ptr}
-{}
+      _element_size{element_size}, _has_data_region{false}, _raw_data{base_ptr} {}
 
-device_id memory_location::get_device() const
-{ return _dev; }
+device_id memory_location::get_device() const {
+  return _dev;
+}
 
-id<3> memory_location::get_access_offset() const { return _offset; }
+id<3> memory_location::get_access_offset() const {
+  return _offset;
+}
 
-range<3> memory_location::get_allocation_shape() const
-{ return _allocation_shape; }
+range<3> memory_location::get_allocation_shape() const {
+  return _allocation_shape;
+}
 
-std::size_t memory_location::get_element_size() const { return _element_size; }
+std::size_t memory_location::get_element_size() const {
+  return _element_size;
+}
 
 
-bool memory_location::has_data_region() const
-{ return _has_data_region; }
+bool memory_location::has_data_region() const {
+  return _has_data_region;
+}
 
-bool memory_location::has_raw_pointer() const
-{ return !_has_data_region; }
+bool memory_location::has_raw_pointer() const {
+  return !_has_data_region;
+}
 
 void *memory_location::get_base_ptr() const {
   if (_has_data_region) {
@@ -143,21 +141,17 @@ void *memory_location::get_access_ptr() const {
 
   return static_cast<void *>(
       static_cast<char *>(base_ptr) +
-      _element_size *
-          (_offset[2] + _offset[1] * _allocation_shape[2] +
-           _offset[0] * _allocation_shape[1] * _allocation_shape[2]));
-  
-  
+      _element_size * (_offset[2] + _offset[1] * _allocation_shape[2] +
+                       _offset[0] * _allocation_shape[1] * _allocation_shape[2]));
 }
 
 memcpy_operation::memcpy_operation(const memory_location &source,
                                    const memory_location &dest,
-                                   range<3> num_source_elements)
+                                   range<3>               num_source_elements)
     : _source{source}, _dest{dest}, _num_elements{num_source_elements} {}
 
 
-std::size_t memcpy_operation::get_num_transferred_bytes() const
-{
+std::size_t memcpy_operation::get_num_transferred_bytes() const {
   return _source.get_element_size() * _num_elements.size();
 }
 
@@ -165,11 +159,17 @@ range<3> memcpy_operation::get_num_transferred_elements() const {
   return this->_num_elements;
 }
 
-const memory_location& memcpy_operation::source() const { return _source; }
-
-const memory_location& memcpy_operation::dest() const { return _dest; }
-
-bool memcpy_operation::is_data_transfer() const { return true; }
-
+const memory_location &memcpy_operation::source() const {
+  return _source;
 }
+
+const memory_location &memcpy_operation::dest() const {
+  return _dest;
 }
+
+bool memcpy_operation::is_data_transfer() const {
+  return true;
+}
+
+} // namespace rt
+} // namespace hipsycl

@@ -34,52 +34,61 @@
 namespace hipsycl {
 namespace sycl {
 
-template <typename T> struct plus {
+template<typename T>
+struct plus {
   HIPSYCL_KERNEL_TARGET
   T operator()(const T &x, const T &y) const { return x + y; }
 };
 
-template <typename T> struct multiplies {
+template<typename T>
+struct multiplies {
   HIPSYCL_KERNEL_TARGET
   T operator()(const T &x, const T &y) const { return x * y; }
 };
 
-template <typename T> struct bit_and {
+template<typename T>
+struct bit_and {
   HIPSYCL_KERNEL_TARGET
   T operator()(const T &x, const T &y) const { return x & y; }
 };
 
-template <typename T> struct bit_or {
+template<typename T>
+struct bit_or {
   HIPSYCL_KERNEL_TARGET
   T operator()(const T &x, const T &y) const { return x | y; }
 };
 
-template <typename T> struct bit_xor {
+template<typename T>
+struct bit_xor {
   HIPSYCL_KERNEL_TARGET
   T operator()(const T &x, const T &y) const { return x ^ y; }
 };
 
-template <typename T> struct logical_and {
+template<typename T>
+struct logical_and {
   HIPSYCL_KERNEL_TARGET
   T operator()(const T &x, const T &y) const { return static_cast<T>(x && y); }
 };
 
-template <typename T> struct logical_or {
+template<typename T>
+struct logical_or {
   HIPSYCL_KERNEL_TARGET
   T operator()(const T &x, const T &y) const { return static_cast<T>(x || y); }
 };
 
-template <typename T> struct minimum {
+template<typename T>
+struct minimum {
   HIPSYCL_KERNEL_TARGET
   T operator()(const T &x, const T &y) const { return (x < y) ? x : y; }
 };
 
-template <typename T> struct maximum {
+template<typename T>
+struct maximum {
   HIPSYCL_KERNEL_TARGET
   T operator()(const T &x, const T &y) const { return (x > y) ? x : y; }
 };
 
 } // namespace sycl
-}
+} // namespace hipsycl
 
 #endif

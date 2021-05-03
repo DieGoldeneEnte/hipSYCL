@@ -37,25 +37,24 @@ namespace hipsycl {
 namespace rt {
 
 
-class ze_node_event : public dag_node_event
-{
+class ze_node_event : public dag_node_event {
 public:
   /// Takes ownership of supplied ze_event_handle_t
-  ze_node_event(ze_event_handle_t evt, 
-    std::shared_ptr<ze_event_pool_handle_t> pool);
+  ze_node_event(ze_event_handle_t evt, std::shared_ptr<ze_event_pool_handle_t> pool);
   ~ze_node_event();
 
   virtual bool is_complete() const override;
   virtual void wait() override;
 
   ze_event_handle_t get_event_handle() const;
+
 private:
-  ze_event_handle_t _evt;
+  ze_event_handle_t                       _evt;
   std::shared_ptr<ze_event_pool_handle_t> _pool;
 };
 
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

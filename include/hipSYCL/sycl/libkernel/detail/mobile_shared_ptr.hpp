@@ -47,37 +47,32 @@ namespace detail {
 /// are equal, such that it can be used as a kernel argument without
 /// size mismatches.
 template<class T>
-class mobile_shared_ptr
-{
+class mobile_shared_ptr {
 public:
   mobile_shared_ptr() = default;
 
   // Not available on device
 #ifndef SYCL_DEVICE_ONLY
-  mobile_shared_ptr(shared_ptr_class<T> ptr)
-  : _ptr{ptr}
-  {}
+  mobile_shared_ptr(shared_ptr_class<T> ptr) : _ptr{ptr} {}
 #endif
 
   HIPSYCL_UNIVERSAL_TARGET
-  const T* get() const
-  { 
+  const T *get() const {
 #ifdef SYCL_DEVICE_ONLY
     // Use sizeof(_buff) to make sure it doesn't get optimized away
-    return reinterpret_cast<T*>(sizeof(_buff));
+    return reinterpret_cast<T *>(sizeof(_buff));
 #else
-    return _ptr.get(); 
+    return _ptr.get();
 #endif
   }
 
   HIPSYCL_UNIVERSAL_TARGET
-  T* get()
-  { 
+  T *get() {
 #ifdef SYCL_DEVICE_ONLY
     // Use sizeof(_buff) to make sure it doesn't get optimized away
-    return reinterpret_cast<T*>(sizeof(_buff));
+    return reinterpret_cast<T *>(sizeof(_buff));
 #else
-    return _ptr.get(); 
+    return _ptr.get();
 #endif
   }
 
@@ -101,8 +96,8 @@ private:
 #endif
 };
 
-}
-}
-}
+} // namespace detail
+} // namespace sycl
+} // namespace hipsycl
 
 #endif

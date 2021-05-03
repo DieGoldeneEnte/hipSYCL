@@ -47,9 +47,7 @@ namespace rt {
 
 cuda_backend::cuda_backend()
     : _hw_manager{get_hardware_platform()},
-      _executor{*this, [](device_id dev) {
-                  return std::make_unique<cuda_queue>(dev);
-                }} {
+      _executor{*this, [](device_id dev) { return std::make_unique<cuda_queue>(dev); }} {
 
   backend_descriptor backend_desc{get_hardware_platform(), get_api_platform()};
 
@@ -95,7 +93,8 @@ backend_allocator *cuda_backend::get_allocator(device_id dev) const {
     return nullptr;
   }
   if (static_cast<std::size_t>(dev.get_id()) >= _allocators.size()) {
-    register_error(__hipsycl_here(), error_info{"cuda_backend: Device id is out of bounds"});
+    register_error(__hipsycl_here(),
+                   error_info{"cuda_backend: Device id is out of bounds"});
   }
   return &(_allocators[dev.get_id()]);
 }
@@ -103,6 +102,6 @@ backend_allocator *cuda_backend::get_allocator(device_id dev) const {
 std::string cuda_backend::get_name() const {
   return "CUDA";
 }
-  
-}
-}
+
+} // namespace rt
+} // namespace hipsycl

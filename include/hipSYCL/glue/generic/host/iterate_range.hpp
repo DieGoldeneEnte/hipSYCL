@@ -37,7 +37,7 @@ namespace hipsycl {
 namespace glue {
 namespace host {
 
-template <int Dim, class Function>
+template<int Dim, class Function>
 void iterate_range(sycl::range<Dim> r, Function f) noexcept {
 
   if constexpr (Dim == 1) {
@@ -61,9 +61,8 @@ void iterate_range(sycl::range<Dim> r, Function f) noexcept {
   }
 }
 
-template <int Dim, class Function>
-void iterate_range(sycl::id<Dim> offset, sycl::range<Dim> r,
-                   Function f) noexcept {
+template<int Dim, class Function>
+void iterate_range(sycl::id<Dim> offset, sycl::range<Dim> r, Function f) noexcept {
 
   const std::size_t min_i = offset.get(0);
   const std::size_t max_i = offset.get(0) + r.get(0);
@@ -97,7 +96,7 @@ void iterate_range(sycl::id<Dim> offset, sycl::range<Dim> r,
   }
 }
 
-template <int Dim, class Function>
+template<int Dim, class Function>
 void iterate_partial_range(sycl::range<Dim> whole_range, sycl::id<Dim> begin,
                            std::size_t num_elements, Function f) noexcept {
 
@@ -114,7 +113,7 @@ void iterate_partial_range(sycl::range<Dim> whole_range, sycl::id<Dim> begin,
       for (; j < whole_range.get(1); ++j) {
         if (n >= num_elements)
           return;
-        
+
         f(sycl::id<Dim>{i, j});
         ++n;
       }
@@ -131,7 +130,7 @@ void iterate_partial_range(sycl::range<Dim> whole_range, sycl::id<Dim> begin,
         for (; k < whole_range.get(2); ++k) {
           if (n >= num_elements)
             return;
-          
+
           f(sycl::id<Dim>{i, j, k});
           ++n;
         }
@@ -141,8 +140,8 @@ void iterate_partial_range(sycl::range<Dim> whole_range, sycl::id<Dim> begin,
     }
   }
 }
-}
-}
+} // namespace host
+} // namespace glue
 } // namespace hipsycl
 
 #endif

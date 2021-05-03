@@ -45,18 +45,17 @@ cuda_hardware_manager::cuda_hardware_manager(hardware_platform hw_platform)
   if (err != cudaSuccess) {
     num_devices = 0;
 
-    if(err != cudaErrorNoDevice) {
+    if (err != cudaErrorNoDevice) {
       print_warning(
           __hipsycl_here(),
           error_info{"cuda_hardware_manager: Could not obtain number of devices",
-                    error_code{"CUDA", err}});
+                     error_code{"CUDA", err}});
     }
   }
-  
+
   for (int dev = 0; dev < num_devices; ++dev) {
     _devices.push_back(std::move(cuda_hardware_context{dev}));
   }
-
 }
 
 
@@ -65,7 +64,7 @@ std::size_t cuda_hardware_manager::get_num_devices() const {
 }
 
 hardware_context *cuda_hardware_manager::get_device(std::size_t index) {
-  if (index >= _devices.size()){
+  if (index >= _devices.size()) {
     register_error(__hipsycl_here(),
                    error_info{"cuda_hardware_manager: Attempt to access invalid "
                               "device detected."});
@@ -76,7 +75,7 @@ hardware_context *cuda_hardware_manager::get_device(std::size_t index) {
 }
 
 device_id cuda_hardware_manager::get_device_id(std::size_t index) const {
-  if (index >= _devices.size()){
+  if (index >= _devices.size()) {
     register_error(__hipsycl_here(),
                    error_info{"cuda_hardware_manager: Attempt to access invalid "
                               "device detected."});
@@ -89,13 +88,12 @@ device_id cuda_hardware_manager::get_device_id(std::size_t index) const {
 
 cuda_hardware_context::cuda_hardware_context(int dev) : _dev{dev} {
   _properties = std::make_unique<cudaDeviceProp>();
-  auto err = cudaGetDeviceProperties(_properties.get(), dev);
+  auto err    = cudaGetDeviceProperties(_properties.get(), dev);
 
   if (err != cudaSuccess) {
-    register_error(
-        __hipsycl_here(),
-        error_info{"cuda_hardware_manager: Could not query device properties ",
-                   error_code{"CUDA", err}});
+    register_error(__hipsycl_here(),
+                   error_info{"cuda_hardware_manager: Could not query device properties ",
+                              error_code{"CUDA", err}});
   }
 }
 
@@ -125,8 +123,7 @@ std::string cuda_hardware_context::get_vendor_name() const {
 }
 
 std::string cuda_hardware_context::get_device_arch() const {
-  return "sm_" + std::to_string(_properties->major) +
-         std::to_string(_properties->minor);
+  return "sm_" + std::to_string(_properties->major) + std::to_string(_properties->minor);
 }
 
 bool cuda_hardware_context::has(device_support_aspect aspect) const {
@@ -183,8 +180,7 @@ bool cuda_hardware_context::has(device_support_aspect aspect) const {
   std::terminate();
 }
 
-std::size_t
-cuda_hardware_context::get_property(device_uint_property prop) const {
+std::size_t cuda_hardware_context::get_property(device_uint_property prop) const {
   switch (prop) {
   case device_uint_property::max_compute_units:
     return _properties->multiProcessorCount;
@@ -324,11 +320,10 @@ cuda_hardware_context::get_property(device_uint_property prop) const {
 }
 
 std::vector<std::size_t>
-cuda_hardware_context::get_property(device_uint_list_property prop) const {
+    cuda_hardware_context::get_property(device_uint_list_property prop) const {
   switch (prop) {
   case device_uint_list_property::sub_group_sizes:
-    return std::vector<std::size_t>{
-        static_cast<std::size_t>(_properties->warpSize)};
+    return std::vector<std::size_t>{static_cast<std::size_t>(_properties->warpSize)};
     break;
   }
   assert(false && "Invalid device property");
@@ -340,12 +335,11 @@ std::string cuda_hardware_context::get_driver_version() const {
 
   auto err = cudaDriverGetVersion(&driver_version);
   if (err != cudaSuccess) {
-    register_error(
-        __hipsycl_here(),
-        error_info{"cuda_hardware_manager: Querying driver version failed",
-                   error_code{"CUDA", err}});
+    register_error(__hipsycl_here(),
+                   error_info{"cuda_hardware_manager: Querying driver version failed",
+                              error_code{"CUDA", err}});
   }
-  
+
   return std::to_string(driver_version);
 }
 
@@ -353,8 +347,8 @@ std::string cuda_hardware_context::get_profile() const {
   return "FULL_PROFILE";
 }
 
-cuda_hardware_context::~cuda_hardware_context(){}
+cuda_hardware_context::~cuda_hardware_context() {}
 
 
-}
-}
+} // namespace rt
+} // namespace hipsycl

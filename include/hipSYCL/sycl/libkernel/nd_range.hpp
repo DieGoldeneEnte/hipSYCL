@@ -36,52 +36,41 @@ namespace hipsycl {
 namespace sycl {
 
 template<int dimensions = 1>
-struct nd_range
-{
+struct nd_range {
 
   HIPSYCL_UNIVERSAL_TARGET
-  nd_range(range<dimensions> globalSize,
-           range<dimensions> localSize,
+  nd_range(range<dimensions> globalSize, range<dimensions> localSize,
            id<dimensions> offset = id<dimensions>())
-    : _global_range{globalSize},
-      _local_range{localSize},
-      _num_groups{globalSize / localSize},
-      _offset{offset}
-  {}
+      : _global_range{globalSize}, _local_range{localSize},
+        _num_groups{globalSize / localSize}, _offset{offset} {}
 
   HIPSYCL_UNIVERSAL_TARGET
-  range<dimensions> get_global() const
-  { return _global_range; }
+  range<dimensions> get_global() const { return _global_range; }
 
   HIPSYCL_UNIVERSAL_TARGET
-  range<dimensions> get_global_range() const
-  { return get_global(); }
+  range<dimensions> get_global_range() const { return get_global(); }
 
   HIPSYCL_UNIVERSAL_TARGET
-  range<dimensions> get_local() const
-  { return _local_range; }
+  range<dimensions> get_local() const { return _local_range; }
 
   HIPSYCL_UNIVERSAL_TARGET
-  range<dimensions> get_local_range() const
-  { return get_local(); }
+  range<dimensions> get_local_range() const { return get_local(); }
 
   HIPSYCL_UNIVERSAL_TARGET
-  range<dimensions> get_group() const
-  { return _num_groups; }
+  range<dimensions> get_group() const { return _num_groups; }
 
   HIPSYCL_UNIVERSAL_TARGET
-  id<dimensions> get_offset() const
-  { return _offset; }
-  
-  friend bool operator==(const nd_range<dimensions>& lhs, const nd_range<dimensions>& rhs)
-  {
+  id<dimensions> get_offset() const { return _offset; }
+
+  friend bool operator==(const nd_range<dimensions> &lhs,
+                         const nd_range<dimensions> &rhs) {
     return lhs._global_range == rhs._global_range &&
-           lhs._local_range == rhs._local_range &&
-           lhs._num_groups == rhs._num_groups &&
+           lhs._local_range == rhs._local_range && lhs._num_groups == rhs._num_groups &&
            lhs._offset == rhs._offset;
   }
 
-  friend bool operator!=(const nd_range<dimensions>& lhs, const nd_range<dimensions>& rhs){
+  friend bool operator!=(const nd_range<dimensions> &lhs,
+                         const nd_range<dimensions> &rhs) {
     return !(lhs == rhs);
   }
 
@@ -89,11 +78,11 @@ private:
   const range<dimensions> _global_range;
   const range<dimensions> _local_range;
   const range<dimensions> _num_groups;
-  const id<dimensions> _offset;
+  const id<dimensions>    _offset;
 };
 
 
-}
-}
+} // namespace sycl
+} // namespace hipsycl
 
 #endif

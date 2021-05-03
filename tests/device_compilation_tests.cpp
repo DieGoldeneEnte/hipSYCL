@@ -46,32 +46,28 @@ int add_five(int v) {
   return v + 5;
 }
 
-void call_lambda(int& v) {
-  ([&](){ v = add_five(v); })();
+void call_lambda(int &v) {
+  ([&]() { v = add_five(v); })();
 }
 
 struct MyParent {
   MyParent(std::initializer_list<int> init) {
-    for(auto&& e : init) {
+    for (auto &&e : init) {
       parent_value += e;
     }
     call_lambda(parent_value);
   }
 
-  virtual ~MyParent() {
-    *increment_in_dtor += parent_value + 7;
-  };
+  virtual ~MyParent() { *increment_in_dtor += parent_value + 7; };
 
-  int parent_value = 0;
-  int* increment_in_dtor;
+  int  parent_value = 0;
+  int *increment_in_dtor;
 };
 
 struct Conversion {
   Conversion(float value) : value(value) {}
 
-  operator int() {
-    return static_cast<int>(value);
-  }
+  operator int() { return static_cast<int>(value); }
 
   float value;
 };
@@ -81,19 +77,17 @@ int convert(Conversion conv) {
 }
 
 struct MyStruct : MyParent {
-  MyStruct(int& value) : MyParent::MyParent{value, 4, 5, 7}, value(value) {
+  MyStruct(int &value) : MyParent::MyParent{value, 4, 5, 7}, value(value) {
     increment_in_dtor = &value;
   }
 
-  ~MyStruct() {
-    value = convert(static_cast<float>(value));
-  }
+  ~MyStruct() { value = convert(static_cast<float>(value)); }
 
-  int& value;
+  int &value;
 };
 
 template<typename T, typename U>
-void template_fn(U& u) {
+void template_fn(U &u) {
   T t(u);
 }
 
@@ -108,14 +102,12 @@ float some_fn(int value) {
 // by the user-provided kernel functor, and mark them as __device__ functions
 // accordingly.
 BOOST_AUTO_TEST_CASE(complex_device_call_graph) {
-  cl::sycl::queue queue;
+  cl::sycl::queue            queue;
   cl::sycl::buffer<float, 1> buf(1);
 
-  queue.submit([&](cl::sycl::handler& cgh) {
+  queue.submit([&](cl::sycl::handler &cgh) {
     auto acc = buf.get_access<cl::sycl::access::mode::discard_write>(cgh);
-    cgh.single_task<class some_kernel>([=]() {
-        acc[0] = some_fn(2);
-      });
+    cgh.single_task<class some_kernel>([=]() { acc[0] = some_fn(2); });
   });
 
   auto acc = buf.get_access<cl::sycl::access::mode::read>();
@@ -123,74 +115,67 @@ BOOST_AUTO_TEST_CASE(complex_device_call_graph) {
 }
 
 
-template<int T, int* I, typename U>
+template<int T, int *I, typename U>
 class complex_kn;
 
 template<typename T>
 class templated_kn;
 
-enum class my_enum { HELLO = 42, WORLD };
+enum class my_enum
+{
+  HELLO = 42,
+  WORLD
+};
 
 template<my_enum E>
 class enum_kn;
 
-template<template <typename, int, typename> class T>
+template<template<typename, int, typename> class T>
 class templated_template_kn;
 
 BOOST_AUTO_TEST_CASE(kernel_name_mangling) {
   cl::sycl::queue queue;
 
   // Qualified / modified types
-  queue.submit([&](cl::sycl::handler& cgh) {
-    cgh.single_task
-        <templated_kn<const unsigned int>>
-        ([](){});
+  queue.submit([&](cl::sycl::handler &cgh) {
+    cgh.single_task<templated_kn<const unsigned int>>([]() {});
   });
 
-  queue.submit([&](cl::sycl::handler& cgh) {
-    cgh.single_task
-        <templated_kn<complex_kn<32, nullptr, enum_kn<my_enum::HELLO>>>>
-        ([](){});
+  queue.submit([&](cl::sycl::handler &cgh) {
+    cgh.single_task<templated_kn<complex_kn<32, nullptr, enum_kn<my_enum::HELLO>>>>(
+        []() {});
   });
 
-  queue.submit([&](cl::sycl::handler& cgh) {
-    cgh.single_task
-        <templated_template_kn<cl::sycl::buffer>>
-        ([](){});
+  queue.submit([&](cl::sycl::handler &cgh) {
+    cgh.single_task<templated_template_kn<cl::sycl::buffer>>([]() {});
   });
 
   // No collision happens between the following two names
-  queue.submit([&](cl::sycl::handler& cgh) {
-    cgh.single_task
-        <templated_kn<class collision>>
-        ([](){});
+  queue.submit([&](cl::sycl::handler &cgh) {
+    cgh.single_task<templated_kn<class collision>>([]() {});
   });
 
-  queue.submit([&](cl::sycl::handler& cgh) {
-    cgh.single_task
-        <class templated_kn_collision>
-        ([](){});
+  queue.submit([&](cl::sycl::handler &cgh) {
+    cgh.single_task<class templated_kn_collision>([]() {});
   });
 }
 
 struct KernelFunctor {
   using Accessor = cl::sycl::accessor<size_t, 1, cl::sycl::access::mode::discard_write>;
-  KernelFunctor(Accessor acc) : acc(acc) {};
+  KernelFunctor(Accessor acc) : acc(acc){};
 
-  void operator() (cl::sycl::item<1> item) const {
-    acc[0] = 300 + item.get_linear_id();
-  }
+  void operator()(cl::sycl::item<1> item) const { acc[0] = 300 + item.get_linear_id(); }
 
   Accessor acc;
 };
 
 // It's allowed to omit the name if the functor is globally visible
 BOOST_AUTO_TEST_CASE(omit_kernel_name) {
-  cl::sycl::queue queue;
+  cl::sycl::queue             queue;
   cl::sycl::buffer<size_t, 1> buf(1);
 
   {
-    queue.submit([&](cl::sycl::handler& cgh) {
+    queue.submit([&](cl::sycl::handler &cgh) {
       auto acc = buf.get_access<cl::sycl::access::mode::discard_write>(cgh);
       cgh.parallel_for(cl::sycl::range<1>(1), KernelFunctor(acc));
     });
@@ -199,7 +184,7 @@ BOOST_AUTO_TEST_CASE(omit_kernel_name) {
   }
 
   {
-    queue.submit([&](cl::sycl::handler& cgh) {
+    queue.submit([&](cl::sycl::handler &cgh) {
       auto acc = buf.get_access<cl::sycl::access::mode::discard_write>(cgh);
       cgh.parallel_for(cl::sycl::range<1>(1), cl::sycl::id<1>(1), KernelFunctor(acc));
     });
@@ -214,27 +199,28 @@ BOOST_AUTO_TEST_CASE(hierarchical_invoke_shared_memory) {
   // The basic case, as outlined in the SYCL spec.
   {
     cl::sycl::buffer<size_t, 1> buf(4);
-    queue.submit([&](cl::sycl::handler& cgh) {
+    queue.submit([&](cl::sycl::handler &cgh) {
       auto acc = buf.get_access<cl::sycl::access::mode::discard_write>(cgh);
       cgh.parallel_for_work_group<class shmem_one>(
-        cl::sycl::range<1>(2), cl::sycl::range<1>(2), [=](cl::sycl::group<1> group) {
-          { // Do this in a block to make sure the Clang plugin handles this correctly.
-            size_t shmem[2]; // Should be shared
-            group.parallel_for_work_item([&](cl::sycl::h_item<1> h_item) {
-              shmem[h_item.get_local().get_linear_id()] = h_item.get_global().get_linear_id();
-            });
-            group.parallel_for_work_item([&](cl::sycl::h_item<1> h_item) {
-              if(h_item.get_local().get_linear_id() == 0) {
-                auto offset = h_item.get_global().get_linear_id();
-                acc[offset + 0] = shmem[0];
-                acc[offset + 1] = shmem[1];
-              }
-            });
-          }
-        });
+          cl::sycl::range<1>(2), cl::sycl::range<1>(2), [=](cl::sycl::group<1> group) {
+            { // Do this in a block to make sure the Clang plugin handles this correctly.
+              size_t shmem[2]; // Should be shared
+              group.parallel_for_work_item([&](cl::sycl::h_item<1> h_item) {
+                shmem[h_item.get_local().get_linear_id()] =
+                    h_item.get_global().get_linear_id();
+              });
+              group.parallel_for_work_item([&](cl::sycl::h_item<1> h_item) {
+                if (h_item.get_local().get_linear_id() == 0) {
+                  auto offset     = h_item.get_global().get_linear_id();
+                  acc[offset + 0] = shmem[0];
+                  acc[offset + 1] = shmem[1];
+                }
+              });
+            }
+          });
     });
     auto acc = buf.get_access<cl::sycl::access::mode::read>();
-    for(size_t i = 0; i < 4; ++i) {
+    for (size_t i = 0; i < 4; ++i) {
       BOOST_REQUIRE(acc[i] == i);
     }
   }
@@ -243,31 +229,32 @@ BOOST_AUTO_TEST_CASE(hierarchical_invoke_shared_memory) {
   // is moved into a separate function. We expect it to still
   // behave as before.
   {
-    auto operate_on_shmem = [](cl::sycl::group<1> group,
-      cl::sycl::accessor<size_t, 1, cl::sycl::access::mode::discard_write> acc) {
-      size_t shmem[2]; // Should be shared
-      group.parallel_for_work_item([&](cl::sycl::h_item<1> h_item) {
-        shmem[h_item.get_local().get_linear_id()] = h_item.get_global().get_linear_id();
-      });
-      group.parallel_for_work_item([&](cl::sycl::h_item<1> h_item) {
-        if(h_item.get_local().get_linear_id() == 0) {
-          auto offset = h_item.get_global().get_linear_id();
-          acc[offset + 0] = shmem[0];
-          acc[offset + 1] = shmem[1];
-        }
-      });
-    };
+    auto operate_on_shmem =
+        [](cl::sycl::group<1>                                                   group,
+           cl::sycl::accessor<size_t, 1, cl::sycl::access::mode::discard_write> acc) {
+          size_t shmem[2]; // Should be shared
+          group.parallel_for_work_item([&](cl::sycl::h_item<1> h_item) {
+            shmem[h_item.get_local().get_linear_id()] =
+                h_item.get_global().get_linear_id();
+          });
+          group.parallel_for_work_item([&](cl::sycl::h_item<1> h_item) {
+            if (h_item.get_local().get_linear_id() == 0) {
+              auto offset     = h_item.get_global().get_linear_id();
+              acc[offset + 0] = shmem[0];
+              acc[offset + 1] = shmem[1];
+            }
+          });
+        };
 
     cl::sycl::buffer<size_t, 1> buf(4);
-    queue.submit([&](cl::sycl::handler& cgh) {
+    queue.submit([&](cl::sycl::handler &cgh) {
       auto acc = buf.get_access<cl::sycl::access::mode::discard_write>(cgh);
       cgh.parallel_for_work_group<class shmem_two>(
-        cl::sycl::range<1>(2), cl::sycl::range<1>(2), [=](cl::sycl::group<1> group) {
-          operate_on_shmem(group, acc);
-        });
+          cl::sycl::range<1>(2), cl::sycl::range<1>(2),
+          [=](cl::sycl::group<1> group) { operate_on_shmem(group, acc); });
     });
     auto acc = buf.get_access<cl::sycl::access::mode::read>();
-    for(size_t i = 0; i < 4; ++i) {
+    for (size_t i = 0; i < 4; ++i) {
       BOOST_REQUIRE(acc[i] == i);
     }
   }
@@ -289,18 +276,19 @@ BOOST_AUTO_TEST_CASE(forward_declared_function) {
   // and emit both forward_declared1() and forward_declared2()
   // to device code, even though the call expression below refers
   // to the forward declarations above.
-  q.submit([&](cl::sycl::handler& cgh){
-    cgh.single_task<forward_declared_test_kernel<int>>([=](){
-      forward_declared1<int>();
-    });  
+  q.submit([&](cl::sycl::handler &cgh) {
+    cgh.single_task<forward_declared_test_kernel<int>>(
+        [=]() { forward_declared1<int>(); });
   });
 
   q.wait_and_throw();
 }
 
 
-template <class T>
-void forward_declared1(){forward_declared2();}
+template<class T>
+void forward_declared1() {
+  forward_declared2();
+}
 
 void forward_declared2() {}
 
@@ -308,60 +296,60 @@ void forward_declared2() {}
 BOOST_AUTO_TEST_CASE(optional_lambda_naming) {
   cl::sycl::queue q;
 
-  auto lambda =
-      [&]() {
-        q.submit([&](cl::sycl::handler &cgh) {
-          cgh.single_task([=]() {
+  auto lambda = [&]() {
+    q.submit([&](cl::sycl::handler &cgh) {
+      cgh.single_task([=]() {
 
-          });
-        });
+      });
+    });
 
-        q.submit([&](cl::sycl::handler &cgh) {
-          cgh.single_task([=]() {
+    q.submit([&](cl::sycl::handler &cgh) {
+      cgh.single_task([=]() {
 
-          });
-        });
+      });
+    });
 
-        q.submit([&](cl::sycl::handler &cgh) {
-          cgh.parallel_for(cl::sycl::range<1>{1024}, [=](cl::sycl::id<1> idx) {
+    q.submit([&](cl::sycl::handler &cgh) {
+      cgh.parallel_for(cl::sycl::range<1>{1024}, [=](cl::sycl::id<1> idx) {
 
-          });
-        });
+      });
+    });
 
-        q.submit([&](cl::sycl::handler &cgh) {
-          cgh.parallel_for(cl::sycl::range<1>{1024}, [=](cl::sycl::id<1> idx) {
+    q.submit([&](cl::sycl::handler &cgh) {
+      cgh.parallel_for(cl::sycl::range<1>{1024}, [=](cl::sycl::id<1> idx) {
 
-          });
-        });
-      };
+      });
+    });
+  };
   lambda();
-  
+
   q.wait_and_throw();
 }
 #endif
 
-template <class ...>
+template<class...>
 struct VariadicKernelTP {};
 
-template <auto ...>
+template<auto...>
 struct VariadicKernelNTTP {};
 
 BOOST_AUTO_TEST_CASE(variadic_kernel_name) {
-    cl::sycl::queue queue;
-    cl::sycl::buffer<size_t, 1> buf(1);
-    {
-      queue.submit([&](cl::sycl::handler& cgh) {
-          auto acc = buf.get_access<cl::sycl::access::mode::discard_write>(cgh);
-          cgh.parallel_for<VariadicKernelTP<int, bool, char>>(cl::sycl::range<1>(1), [=](cl::sycl::item<1>) {});
-      });
-    }
-    {
-      queue.submit([&](cl::sycl::handler& cgh) {
-          auto acc = buf.get_access<cl::sycl::access::mode::discard_write>(cgh);
-          cgh.parallel_for<VariadicKernelNTTP<1, true, 'a'>>(cl::sycl::range<1>(1), [=](cl::sycl::item<1>) {});
-      });
-    }
+  cl::sycl::queue             queue;
+  cl::sycl::buffer<size_t, 1> buf(1);
+  {
+    queue.submit([&](cl::sycl::handler &cgh) {
+      auto acc = buf.get_access<cl::sycl::access::mode::discard_write>(cgh);
+      cgh.parallel_for<VariadicKernelTP<int, bool, char>>(cl::sycl::range<1>(1),
+                                                          [=](cl::sycl::item<1>) {});
+    });
+  }
+  {
+    queue.submit([&](cl::sycl::handler &cgh) {
+      auto acc = buf.get_access<cl::sycl::access::mode::discard_write>(cgh);
+      cgh.parallel_for<VariadicKernelNTTP<1, true, 'a'>>(cl::sycl::range<1>(1),
+                                                         [=](cl::sycl::item<1>) {});
+    });
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END() // NOTE: Make sure not to add anything below this line
-

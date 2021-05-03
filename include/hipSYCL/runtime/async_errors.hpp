@@ -38,16 +38,13 @@
 namespace hipsycl {
 namespace rt {
 
-class async_error_list
-{
+class async_error_list {
 public:
-
-  void add(const result& res)
-  {
+  void add(const result &res) {
     std::lock_guard<std::mutex> lock{_lock};
 
     print_result(res);
-    
+
     _errors.push_back(res);
   }
 
@@ -60,7 +57,7 @@ public:
   template<class F>
   void for_each_error(F handler) {
     std::lock_guard<std::mutex> lock{_lock};
-    for(const auto& err : _errors)
+    for (const auto &err : _errors)
       handler(err);
   }
 
@@ -68,7 +65,7 @@ public:
   template<class F>
   void pop_each_error(F handler) {
     std::lock_guard<std::mutex> lock{_lock};
-    for(const auto& err : _errors)
+    for (const auto &err : _errors)
       handler(err);
     _errors.clear();
   }
@@ -77,12 +74,13 @@ public:
     std::lock_guard<std::mutex> lock{_lock};
     return _errors.size();
   }
+
 private:
-  mutable std::mutex _lock;
+  mutable std::mutex  _lock;
   std::vector<result> _errors;
 };
 
-}  
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

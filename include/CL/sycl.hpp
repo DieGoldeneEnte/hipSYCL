@@ -36,7 +36,6 @@ namespace sycl {
 using namespace hipsycl::sycl;
 
 }
-}
+} // namespace cl
 
 #endif
-

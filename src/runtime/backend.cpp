@@ -37,18 +37,15 @@
 namespace hipsycl {
 namespace rt {
 
-backend_manager::backend_manager()
-: _hw_model(std::make_unique<hw_model>(this))
-{
+backend_manager::backend_manager() : _hw_model(std::make_unique<hw_model>(this)) {
 
   _loader.query_backends();
 
-  for (std::size_t backend_index = 0;
-       backend_index < _loader.get_num_backends(); ++backend_index) {
+  for (std::size_t backend_index = 0; backend_index < _loader.get_num_backends();
+       ++backend_index) {
 
     HIPSYCL_DEBUG_INFO << "Registering backend: '"
-                       << _loader.get_backend_name(backend_index) << "'..."
-                       << std::endl;
+                       << _loader.get_backend_name(backend_index) << "'..." << std::endl;
     backend *b = _loader.create(backend_index);
     if (b) {
       _backends.emplace_back(std::unique_ptr<backend>(b));
@@ -56,16 +53,16 @@ backend_manager::backend_manager()
       HIPSYCL_DEBUG_ERROR << "backend_manager: Backend creation failed" << std::endl;
     }
   }
-  
+
   this->for_each_backend([](backend *b) {
     HIPSYCL_DEBUG_INFO << "Discovered devices from backend '" << b->get_name()
                        << "': " << std::endl;
-    backend_hardware_manager* hw_manager = b->get_hardware_manager();
-    if(hw_manager->get_num_devices() == 0) {
+    backend_hardware_manager *hw_manager = b->get_hardware_manager();
+    if (hw_manager->get_num_devices() == 0) {
       HIPSYCL_DEBUG_INFO << "  <no devices>" << std::endl;
     } else {
-      for(std::size_t i = 0; i < hw_manager->get_num_devices(); ++i){
-        hardware_context* hw = hw_manager->get_device(i);
+      for (std::size_t i = 0; i < hw_manager->get_num_devices(); ++i) {
+        hardware_context *hw = hw_manager->get_device(i);
 
         HIPSYCL_DEBUG_INFO << "  device " << i << ": " << std::endl;
         HIPSYCL_DEBUG_INFO << "    vendor: " << hw->get_vendor_name() << std::endl;
@@ -74,47 +71,40 @@ backend_manager::backend_manager()
     }
   });
 
-  if(std::none_of(_backends.cbegin(), _backends.cend(), 
-                  [](const std::unique_ptr<backend>& b){
-                    return b->get_hardware_platform() == hardware_platform::cpu;
-                    }))
-  {
+  if (std::none_of(_backends.cbegin(), _backends.cend(),
+                   [](const std::unique_ptr<backend> &b) {
+                     return b->get_hardware_platform() == hardware_platform::cpu;
+                   })) {
     HIPSYCL_DEBUG_ERROR << "No CPU backend has been loaded. Terminating." << std::endl;
     std::terminate();
   }
 }
 
-backend_manager::~backend_manager()
-{
-  
-}
+backend_manager::~backend_manager() {}
 
 backend *backend_manager::get(backend_id id) const {
   auto it = std::find_if(_backends.begin(), _backends.end(),
                          [id](const std::unique_ptr<backend> &b) -> bool {
                            return b->get_backend_descriptor().id == id;
                          });
-  
-  if(it == _backends.end()){
-    register_error(
-        __hipsycl_here(),
-        error_info{"backend_manager: Requested backend is not available.",
-                   error_type::runtime_error});
+
+  if (it == _backends.end()) {
+    register_error(__hipsycl_here(),
+                   error_info{"backend_manager: Requested backend is not available.",
+                              error_type::runtime_error});
 
     return nullptr;
   }
   return it->get();
 }
 
-hw_model &backend_manager::hardware_model()
-{
+hw_model &backend_manager::hardware_model() {
   return *_hw_model;
 }
 
-const hw_model &backend_manager::hardware_model() const 
-{
+const hw_model &backend_manager::hardware_model() const {
   return *_hw_model;
 }
 
-}
-}
+} // namespace rt
+} // namespace hipsycl

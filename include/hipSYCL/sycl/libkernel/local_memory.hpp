@@ -37,26 +37,21 @@ namespace hipsycl {
 namespace sycl {
 
 template<class T>
-class local_memory
-{
+class local_memory {
 public:
   using scalar_type = typename std::remove_extent<T>::type;
 
   template<int Dim>
   HIPSYCL_KERNEL_TARGET
-  local_memory(group<Dim>&) {}
+  local_memory(group<Dim> &) {}
 
-  template<class t = scalar_type, 
-          std::enable_if_t<std::is_array<T>::value>* = nullptr>
+  template<class t = scalar_type, std::enable_if_t<std::is_array<T>::value> * = nullptr>
   HIPSYCL_KERNEL_TARGET
-  scalar_type& operator[](std::size_t index) noexcept{
-    return _var[index];
-  }
+  scalar_type &operator[](std::size_t index) noexcept { return _var[index]; }
 
   HIPSYCL_KERNEL_TARGET
-  T& operator()() noexcept{
-    return _var;
-  }
+  T &operator()() noexcept { return _var; }
+
 private:
   // It is not possible to just mark this member as __shared__
   // here (at least for HIP/CUDA), because member variables
@@ -66,7 +61,7 @@ private:
   T _var;
 };
 
-}
-}
+} // namespace sycl
+} // namespace hipsycl
 
 #endif

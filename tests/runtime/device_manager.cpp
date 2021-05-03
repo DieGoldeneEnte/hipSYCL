@@ -45,40 +45,51 @@
 
 using namespace hipsycl;
 
-template <rt::backend_id Backend> struct backend_enabled {
+template<rt::backend_id Backend>
+struct backend_enabled {
   static constexpr bool value = false;
 };
 
-template <rt::backend_id Backend> struct backend_class { using type = void; };
+template<rt::backend_id Backend>
+struct backend_class {
+  using type = void;
+};
 
-template <rt::backend_id Backend> struct backend_device_manager {
+template<rt::backend_id Backend>
+struct backend_device_manager {
   using type = void;
 };
 
 #ifdef HIPSYCL_PLATFORM_CUDA
-template <> struct backend_enabled<rt::backend_id::cuda> {
+template<>
+struct backend_enabled<rt::backend_id::cuda> {
   static constexpr bool value = true;
 };
 
-template <> struct backend_class<rt::backend_id::cuda> {
+template<>
+struct backend_class<rt::backend_id::cuda> {
   using type = rt::cuda_backend;
 };
 
-template <> struct backend_device_manager<rt::backend_id::cuda> {
+template<>
+struct backend_device_manager<rt::backend_id::cuda> {
   using type = rt::cuda_device_manager;
 };
 #endif
 
 #ifdef HIPSYCL_PLATFORM_HIP
-template <> struct backend_enabled<rt::backend_id::hip> {
+template<>
+struct backend_enabled<rt::backend_id::hip> {
   static constexpr bool value = true;
 };
 
-template <> struct backend_class<rt::backend_id::hip> {
+template<>
+struct backend_class<rt::backend_id::hip> {
   using type = rt::hip_backend;
 };
 
-template <> struct backend_device_manager<rt::backend_id::hip> {
+template<>
+struct backend_device_manager<rt::backend_id::hip> {
   using type = rt::hip_device_manager;
 };
 #endif
@@ -87,7 +98,7 @@ BOOST_FIXTURE_TEST_SUITE(device_manager, reset_device_fixture)
 
 namespace btt = boost::test_tools;
 
-template <rt::backend_id Backend>
+template<rt::backend_id Backend>
 struct if_backend_and_devices_available {
   btt::assertion_result operator()(boost::unit_test::test_unit_id) {
     btt::assertion_result ans(false);
@@ -105,7 +116,7 @@ struct if_backend_and_devices_available {
   }
 };
 
-template <rt::backend_id Backend>
+template<rt::backend_id Backend>
 void run_device_manager_multithreaded_test() {
   if constexpr (backend_enabled<Backend>::value) {
     using mngr = typename backend_device_manager<Backend>::type;
@@ -122,17 +133,15 @@ void run_device_manager_multithreaded_test() {
   }
 }
 
-BOOST_AUTO_TEST_CASE(
-    cuda_device_manager_multithreaded,
-    *boost::unit_test::precondition(
-        if_backend_and_devices_available<rt::backend_id::cuda>{})) {
+BOOST_AUTO_TEST_CASE(cuda_device_manager_multithreaded,
+                     *boost::unit_test::precondition(
+                         if_backend_and_devices_available<rt::backend_id::cuda>{})) {
   run_device_manager_multithreaded_test<rt::backend_id::cuda>();
 }
 
-BOOST_AUTO_TEST_CASE(
-    hip_device_manager_multithreaded,
-    *boost::unit_test::precondition(
-        if_backend_and_devices_available<rt::backend_id::hip>{})) {
+BOOST_AUTO_TEST_CASE(hip_device_manager_multithreaded,
+                     *boost::unit_test::precondition(
+                         if_backend_and_devices_available<rt::backend_id::hip>{})) {
   run_device_manager_multithreaded_test<rt::backend_id::hip>();
 }
 

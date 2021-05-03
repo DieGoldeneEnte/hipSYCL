@@ -30,30 +30,30 @@
 #define HIPSYCL_LIBKERNEL_CUDA_BACKEND_HPP
 
 #if defined(__CUDACC__)
- #define HIPSYCL_LIBKERNEL_COMPILER_SUPPORTS_CUDA 1
+#define HIPSYCL_LIBKERNEL_COMPILER_SUPPORTS_CUDA 1
 
- #ifdef __HIPSYCL_ENABLE_CUDA_TARGET__
-  #include <cuda_runtime_api.h>
- #endif
+#ifdef __HIPSYCL_ENABLE_CUDA_TARGET__
+#include <cuda_runtime_api.h>
+#endif
 #else
- #define HIPSYCL_LIBKERNEL_COMPILER_SUPPORTS_CUDA 0
+#define HIPSYCL_LIBKERNEL_COMPILER_SUPPORTS_CUDA 0
 #endif
 
 #if defined(__CUDA_ARCH__) && __CUDA_ARCH__ != 0
- #define HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_CUDA 1
+#define HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_CUDA 1
 
- #ifndef HIPSYCL_LIBKERNEL_DEVICE_PASS
-  #define HIPSYCL_LIBKERNEL_DEVICE_PASS
- #endif
+#ifndef HIPSYCL_LIBKERNEL_DEVICE_PASS
+#define HIPSYCL_LIBKERNEL_DEVICE_PASS
+#endif
 
- // TODO: Are these even needed anymore?
- #define HIPSYCL_UNIVERSAL_TARGET __host__ __device__
- #define HIPSYCL_KERNEL_TARGET __host__ __device__
- #define HIPSYCL_HOST_TARGET __host__
+// TODO: Are these even needed anymore?
+#define HIPSYCL_UNIVERSAL_TARGET __host__ __device__
+#define HIPSYCL_KERNEL_TARGET    __host__ __device__
+#define HIPSYCL_HOST_TARGET      __host__
 
- #define HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
+#define HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
 #else
- #define HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_CUDA 0
+#define HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_CUDA 0
 #endif
 
 #endif

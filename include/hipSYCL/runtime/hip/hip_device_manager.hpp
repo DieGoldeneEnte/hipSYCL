@@ -35,11 +35,10 @@ namespace rt {
 /// The hip_device_manager acts as a wrapper for this functionality.
 /// It is implemented as a per-thread singleton and assumes that
 /// no external calls to hipSetDevice() are made by the user.
-class hip_device_manager
-{
+class hip_device_manager {
 public:
   void activate_device(int device_id);
-  int get_active_device() const;
+  int  get_active_device() const;
 
   static hip_device_manager &get() {
     static thread_local hip_device_manager instance;
@@ -52,7 +51,7 @@ private:
   hip_device_manager();
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

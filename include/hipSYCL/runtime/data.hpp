@@ -44,10 +44,9 @@
 namespace hipsycl {
 namespace rt {
 
-void generic_pointer_free(device_id, void*);
+void generic_pointer_free(device_id, void *);
 
-class range_store
-{
+class range_store {
 public:
   using rect = std::pair<id<3>, range<3>>;
 
@@ -59,69 +58,61 @@ public:
 
   range_store(range<3> size);
 
-  void add(const rect& r);
-  
-  void remove(const rect& r);
+  void add(const rect &r);
+
+  void remove(const rect &r);
 
   range<3> get_size() const;
 
-  void intersections_with(const rect& r, 
-                          data_state desired_state,
-                          std::vector<rect>& out) const;
+  void intersections_with(const rect &r, data_state desired_state,
+                          std::vector<rect> &out) const;
 
-  void intersections_with(const rect& r, 
-                          std::vector<rect>& out) const
-  { intersections_with(r, data_state::available, out); }
+  void intersections_with(const rect &r, std::vector<rect> &out) const {
+    intersections_with(r, data_state::available, out);
+  }
 
-  void inverted_intersections_with(const rect& r, 
-                                  std::vector<rect>& out) const
-  { intersections_with(r, data_state::empty, out); }                             
-    
-  bool entire_range_equals(const rect&, data_state desired_state) const;
+  void inverted_intersections_with(const rect &r, std::vector<rect> &out) const {
+    intersections_with(r, data_state::empty, out);
+  }
 
-  bool entire_range_filled(const rect& r) const
-  { return entire_range_equals(r, data_state::available); }
+  bool entire_range_equals(const rect &, data_state desired_state) const;
 
-  bool entire_range_empty(const rect& r) const
-  { return entire_range_equals(r, data_state::empty); }
+  bool entire_range_filled(const rect &r) const {
+    return entire_range_equals(r, data_state::available);
+  }
+
+  bool entire_range_empty(const rect &r) const {
+    return entire_range_equals(r, data_state::empty);
+  }
 
 private:
   template<class Entry_selection_predicate>
-  range<3> find_max_contiguous_rect_extent(
-    id<3> begin,
-    id<3> search_range_end,
-    Entry_selection_predicate p) const
-  {
+  range<3> find_max_contiguous_rect_extent(id<3> begin, id<3> search_range_end,
+                                           Entry_selection_predicate p) const {
     // Find out length of longest contiguous row
-    size_t z_size = 
-      find_z_size(begin, search_range_end, p);
+    size_t z_size = find_z_size(begin, search_range_end, p);
 
     // Now go to 2D and find out width of surface
     size_t y_size = 1;
-    if(_size[1] > 1)
+    if (_size[1] > 1)
       y_size = find_y_size(begin, search_range_end, z_size, p);
 
     // Now 3D
     size_t x_size = 1;
-    if(_size[0] > 1)
+    if (_size[0] > 1)
       x_size = find_x_size(begin, search_range_end, z_size, y_size, p);
 
     return range<3>{x_size, y_size, z_size};
-    
   }
 
   template<class Entry_selection_predicate>
-  size_t find_x_size(id<3> begin,
-                     id<3> search_range_end,
-                     size_t z_size,
-                     size_t y_size,
-                     Entry_selection_predicate p) const
-  {
-    for(size_t x_offset = 0; x_offset < search_range_end[0]-begin[0]; ++x_offset){
+  size_t find_x_size(id<3> begin, id<3> search_range_end, size_t z_size, size_t y_size,
+                     Entry_selection_predicate p) const {
+    for (size_t x_offset = 0; x_offset < search_range_end[0] - begin[0]; ++x_offset) {
       id<3> surface_begin = begin;
       surface_begin[0] += x_offset;
 
-      if(find_y_size(surface_begin, search_range_end, z_size, p) != y_size){
+      if (find_y_size(surface_begin, search_range_end, z_size, p) != y_size) {
         return x_offset;
       }
     }
@@ -129,16 +120,13 @@ private:
   }
 
   template<class Entry_selection_predicate>
-  size_t find_y_size(id<3> begin,
-                    id<3> search_range_end,
-                    size_t z_size,
-                    Entry_selection_predicate p) const
-  {
-    for(size_t y_offset = 0; y_offset < search_range_end[1]-begin[1]; ++y_offset){
+  size_t find_y_size(id<3> begin, id<3> search_range_end, size_t z_size,
+                     Entry_selection_predicate p) const {
+    for (size_t y_offset = 0; y_offset < search_range_end[1] - begin[1]; ++y_offset) {
       id<3> row_begin = begin;
       row_begin[1] += y_offset;
 
-      if(find_z_size(row_begin, search_range_end, p) != z_size){
+      if (find_z_size(row_begin, search_range_end, p) != z_size) {
         return y_offset;
       }
     }
@@ -146,107 +134,99 @@ private:
   }
 
   template<class Entry_selection_predicate>
-  size_t find_z_size(id<3> begin,
-                    id<3> search_range_end,
-                    Entry_selection_predicate p) const
-  {
-    size_t base_pos = get_index(begin);
+  size_t find_z_size(id<3> begin, id<3> search_range_end,
+                     Entry_selection_predicate p) const {
+    size_t base_pos   = get_index(begin);
     size_t max_length = search_range_end[2] - begin[2];
-    for(size_t offset = 0; offset < max_length; ++offset)
-    {
-      if(!p(base_pos + offset))
+    for (size_t offset = 0; offset < max_length; ++offset) {
+      if (!p(base_pos + offset))
         return offset;
     }
     return max_length;
   }
 
   template<class Function>
-  void for_each_element_in_range(const rect& r,
-    std::vector<data_state>& v,
-    Function f) const
-  {
-    for(size_t x = r.first[0]; x < r.second[0]+r.first[0]; ++x){
-      for(size_t y = r.first[1]; y < r.second[1]+r.first[1]; ++y){
-        for(size_t z = r.first[2]; z < r.second[2]+r.first[2]; ++z){
+  void for_each_element_in_range(const rect &r, std::vector<data_state> &v,
+                                 Function f) const {
+    for (size_t x = r.first[0]; x < r.second[0] + r.first[0]; ++x) {
+      for (size_t y = r.first[1]; y < r.second[1] + r.first[1]; ++y) {
+        for (size_t z = r.first[2]; z < r.second[2] + r.first[2]; ++z) {
 
-          id<3> idx{x,y,z};
+          id<3>  idx{x, y, z};
           size_t pos = get_index(idx);
           assert(pos < v.size());
-          f(id<3>{x,y,z}, v[pos]);
+          f(id<3>{x, y, z}, v[pos]);
         }
       }
     }
   }
 
   template<class Function>
-  void for_each_element_in_range(const rect& r, 
-    const std::vector<data_state>& v, 
-    Function f) const
-  {
-    for(size_t x = r.first[0]; x < r.second[0]+r.first[0]; ++x){
-      for(size_t y = r.first[1]; y < r.second[1]+r.first[1]; ++y){
-        for(size_t z = r.first[2]; z < r.second[2]+r.first[2]; ++z){
+  void for_each_element_in_range(const rect &r, const std::vector<data_state> &v,
+                                 Function f) const {
+    for (size_t x = r.first[0]; x < r.second[0] + r.first[0]; ++x) {
+      for (size_t y = r.first[1]; y < r.second[1] + r.first[1]; ++y) {
+        for (size_t z = r.first[2]; z < r.second[2] + r.first[2]; ++z) {
 
-          id<3> idx{x,y,z};
+          id<3>  idx{x, y, z};
           size_t pos = get_index(idx);
           assert(pos < v.size());
-          f(id<3>{x,y,z}, v[pos]);
+          f(id<3>{x, y, z}, v[pos]);
         }
       }
     }
   }
 
   template<class Function>
-  void for_each_element_in_range(const rect& r, Function f) const
-  { for_each_element_in_range(r, _contained_data, f); }
-
-  template<class Function>
-  void for_each_element_in_range(const rect& r, Function f)
-  { for_each_element_in_range(r, _contained_data, f); }
-
-  size_t get_index(id<3> pos) const
-  {
-    return pos[0] * _size[1] * _size[2] + pos[1] * _size[2] + pos[2]; 
+  void for_each_element_in_range(const rect &r, Function f) const {
+    for_each_element_in_range(r, _contained_data, f);
   }
 
-  range<3> _size;
+  template<class Function>
+  void for_each_element_in_range(const rect &r, Function f) {
+    for_each_element_in_range(r, _contained_data, f);
+  }
+
+  size_t get_index(id<3> pos) const {
+    return pos[0] * _size[1] * _size[2] + pos[1] * _size[2] + pos[2];
+  }
+
+  range<3>                _size;
   std::vector<data_state> _contained_data;
 };
 
 
-struct data_user
-{
+struct data_user {
   std::weak_ptr<dag_node> user;
-  sycl::access::mode mode;
-  sycl::access::target target;
-  id<3> offset;
-  rt::range<3> range;
+  sycl::access::mode      mode;
+  sycl::access::target    target;
+  id<3>                   offset;
+  rt::range<3>            range;
 };
 
 
-class data_user_tracker
-{
+class data_user_tracker {
 public:
-  using user_iterator = std::vector<data_user>::iterator;
+  using user_iterator       = std::vector<data_user>::iterator;
   using const_user_iterator = std::vector<data_user>::const_iterator;
 
   data_user_tracker() = default;
-  data_user_tracker(const data_user_tracker& other);
-  data_user_tracker(data_user_tracker&& other);
-  data_user_tracker& operator=(data_user_tracker other);
-  data_user_tracker& operator=(data_user_tracker&& other);
+  data_user_tracker(const data_user_tracker &other);
+  data_user_tracker(data_user_tracker &&other);
+  data_user_tracker &operator=(data_user_tracker other);
+  data_user_tracker &operator=(data_user_tracker &&other);
 
   const std::vector<data_user> get_users() const;
 
   template<class F>
-  void for_each_user(F f){
+  void for_each_user(F f) {
     std::lock_guard<std::mutex> lock{_lock};
     // Iterate in reverse order over the users since
     // this will iterate over the newest users first.
     // This is a more advantageous pattern e.g. during
     // DAG construction as it allows finding the relevant users
     // quicker.
-    for(int i = _users.size() - 1; i >= 0; --i) {
+    for (int i = _users.size() - 1; i >= 0; --i) {
       f(_users[i]);
     }
   }
@@ -254,32 +234,32 @@ public:
   bool has_user(dag_node_ptr user) const;
 
   void release_dead_users();
-  void add_user(dag_node_ptr user, 
-                sycl::access::mode mode, 
-                sycl::access::target target, 
-                id<3> offset, 
-                range<3> range);
+  void add_user(dag_node_ptr user, sycl::access::mode mode, sycl::access::target target,
+                id<3> offset, range<3> range);
+
 private:
   std::vector<data_user> _users;
-  mutable std::mutex _lock;
+  mutable std::mutex     _lock;
 };
 
-template <class Memory_descriptor>
+template<class Memory_descriptor>
 struct data_allocation {
 
-  using allocation_function = std::function<Memory_descriptor(
-      range<3> num_elements, std::size_t element_size)>;
-  
-  device_id dev;
+  using allocation_function =
+      std::function<Memory_descriptor(range<3> num_elements, std::size_t element_size)>;
+
+  device_id         dev;
   Memory_descriptor memory;
-  range_store invalid_pages;
-  bool is_owned;
+  range_store       invalid_pages;
+  bool              is_owned;
 };
 
-template <class Memory_descriptor> class allocation_list {
+template<class Memory_descriptor>
+class allocation_list {
 public:
   template<class BinaryPredicate>
-  bool add_if_unique(BinaryPredicate&& comparator, data_allocation<Memory_descriptor> &&new_alloc) {
+  bool add_if_unique(BinaryPredicate &&                   comparator,
+                     data_allocation<Memory_descriptor> &&new_alloc) {
     std::lock_guard<std::mutex> lock{_mutex};
 
     for (const auto &alloc : _allocations) {
@@ -291,7 +271,8 @@ public:
     return true;
   }
 
-  template <class Handler> void for_each_allocation_while(Handler &&h) const {
+  template<class Handler>
+  void for_each_allocation_while(Handler &&h) const {
     std::lock_guard<std::mutex> lock{_mutex};
 
     for (const auto &alloc : _allocations) {
@@ -300,7 +281,8 @@ public:
     }
   }
 
-  template <class Handler> void for_each_allocation_while(Handler &&h) {
+  template<class Handler>
+  void for_each_allocation_while(Handler &&h) {
     std::lock_guard<std::mutex> lock{_mutex};
 
     for (auto &alloc : _allocations) {
@@ -309,7 +291,7 @@ public:
     }
   }
 
-  template <class UnaryPredicate, class Handler>
+  template<class UnaryPredicate, class Handler>
   bool select_and_handle(UnaryPredicate &&selector, Handler &&h) {
     std::lock_guard<std::mutex> lock{_mutex};
     for (auto &alloc : _allocations) {
@@ -321,7 +303,7 @@ public:
     return false;
   }
 
-  template <class UnaryPredicate, class Handler>
+  template<class UnaryPredicate, class Handler>
   bool select_and_handle(UnaryPredicate &&selector, Handler &&h) const {
     std::lock_guard<std::mutex> lock{_mutex};
     for (const auto &alloc : _allocations) {
@@ -333,13 +315,14 @@ public:
     return false;
   }
 
-  template <class UnaryPredicate>
+  template<class UnaryPredicate>
   bool has_match(UnaryPredicate &&selector) const {
-    return select_and_handle(selector, [](const auto&){});
+    return select_and_handle(selector, [](const auto &) {});
   }
+
 private:
   std::vector<data_allocation<Memory_descriptor>> _allocations;
-  mutable std::mutex _mutex;
+  mutable std::mutex                              _mutex;
 };
 
 
@@ -353,9 +336,8 @@ private:
 ///
 /// The interface of this class works in terms of numbers of elements, not
 /// bytes!
-template<class Memory_descriptor = void*>
-class data_region
-{
+template<class Memory_descriptor = void *>
+class data_region {
 public:
   /// Controls when two allocations are considered equal in order
   /// to maintain the requirement that allocations are unique.
@@ -379,7 +361,9 @@ public:
     bool operator()(const data_allocation<Memory_descriptor> &alloc) const {
       return alloc.dev == _dev;
     }
-  private: device_id _dev;
+
+  private:
+    device_id _dev;
   };
 
   using page_range = std::pair<id<3>, range<3>>;
@@ -392,25 +376,23 @@ public:
   /// dimension must be a multiple of the page size
   /// \param page_size The size (numbers of elements) of the granularity of data
   /// management
-  data_region(
-      range<3> num_elements, std::size_t element_size, range<3> page_size)
-      : _element_size{element_size}, _page_size{page_size},
-        _num_elements{num_elements} {
+  data_region(range<3> num_elements, std::size_t element_size, range<3> page_size)
+      : _element_size{element_size}, _page_size{page_size}, _num_elements{num_elements} {
 
-    for(std::size_t i = 0; i < 3; ++i){
+    for (std::size_t i = 0; i < 3; ++i) {
       assert(page_size[i] > 0);
       _num_pages[i] = (num_elements[i] + page_size[i] - 1) / page_size[i];
       assert(_num_pages[i] > 0);
     }
 
     HIPSYCL_DEBUG_INFO << "data_region: constructed with page table dimensions "
-                       << _num_pages[0] << " " << _num_pages[1] << " "
-                       << _num_pages[2] << std::endl;
+                       << _num_pages[0] << " " << _num_pages[1] << " " << _num_pages[2]
+                       << std::endl;
   }
 
   ~data_region() {
-    _allocations.for_each_allocation_while([](auto& alloc) {
-      if(alloc.memory && alloc.is_owned) {
+    _allocations.for_each_allocation_while([](auto &alloc) {
+      if (alloc.memory && alloc.is_owned) {
         device_id dev = alloc.dev;
         HIPSYCL_DEBUG_INFO << "data_region::~data_region: Freeing allocation "
                            << alloc.memory << std::endl;
@@ -422,13 +404,15 @@ public:
 
   /// Iterate over all allocations, abort as soon as \c h() returns false.
   /// \param h A callable of signature \c bool(const data_allocation&)
-  template <class Handler> void for_each_allocation_while(Handler &&h) const {
+  template<class Handler>
+  void for_each_allocation_while(Handler &&h) const {
     _allocations.for_each_allocation_while(h);
   }
 
   /// Iterate over all allocations, abort as soon as \c h() returns false.
   /// \param h A callable of signature \c bool(data_allocation&)
-  template <class Handler> void for_each_allocation_while(Handler &&h) {
+  template<class Handler>
+  void for_each_allocation_while(Handler &&h) {
     _allocations.for_each_allocation_while(h);
   }
 
@@ -436,18 +420,15 @@ public:
     return _allocations.has_match(default_allocation_selector{d});
   }
 
-  void add_empty_allocation(const device_id &d,
-                            Memory_descriptor memory_context,
+  void add_empty_allocation(const device_id &d, Memory_descriptor memory_context,
                             bool takes_ownership = true) {
     // Make sure that there isn't already an allocation on the given device
     assert(!has_allocation(d));
 
-    this->add_allocation<initial_data_state::invalid>(d, memory_context,
-                                                      takes_ownership);
+    this->add_allocation<initial_data_state::invalid>(d, memory_context, takes_ownership);
   }
 
-  void add_nonempty_allocation(const device_id &d,
-                               Memory_descriptor memory_context,
+  void add_nonempty_allocation(const device_id &d, Memory_descriptor memory_context,
                                bool takes_ownership = false) {
     // Make sure that there isn't already an allocation on the given device
     assert(!has_allocation(d));
@@ -457,8 +438,7 @@ public:
     // In practice this is not really needed because this function
     // is only invoked at the initialization of a buffer if constructed
     // with an existing pointer (e.g. host pointer).
-    this->add_allocation<initial_data_state::valid>(d, memory_context,
-                                                    takes_ownership);
+    this->add_allocation<initial_data_state::valid>(d, memory_context, takes_ownership);
   }
 
   /// Converts an offset into the data buffer (in element numbers) and the
@@ -466,19 +446,18 @@ public:
   page_range get_page_range(id<3> data_offset, range<3> data_range) const {
     // Is thread safe without lock because it doesn't modify internal state
     // and doesn't access mutable members.
-    id<3> page_begin{0,0,0};
-    
-    for(int i = 0; i < 3; ++i)
-      page_begin[i] =  data_offset[i] / _page_size[i];
+    id<3> page_begin{0, 0, 0};
+
+    for (int i = 0; i < 3; ++i)
+      page_begin[i] = data_offset[i] / _page_size[i];
 
     id<3> page_end = page_begin;
 
     for (int i = 0; i < 3; ++i)
-      page_end[i] =
-          (data_offset[i] + data_range[i] + _page_size[i] - 1) / _page_size[i];
-    
+      page_end[i] = (data_offset[i] + data_range[i] + _page_size[i] - 1) / _page_size[i];
 
-    range<3> page_range{1,1,1};
+
+    range<3> page_range{1, 1, 1};
     for (int i = 0; i < 3; ++i)
       page_range[i] = page_end[i] - page_begin[i];
 
@@ -486,24 +465,17 @@ public:
   }
 
   /// Marks an allocation range on a give device as not invalidated
-  void mark_range_valid(const device_id &d, id<3> data_offset,
-                        range<3> data_size)
-  {
+  void mark_range_valid(const device_id &d, id<3> data_offset, range<3> data_size) {
     page_range pr = get_page_range(data_offset, data_size);
 
     assert(has_allocation(d));
 
     _allocations.select_and_handle(default_allocation_selector{d},
-                                   [&](auto &alloc) {
-      alloc.invalid_pages.remove(pr);              
-    });
+                                   [&](auto &alloc) { alloc.invalid_pages.remove(pr); });
   }
-  
+
   /// Marks an allocation range on a given device most recent
-  void mark_range_current(const device_id& d,
-      id<3> data_offset,
-      range<3> data_size)
-  {
+  void mark_range_current(const device_id &d, id<3> data_offset, range<3> data_size) {
     page_range pr = get_page_range(data_offset, data_size);
 
     default_allocation_selector argument_match{d};
@@ -518,30 +490,27 @@ public:
     });
   }
 
-  void get_outdated_regions(const device_id& d,
-                            id<3> data_offset,
-                            range<3> data_size,
-                            std::vector<range_store::rect>& out) const
-  {
+  void get_outdated_regions(const device_id &d, id<3> data_offset, range<3> data_size,
+                            std::vector<range_store::rect> &out) const {
     assert(has_allocation(d));
 
     // Convert byte offsets/sizes to page ranges
-    page_range pr = get_page_range(data_offset, data_size);
-    id<3> first_page = pr.first;
-    range<3> num_pages = pr.second;
+    page_range pr         = get_page_range(data_offset, data_size);
+    id<3>      first_page = pr.first;
+    range<3>   num_pages  = pr.second;
 
     // Find outdated regions among pages
-    bool was_found = _allocations.select_and_handle(
-        default_allocation_selector{d}, [&](auto &alloc) {
-          alloc.invalid_pages.intersections_with(
-              std::make_pair(first_page, num_pages), out);
+    bool was_found =
+        _allocations.select_and_handle(default_allocation_selector{d}, [&](auto &alloc) {
+          alloc.invalid_pages.intersections_with(std::make_pair(first_page, num_pages),
+                                                 out);
         });
-    
+
     assert(was_found);
-    
+
     // Convert back to num elements
-    for(range_store::rect& r : out) {
-      for(int i = 0; i < 3; ++i) {
+    for (range_store::rect &r : out) {
+      for (int i = 0; i < 3; ++i) {
         r.first[i] *= _page_size[i];
         r.second[i] *= _page_size[i];
 
@@ -552,18 +521,16 @@ public:
         r.first[i] = std::min(r.first[i], _num_elements[i]);
 
         std::size_t max_range = _num_elements[i] - r.first[i];
-        r.second[i] = std::min(r.second[i], max_range);
+        r.second[i]           = std::min(r.second[i], max_range);
 
-        assert(r.first[i]+r.second[i] <= _num_elements[i]);
+        assert(r.first[i] + r.second[i] <= _num_elements[i]);
       }
     }
   }
 
   void get_update_source_candidates(
-              const device_id& d,
-              const range_store::rect& data_range,
-              std::vector<std::pair<device_id, range_store::rect>>& update_sources) const
-  {
+      const device_id &d, const range_store::rect &data_range,
+      std::vector<std::pair<device_id, range_store::rect>> &update_sources) const {
     update_sources.clear();
 
     page_range pr = get_page_range(data_range.first, data_range.second);
@@ -572,38 +539,35 @@ public:
     _allocations.for_each_allocation_while([&](const auto &alloc) {
       // Find all valid pages that are *not* accessible on the given device
       if (!selector(alloc)) {
-        if(alloc.invalid_pages.entire_range_empty(pr)) {
+        if (alloc.invalid_pages.entire_range_empty(pr)) {
           update_sources.push_back(std::make_pair(alloc.dev, data_range));
         }
       }
       return true;
     });
-    if(update_sources.empty()){
-      assert(false && "Could not find valid data source for updating data buffer - "
-              "this can happen if several data transfers are required to update accessed range, "
-              "which is not yet supported.");
+    if (update_sources.empty()) {
+      assert(
+          false &&
+          "Could not find valid data source for updating data buffer - "
+          "this can happen if several data transfers are required to update accessed range, "
+          "which is not yet supported.");
     }
   }
 
-  data_user_tracker& get_users()
-  { return _user_tracker; }
+  data_user_tracker &get_users() { return _user_tracker; }
 
-  const data_user_tracker& get_users() const
-  { return _user_tracker; }
+  const data_user_tracker &get_users() const { return _user_tracker; }
 
   std::size_t get_element_size() const { return _element_size; }
 
   range<3> get_num_elements() const { return _num_elements; }
 
-  Memory_descriptor get_memory(device_id dev) const
-  {
+  Memory_descriptor get_memory(device_id dev) const {
     assert(has_allocation(dev));
 
     Memory_descriptor mem{};
-    bool was_found = _allocations.select_and_handle(
-        default_allocation_selector{dev}, [&](const auto &alloc) {
-          mem = alloc.memory;
-    });
+    bool              was_found = _allocations.select_and_handle(
+        default_allocation_selector{dev}, [&](const auto &alloc) { mem = alloc.memory; });
 
     assert(was_found);
     return mem;
@@ -613,41 +577,37 @@ public:
     assert(has_allocation(dev));
 
     data_allocation<Memory_descriptor> found_alloc;
-    bool was_found = _allocations.select_and_handle(
-        default_allocation_selector{dev}, [&](const auto &alloc) {
-          found_alloc = alloc;
-    });
+    bool                               was_found =
+        _allocations.select_and_handle(default_allocation_selector{dev},
+                                       [&](const auto &alloc) { found_alloc = alloc; });
 
     assert(was_found);
     return found_alloc;
   }
 
-  template <class Handler>
+  template<class Handler>
   bool find_and_handle_allocation(device_id dev, Handler &&h) const {
     return _allocations.select_and_handle(default_allocation_selector{dev}, h);
   }
 
-  template <class Handler>
+  template<class Handler>
   bool find_and_handle_allocation(device_id dev, Handler &&h) {
     return _allocations.select_and_handle(default_allocation_selector{dev}, h);
   }
 
-  template <class Handler>
+  template<class Handler>
   bool find_and_handle_allocation(Memory_descriptor mem, Handler &&h) const {
-    return _allocations.select_and_handle([mem](const auto &alloc) {
-      return alloc.memory == mem;
-    }, h);
+    return _allocations.select_and_handle(
+        [mem](const auto &alloc) { return alloc.memory == mem; }, h);
   }
 
-  template <class Handler>
+  template<class Handler>
   bool find_and_handle_allocation(Memory_descriptor mem, Handler &&h) {
-    return _allocations.select_and_handle([mem](const auto &alloc) {
-      return alloc.memory == mem;
-    }, h);
+    return _allocations.select_and_handle(
+        [mem](const auto &alloc) { return alloc.memory == mem; }, h);
   }
-  
-  bool has_initialized_content(id<3> data_offset,
-                               range<3> data_range) const {
+
+  bool has_initialized_content(id<3> data_offset, range<3> data_range) const {
     page_range pr = get_page_range(data_offset, data_range);
 
     bool found_valid_pages = false;
@@ -668,7 +628,8 @@ private:
 
   allocation_list<Memory_descriptor> _allocations;
 
-  enum class initial_data_state {
+  enum class initial_data_state
+  {
     valid,
     invalid
   };
@@ -682,14 +643,14 @@ private:
     data_allocation<Memory_descriptor> new_alloc{
         d, memory_context, range_store{_num_pages}, takes_ownership};
 
-    if constexpr(InitialState == initial_data_state::invalid) {
+    if constexpr (InitialState == initial_data_state::invalid) {
       new_alloc.invalid_pages.add(std::make_pair(id<3>{0, 0, 0}, _num_pages));
     } else {
       new_alloc.invalid_pages.remove(std::make_pair(id<3>{0, 0, 0}, _num_pages));
     }
 
-    bool was_inserted = _allocations.add_if_unique(
-        default_allocation_comparator{}, std::move(new_alloc));
+    bool was_inserted =
+        _allocations.add_if_unique(default_allocation_comparator{}, std::move(new_alloc));
 
     // If another thread has added an allocation for this device in the meantime
     // this may fail. The API however currently does not allow for this to
@@ -705,11 +666,10 @@ private:
   data_user_tracker _user_tracker;
 };
 
-using buffer_data_region = data_region<void*>;
+using buffer_data_region = data_region<void *>;
 
 
-
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

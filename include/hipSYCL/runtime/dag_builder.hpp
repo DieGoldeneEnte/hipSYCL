@@ -48,51 +48,50 @@ namespace rt {
 /// calculated dependencies may be incorrect!
 ///
 /// Thread safety: Safe
-class dag_builder
-{
+class dag_builder {
 public:
   dag_builder();
 
   dag_node_ptr add_kernel(std::unique_ptr<operation> op,
-                          const requirements_list& requirements,
-                          const execution_hints& hints = {});
+                          const requirements_list &  requirements,
+                          const execution_hints &    hints = {});
   dag_node_ptr add_memcpy(std::unique_ptr<operation> op,
-                          const requirements_list& requirements,
-                          const execution_hints& hints = {});
+                          const requirements_list &  requirements,
+                          const execution_hints &    hints = {});
   dag_node_ptr add_fill(std::unique_ptr<operation> op,
-                        const requirements_list& requirements,
-                        const execution_hints& hints = {});
+                        const requirements_list &  requirements,
+                        const execution_hints &    hints = {});
   dag_node_ptr add_prefetch(std::unique_ptr<operation> op,
-                            const requirements_list &requirements,
-                            const execution_hints &hints = {});
+                            const requirements_list &  requirements,
+                            const execution_hints &    hints = {});
   dag_node_ptr add_memset(std::unique_ptr<operation> op,
-                          const requirements_list &requirements,
-                          const execution_hints &hints = {});
-  dag_node_ptr
-  add_explicit_mem_requirement(std::unique_ptr<operation> req,
-                               const requirements_list &requirements,
-                               const execution_hints &hints = {});
+                          const requirements_list &  requirements,
+                          const execution_hints &    hints = {});
+  dag_node_ptr add_explicit_mem_requirement(std::unique_ptr<operation> req,
+                                            const requirements_list &  requirements,
+                                            const execution_hints &    hints = {});
 
   dag finish_and_reset();
 
   std::size_t get_current_dag_size() const;
+
 private:
   bool is_conflicting_access(const memory_requirement *mem_req,
-                             const data_user &user) const;
+                             const data_user &         user) const;
 
   dag_node_ptr build_node(std::unique_ptr<operation> op,
-                          const requirements_list &requirements,
-                          const execution_hints &hints);
+                          const requirements_list &  requirements,
+                          const execution_hints &    hints);
   dag_node_ptr add_command_group(std::unique_ptr<operation> op,
-                                const requirements_list& requirements,
-                                const execution_hints& hints = {});
+                                 const requirements_list &  requirements,
+                                 const execution_hints &    hints = {});
 
   mutable std::mutex _mutex;
-  dag _current_dag;
+  dag                _current_dag;
 };
 
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

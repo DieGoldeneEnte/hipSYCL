@@ -37,23 +37,21 @@ namespace rt {
 
 class backend_manager;
 
-class memcpy_model
-{
+class memcpy_model {
 public:
-  memcpy_model(backend_manager* mgr){}
+  memcpy_model(backend_manager *mgr) {}
 
   cost_type estimate_runtime_cost(const memory_location &source,
                                   const memory_location &dest,
-                                  range<3> num_elements) const;
+                                  range<3>               num_elements) const;
 
-  memory_location
-  choose_source(const std::vector<memory_location> &candidate_sources,
-                const memory_location &target, range<3> num_elements) const;
-
+  memory_location choose_source(const std::vector<memory_location> &candidate_sources,
+                                const memory_location &             target,
+                                range<3>                            num_elements) const;
 };
 
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

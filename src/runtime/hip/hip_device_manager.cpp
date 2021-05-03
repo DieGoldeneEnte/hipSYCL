@@ -36,40 +36,35 @@ namespace rt {
 hip_device_manager::hip_device_manager() {
   auto err = hipGetDevice(&_device);
 
-  if (err != hipSuccess){
+  if (err != hipSuccess) {
     register_error(
         __hipsycl_here(),
-        error_info{
-            "hip_device_manager: Could not obtain currently active HIP device",
-            error_code{"HIP", err}});
+        error_info{"hip_device_manager: Could not obtain currently active HIP device",
+                   error_code{"HIP", err}});
   }
 }
 
-void hip_device_manager::activate_device(int device_id)
-{
+void hip_device_manager::activate_device(int device_id) {
   if (_device != device_id) {
 
-    HIPSYCL_DEBUG_INFO << "hip_device_manager: Switchting to device "
-                       << device_id << std::endl;
+    HIPSYCL_DEBUG_INFO << "hip_device_manager: Switchting to device " << device_id
+                       << std::endl;
 
     auto err = hipSetDevice(device_id);
 
-    if (err != hipSuccess){
-    register_error(
-        __hipsycl_here(),
-        error_info{
-            "hip_device_manager: Could not set active HIP device",
-            error_code{"HIP", err}});
+    if (err != hipSuccess) {
+      register_error(__hipsycl_here(),
+                     error_info{"hip_device_manager: Could not set active HIP device",
+                                error_code{"HIP", err}});
     } else {
       _device = device_id;
     }
   }
 }
 
-int hip_device_manager::get_active_device() const
-{
+int hip_device_manager::get_active_device() const {
   return _device;
 }
 
-}
-}
+} // namespace rt
+} // namespace hipsycl

@@ -61,50 +61,43 @@ namespace detail {
 template<typename, int, access::mode, access::target>
 class automatic_placeholder_requirement_impl;
 
-using queue_submission_hooks =
-  function_set<sycl::handler&>;
-using queue_submission_hooks_ptr = 
-  shared_ptr_class<queue_submission_hooks>;
+using queue_submission_hooks     = function_set<sycl::handler &>;
+using queue_submission_hooks_ptr = shared_ptr_class<queue_submission_hooks>;
 
-}
+} // namespace detail
 
 namespace property::command_group {
 
 template<int Dim>
-struct hipSYCL_prefer_group_size : public detail::cg_property{
-  hipSYCL_prefer_group_size(range<Dim> r)
-  : size{r} {}
+struct hipSYCL_prefer_group_size : public detail::cg_property {
+  hipSYCL_prefer_group_size(range<Dim> r) : size{r} {}
 
   const range<Dim> size;
 };
 
-struct hipSYCL_retarget : public detail::cg_property{
-  hipSYCL_retarget(const device& d)
-  : dev{d} {}
+struct hipSYCL_retarget : public detail::cg_property {
+  hipSYCL_retarget(const device &d) : dev{d} {}
 
   const sycl::device dev;
 };
 
-struct hipSYCL_prefer_execution_lane : public detail::cg_property{
-  hipSYCL_prefer_execution_lane(std::size_t lane_id)
-  : lane{lane_id} {}
+struct hipSYCL_prefer_execution_lane : public detail::cg_property {
+  hipSYCL_prefer_execution_lane(std::size_t lane_id) : lane{lane_id} {}
 
   const std::size_t lane;
 };
 
-}
+} // namespace property::command_group
 
 
 namespace property::queue {
 
-class in_order : public detail::queue_property
-{};
+class in_order : public detail::queue_property {};
 
-}
+} // namespace property::queue
 
 
-class queue : public detail::property_carrying_object
-{
+class queue : public detail::property_carrying_object {
 
   template<typename, int, access::mode, access::target>
   friend class detail::automatic_placeholder_requirement_impl;
@@ -112,42 +105,36 @@ class queue : public detail::property_carrying_object
 public:
   explicit queue(const property_list &propList = {})
       : queue{default_selector_v,
-              [](exception_list e) { glue::default_async_handler(e); },
-              propList} {
+              [](exception_list e) { glue::default_async_handler(e); }, propList} {
     assert(_default_hints.has_hint<rt::hints::bind_to_device>());
   }
 
-  explicit queue(const async_handler &asyncHandler,
-                 const property_list &propList = {})
+  explicit queue(const async_handler &asyncHandler, const property_list &propList = {})
       : queue{default_selector_v, asyncHandler, propList} {
     assert(_default_hints.has_hint<rt::hints::bind_to_device>());
   }
 
-  template <
-      class DeviceSelector,
-      std::enable_if_t<detail::is_device_selector_v<DeviceSelector>, int> = 0>
-  explicit queue(const DeviceSelector &deviceSelector,
-                 const property_list &propList = {})
+  template<class DeviceSelector,
+           std::enable_if_t<detail::is_device_selector_v<DeviceSelector>, int> = 0>
+  explicit queue(const DeviceSelector &deviceSelector, const property_list &propList = {})
       : detail::property_carrying_object{propList}, _ctx{detail::select_device(
                                                         deviceSelector)} {
 
     _handler = _ctx._impl->handler;
-    
+
     _default_hints.add_hint(rt::make_execution_hint<rt::hints::bind_to_device>(
         detail::select_device(deviceSelector)._device_id));
 
     this->init();
   }
 
-  template <
-      class DeviceSelector,
-      std::enable_if_t<detail::is_device_selector_v<DeviceSelector>, int> = 0>
-  explicit queue(const DeviceSelector &deviceSelector,
-                 const async_handler &asyncHandler,
+  template<class DeviceSelector,
+           std::enable_if_t<detail::is_device_selector_v<DeviceSelector>, int> = 0>
+  explicit queue(const DeviceSelector &deviceSelector, const async_handler &asyncHandler,
                  const property_list &propList = {})
-      : detail::property_carrying_object{propList}, 
-        _ctx{detail::select_device(deviceSelector), asyncHandler},
-        _handler{asyncHandler} {
+      : detail::property_carrying_object{propList},
+        _ctx{detail::select_device(deviceSelector), asyncHandler}, _handler{
+                                                                       asyncHandler} {
 
     _default_hints.add_hint(rt::make_execution_hint<rt::hints::bind_to_device>(
         detail::select_device(deviceSelector)._device_id));
@@ -159,44 +146,38 @@ public:
       : detail::property_carrying_object{propList}, _ctx{syclDevice} {
 
     _handler = _ctx._impl->handler;
-    
-    _default_hints.add_hint(rt::make_execution_hint<rt::hints::bind_to_device>(
-        syclDevice._device_id));
+
+    _default_hints.add_hint(
+        rt::make_execution_hint<rt::hints::bind_to_device>(syclDevice._device_id));
 
     this->init();
   }
 
   explicit queue(const device &syclDevice, const async_handler &asyncHandler,
                  const property_list &propList = {})
-      : detail::property_carrying_object{propList},
-        _ctx{syclDevice, asyncHandler}, _handler{asyncHandler} {
+      : detail::property_carrying_object{propList}, _ctx{syclDevice, asyncHandler},
+        _handler{asyncHandler} {
 
-    _default_hints.add_hint(rt::make_execution_hint<rt::hints::bind_to_device>(
-        syclDevice._device_id));
+    _default_hints.add_hint(
+        rt::make_execution_hint<rt::hints::bind_to_device>(syclDevice._device_id));
 
     this->init();
   }
 
-  template <
-      class DeviceSelector,
-      std::enable_if_t<detail::is_device_selector_v<DeviceSelector>, int> = 0>
-  explicit queue(const context &syclContext,
-                 const DeviceSelector &deviceSelector,
+  template<class DeviceSelector,
+           std::enable_if_t<detail::is_device_selector_v<DeviceSelector>, int> = 0>
+  explicit queue(const context &syclContext, const DeviceSelector &deviceSelector,
                  const property_list &propList = {})
       : queue(syclContext, detail::select_device(deviceSelector), propList) {}
 
-  template <
-      class DeviceSelector,
-      std::enable_if_t<detail::is_device_selector_v<DeviceSelector>, int> = 0>
-  explicit queue(const context &syclContext,
-                 const DeviceSelector &deviceSelector,
-                 const async_handler &asyncHandler,
-                 const property_list &propList = {})
+  template<class DeviceSelector,
+           std::enable_if_t<detail::is_device_selector_v<DeviceSelector>, int> = 0>
+  explicit queue(const context &syclContext, const DeviceSelector &deviceSelector,
+                 const async_handler &asyncHandler, const property_list &propList = {})
       : queue(syclContext, detail::select_device(deviceSelector), asyncHandler,
               propList) {}
 
-  explicit queue(const context &syclContext,
-                 const device &syclDevice,
+  explicit queue(const context &syclContext, const device &syclDevice,
                  const property_list &propList = {})
       : detail::property_carrying_object{propList}, _ctx{syclContext} {
 
@@ -205,36 +186,30 @@ public:
     if (!is_device_in_context(syclDevice, syclContext))
       throw invalid_object_error{"queue: Device is not in context"};
 
-    _default_hints.add_hint(rt::make_execution_hint<rt::hints::bind_to_device>(
-        syclDevice._device_id));
+    _default_hints.add_hint(
+        rt::make_execution_hint<rt::hints::bind_to_device>(syclDevice._device_id));
 
     this->init();
   }
 
-  explicit queue(const context &syclContext,
-                 const device &syclDevice,
-                 const async_handler &asyncHandler,
-                 const property_list &propList = {})
-      : detail::property_carrying_object{propList}, _ctx{syclContext},
-        _handler{asyncHandler} {
+  explicit queue(const context &syclContext, const device &syclDevice,
+                 const async_handler &asyncHandler, const property_list &propList = {})
+      : detail::property_carrying_object{propList}, _ctx{syclContext}, _handler{
+                                                                           asyncHandler} {
 
     if (!is_device_in_context(syclDevice, syclContext))
       throw invalid_object_error{"queue: Device is not in context"};
 
-    _default_hints.add_hint(rt::make_execution_hint<rt::hints::bind_to_device>(
-        syclDevice._device_id));
+    _default_hints.add_hint(
+        rt::make_execution_hint<rt::hints::bind_to_device>(syclDevice._device_id));
 
     this->init();
   }
 
-  ~queue() {
-    this->throw_asynchronous();
-  }
+  ~queue() { this->throw_asynchronous(); }
 
 
-  context get_context() const {
-    return _ctx;
-  }
+  context get_context() const { return _ctx; }
 
   device get_device() const {
     if (_default_hints.has_hint<rt::hints::bind_to_device>()) {
@@ -246,9 +221,7 @@ public:
   }
 
   bool is_host() const { return get_device().is_host(); }
-  bool is_in_order() const {
-    return _is_in_order;
-  }
+  bool is_in_order() const { return _is_in_order; }
 
   void wait() {
     rt::application::dag().flush_sync();
@@ -260,27 +233,24 @@ public:
     this->throw_asynchronous();
   }
 
-  void throw_asynchronous() {
-    glue::throw_asynchronous_errors(_handler);
-  }
+  void throw_asynchronous() { glue::throw_asynchronous_errors(_handler); }
 
-  template <info::queue param>
+  template<info::queue param>
   typename info::param_traits<info::queue, param>::return_type get_info() const;
 
 
-  template <typename T>
-  event submit(const property_list& prop_list, T cgf) {
+  template<typename T>
+  event submit(const property_list &prop_list, T cgf) {
     std::lock_guard<std::mutex> lock{*_lock};
 
     rt::execution_hints hints = _default_hints;
-    
-    if(prop_list.has_property<property::command_group::hipSYCL_retarget>()) {
+
+    if (prop_list.has_property<property::command_group::hipSYCL_retarget>()) {
 
       rt::device_id dev = detail::extract_rt_device(
-          prop_list.get_property<property::command_group::hipSYCL_retarget>()
-              .dev);
+          prop_list.get_property<property::command_group::hipSYCL_retarget>().dev);
 
-      if(!detail::extract_context_devices(_ctx).contains_device(dev)) {
+      if (!detail::extract_context_devices(_ctx).contains_device(dev)) {
         HIPSYCL_DEBUG_WARNING
             << "queue: Warning: Retargeting operation for a device that is not "
                "part of the queue's context. This can cause terrible problems if the "
@@ -289,16 +259,13 @@ public:
             << std::endl;
       }
 
-      hints.overwrite_with(
-          rt::make_execution_hint<rt::hints::bind_to_device>(dev));
+      hints.overwrite_with(rt::make_execution_hint<rt::hints::bind_to_device>(dev));
     }
-    if (prop_list.has_property<
-            property::command_group::hipSYCL_prefer_execution_lane>()) {
+    if (prop_list
+            .has_property<property::command_group::hipSYCL_prefer_execution_lane>()) {
 
       std::size_t lane_id =
-          prop_list
-              .get_property<
-                  property::command_group::hipSYCL_prefer_execution_lane>()
+          prop_list.get_property<property::command_group::hipSYCL_prefer_execution_lane>()
               .lane;
 
       hints.overwrite_with(
@@ -308,7 +275,7 @@ public:
     assert(hints.has_hint<rt::hints::node_group>());
 
     handler cgh{get_context(), _handler, hints};
-    
+
     apply_preferred_group_size<1>(prop_list, cgh);
     apply_preferred_group_size<2>(prop_list, cgh);
     apply_preferred_group_size<3>(prop_list, cgh);
@@ -316,74 +283,68 @@ public:
     this->get_hooks()->run_all(cgh);
 
     rt::dag_node_ptr node = execute_submission(cgf, cgh);
-    
+
     return event{node, _handler};
   }
 
 
-  template <typename T>
+  template<typename T>
   event submit(T cgf) {
     return submit(property_list{}, cgf);
   }
 
-  template <typename T>
-  event submit(T cgf, const queue &secondaryQueue,
-               const property_list &prop_list = {}) {
+  template<typename T>
+  event submit(T cgf, const queue &secondaryQueue, const property_list &prop_list = {}) {
     try {
 
-      size_t num_errors_begin =
-          rt::application::get_runtime().errors().num_errors();
+      size_t num_errors_begin = rt::application::get_runtime().errors().num_errors();
 
       event evt = submit(prop_list, cgf);
       // Flush so that we see any errors during submission
       rt::application::dag().flush_sync();
 
-      size_t num_errors_end =
-          rt::application::get_runtime().errors().num_errors();
+      size_t num_errors_end = rt::application::get_runtime().errors().num_errors();
 
       bool submission_failed = false;
       // TODO This approach fails if an async handler has consumed
       // the errors in the meantime
-      if(num_errors_end != num_errors_begin) {
+      if (num_errors_end != num_errors_begin) {
         // Need to check if there was a kernel error..
         rt::application::get_runtime().errors().for_each_error(
             [&](const rt::result &err) {
               if (!err.is_success()) {
-                if (err.info().get_error_type() ==
-                    rt::error_type::kernel_error) {
+                if (err.info().get_error_type() == rt::error_type::kernel_error) {
                   submission_failed = true;
                 }
               }
             });
       }
 
-      if(!submission_failed) {
+      if (!submission_failed) {
         return evt;
       } else {
         return secondaryQueue.submit(prop_list, cgf);
       }
-    }
-    catch(exception&) {
+    } catch (exception &) {
       return secondaryQueue.submit(prop_list, cgf);
     }
   }
 
-  friend bool operator==(const queue& lhs, const queue& rhs)
-  { return lhs._default_hints == rhs._default_hints; }
+  friend bool operator==(const queue &lhs, const queue &rhs) {
+    return lhs._default_hints == rhs._default_hints;
+  }
 
-  friend bool operator!=(const queue& lhs, const queue& rhs)
-  { return !(lhs == rhs); }
+  friend bool operator!=(const queue &lhs, const queue &rhs) { return !(lhs == rhs); }
 
   // ---- Queue shortcuts ------
 
-  template <typename KernelName = __hipsycl_unnamed_kernel, typename KernelType>
+  template<typename KernelName = __hipsycl_unnamed_kernel, typename KernelType>
   event single_task(const KernelType &KernelFunc) {
-    return this->submit([&](sycl::handler &cgh) {
-      cgh.single_task<KernelName>(KernelFunc);
-    });
+    return this->submit(
+        [&](sycl::handler &cgh) { cgh.single_task<KernelName>(KernelFunc); });
   }
 
-  template <typename KernelName = __hipsycl_unnamed_kernel, typename KernelType>
+  template<typename KernelName = __hipsycl_unnamed_kernel, typename KernelType>
   event single_task(event dependency, const KernelType &KernelFunc) {
     return this->submit([&](sycl::handler &cgh) {
       cgh.depends_on(dependency);
@@ -391,136 +352,128 @@ public:
     });
   }
 
-  template <typename KernelName = __hipsycl_unnamed_kernel, typename KernelType>
+  template<typename KernelName = __hipsycl_unnamed_kernel, typename KernelType>
   event single_task(const std::vector<event> &dependencies,
-                    const KernelType &KernelFunc) {
+                    const KernelType &        KernelFunc) {
     return this->submit([&](sycl::handler &cgh) {
       cgh.depends_on(dependencies);
       cgh.single_task<KernelName>(KernelFunc);
     });
   }
 
-  template <typename KernelName = __hipsycl_unnamed_kernel, 
-            typename... ReductionsAndKernel, int Dims>
-  event parallel_for(range<Dims> NumWorkItems, 
-                     const ReductionsAndKernel &... redu_kernel) {
-    return this->submit([&](sycl::handler &cgh) {
-      cgh.parallel_for<KernelName>(NumWorkItems, redu_kernel...);
-    });
-  }
-
-  template <typename KernelName = __hipsycl_unnamed_kernel,
-            typename... ReductionsAndKernel, int Dims>
-  event parallel_for(range<Dims> NumWorkItems, event dependency,
-                     const ReductionsAndKernel &... redu_kernel) {
-    return this->submit([&](sycl::handler &cgh) {
-      cgh.depends_on(dependency);
-      cgh.parallel_for<KernelName>(NumWorkItems, redu_kernel...);
-    });
-  }
-
-  template <typename KernelName = __hipsycl_unnamed_kernel,
-            typename... ReductionsAndKernel, int Dims>
+  template<typename KernelName = __hipsycl_unnamed_kernel,
+           typename... ReductionsAndKernel, int Dims>
   event parallel_for(range<Dims> NumWorkItems,
-                     const std::vector<event> &dependencies,
-                     const ReductionsAndKernel& ... redu_kernel) {
+                     const ReductionsAndKernel &...redu_kernel) {
+    return this->submit([&](sycl::handler &cgh) {
+      cgh.parallel_for<KernelName>(NumWorkItems, redu_kernel...);
+    });
+  }
+
+  template<typename KernelName = __hipsycl_unnamed_kernel,
+           typename... ReductionsAndKernel, int Dims>
+  event parallel_for(range<Dims> NumWorkItems, event dependency,
+                     const ReductionsAndKernel &...redu_kernel) {
+    return this->submit([&](sycl::handler &cgh) {
+      cgh.depends_on(dependency);
+      cgh.parallel_for<KernelName>(NumWorkItems, redu_kernel...);
+    });
+  }
+
+  template<typename KernelName = __hipsycl_unnamed_kernel,
+           typename... ReductionsAndKernel, int Dims>
+  event parallel_for(range<Dims> NumWorkItems, const std::vector<event> &dependencies,
+                     const ReductionsAndKernel &...redu_kernel) {
     return this->submit([&](sycl::handler &cgh) {
       cgh.depends_on(dependencies);
       cgh.parallel_for<KernelName>(NumWorkItems, redu_kernel...);
     });
   }
 
-  template <typename KernelName = __hipsycl_unnamed_kernel,
-            typename... ReductionsAndKernel, int Dims>
+  template<typename KernelName = __hipsycl_unnamed_kernel,
+           typename... ReductionsAndKernel, int Dims>
   event parallel_for(range<Dims> NumWorkItems, id<Dims> WorkItemOffset,
-                     const ReductionsAndKernel& ... redu_kernel) {
+                     const ReductionsAndKernel &...redu_kernel) {
     return this->submit([&](sycl::handler &cgh) {
-      cgh.parallel_for<KernelName>(NumWorkItems, WorkItemOffset,
-                                   redu_kernel...);
+      cgh.parallel_for<KernelName>(NumWorkItems, WorkItemOffset, redu_kernel...);
     });
   }
 
-  template <typename KernelName = __hipsycl_unnamed_kernel,
-            typename... ReductionsAndKernel, int Dims>
-  event parallel_for(range<Dims> NumWorkItems, id<Dims> WorkItemOffset,
-                     event dependency,
-                     const ReductionsAndKernel &... redu_kernel) {
+  template<typename KernelName = __hipsycl_unnamed_kernel,
+           typename... ReductionsAndKernel, int Dims>
+  event parallel_for(range<Dims> NumWorkItems, id<Dims> WorkItemOffset, event dependency,
+                     const ReductionsAndKernel &...redu_kernel) {
     return this->submit([&](sycl::handler &cgh) {
       cgh.depends_on(dependency);
-      cgh.parallel_for<KernelName>(NumWorkItems, WorkItemOffset,
-                                   redu_kernel...);
+      cgh.parallel_for<KernelName>(NumWorkItems, WorkItemOffset, redu_kernel...);
     });
   }
 
-  template <typename KernelName = __hipsycl_unnamed_kernel,
-            typename... ReductionsAndKernel, int Dims>
+  template<typename KernelName = __hipsycl_unnamed_kernel,
+           typename... ReductionsAndKernel, int Dims>
   event parallel_for(range<Dims> NumWorkItems, id<Dims> WorkItemOffset,
                      const std::vector<event> &dependencies,
-                     const ReductionsAndKernel &... redu_kernel) {
+                     const ReductionsAndKernel &...redu_kernel) {
     return this->submit([&](sycl::handler &cgh) {
       cgh.depends_on(dependencies);
-      cgh.parallel_for<KernelName>(NumWorkItems, WorkItemOffset,
-                                   redu_kernel...);
+      cgh.parallel_for<KernelName>(NumWorkItems, WorkItemOffset, redu_kernel...);
     });
   }
 
-  template <typename KernelName = __hipsycl_unnamed_kernel,
-            typename... ReductionsAndKernel, int Dims>
+  template<typename KernelName = __hipsycl_unnamed_kernel,
+           typename... ReductionsAndKernel, int Dims>
   event parallel_for(nd_range<Dims> ExecutionRange,
-                     const ReductionsAndKernel &... redu_kernel) {
+                     const ReductionsAndKernel &...redu_kernel) {
     return this->submit([&](sycl::handler &cgh) {
       cgh.parallel_for<KernelName>(ExecutionRange, redu_kernel...);
     });
   }
 
-  template <typename KernelName = __hipsycl_unnamed_kernel,
-            typename... ReductionsAndKernel, int Dims>
+  template<typename KernelName = __hipsycl_unnamed_kernel,
+           typename... ReductionsAndKernel, int Dims>
   event parallel_for(nd_range<Dims> ExecutionRange, event dependency,
-                     const ReductionsAndKernel &... redu_kernel) {
+                     const ReductionsAndKernel &...redu_kernel) {
     return this->submit([&](sycl::handler &cgh) {
       cgh.depends_on(dependency);
       cgh.parallel_for<KernelName>(ExecutionRange, redu_kernel...);
     });
   }
 
-  template <typename KernelName = __hipsycl_unnamed_kernel,
-            typename... ReductionsAndKernel, int Dims>
-  event parallel_for(nd_range<Dims> ExecutionRange,
+  template<typename KernelName = __hipsycl_unnamed_kernel,
+           typename... ReductionsAndKernel, int Dims>
+  event parallel_for(nd_range<Dims>            ExecutionRange,
                      const std::vector<event> &dependencies,
-                     const ReductionsAndKernel& ... redu_kernel) {
+                     const ReductionsAndKernel &...redu_kernel) {
     return this->submit([&](sycl::handler &cgh) {
       cgh.depends_on(dependencies);
       cgh.parallel_for<KernelName>(ExecutionRange, redu_kernel...);
     });
   }
 
-  template <typename KernelName = __hipsycl_unnamed_kernel,
-            typename... ReductionsAndKernel, int dimensions>
-  event parallel(range<dimensions> numWorkGroups,
-                range<dimensions> workGroupSize,
-                const ReductionsAndKernel &... redu_kernel) {
+  template<typename KernelName = __hipsycl_unnamed_kernel,
+           typename... ReductionsAndKernel, int dimensions>
+  event parallel(range<dimensions> numWorkGroups, range<dimensions> workGroupSize,
+                 const ReductionsAndKernel &...redu_kernel) {
     return this->submit([&](sycl::handler &cgh) {
       cgh.parallel<KernelName>(numWorkGroups, workGroupSize, redu_kernel...);
     });
   }
 
-  template <typename KernelName = __hipsycl_unnamed_kernel,
-            typename... ReductionsAndKernel, int dimensions>
-  event parallel(range<dimensions> numWorkGroups,
-                range<dimensions> workGroupSize, event dependency,
-                const ReductionsAndKernel& ... redu_kernel) {
+  template<typename KernelName = __hipsycl_unnamed_kernel,
+           typename... ReductionsAndKernel, int dimensions>
+  event parallel(range<dimensions> numWorkGroups, range<dimensions> workGroupSize,
+                 event dependency, const ReductionsAndKernel &...redu_kernel) {
     return this->submit([&](sycl::handler &cgh) {
       cgh.depends_on(dependency);
       cgh.parallel<KernelName>(numWorkGroups, workGroupSize, redu_kernel...);
     });
   }
 
-  template <typename KernelName = __hipsycl_unnamed_kernel,
-            typename... ReductionsAndKernel, int dimensions>
-  event parallel(range<dimensions> numWorkGroups,
-                range<dimensions> workGroupSize,
-                const std::vector<event> &dependencies,
-                const ReductionsAndKernel &... redu_kernel) {
+  template<typename KernelName = __hipsycl_unnamed_kernel,
+           typename... ReductionsAndKernel, int dimensions>
+  event parallel(range<dimensions> numWorkGroups, range<dimensions> workGroupSize,
+                 const std::vector<event> &dependencies,
+                 const ReductionsAndKernel &...redu_kernel) {
     return this->submit([&](sycl::handler &cgh) {
       cgh.depends_on(dependencies);
       cgh.parallel<KernelName>(numWorkGroups, workGroupSize, redu_kernel...);
@@ -528,13 +481,10 @@ public:
   }
 
   event memcpy(void *dest, const void *src, std::size_t num_bytes) {
-    return this->submit([&](sycl::handler &cgh) {
-      cgh.memcpy(dest, src, num_bytes);
-    });
+    return this->submit([&](sycl::handler &cgh) { cgh.memcpy(dest, src, num_bytes); });
   }
 
-  event memcpy(void *dest, const void *src, std::size_t num_bytes,
-               event dependency) {
+  event memcpy(void *dest, const void *src, std::size_t num_bytes, event dependency) {
     return this->submit([&](sycl::handler &cgh) {
       cgh.depends_on(dependency);
       cgh.memcpy(dest, src, num_bytes);
@@ -550,9 +500,7 @@ public:
   }
 
   event memset(void *ptr, int value, std::size_t num_bytes) {
-    return this->submit([&](sycl::handler &cgh) {
-      cgh.memset(ptr, value, num_bytes);
-    });
+    return this->submit([&](sycl::handler &cgh) { cgh.memset(ptr, value, num_bytes); });
   }
 
   event memset(void *ptr, int value, std::size_t num_bytes, event dependency) {
@@ -570,14 +518,12 @@ public:
     });
   }
 
-  template <class T>
+  template<class T>
   event fill(void *ptr, const T &pattern, std::size_t count) {
-    return this->submit([&](sycl::handler &cgh) {
-      cgh.fill(ptr, pattern, count);
-    });
+    return this->submit([&](sycl::handler &cgh) { cgh.fill(ptr, pattern, count); });
   }
 
-  template <class T>
+  template<class T>
   event fill(void *ptr, const T &pattern, std::size_t count, event dependency) {
     return this->submit([&](sycl::handler &cgh) {
       cgh.depends_on(dependency);
@@ -585,7 +531,7 @@ public:
     });
   }
 
-  template <class T>
+  template<class T>
   event fill(void *ptr, const T &pattern, std::size_t count,
              const std::vector<event> &dependencies) {
     return this->submit([&](sycl::handler &cgh) {
@@ -595,9 +541,7 @@ public:
   }
 
   event prefetch(const void *ptr, std::size_t num_bytes) {
-    return this->submit([&](sycl::handler &cgh) {
-      cgh.prefetch(ptr, num_bytes);
-    });
+    return this->submit([&](sycl::handler &cgh) { cgh.prefetch(ptr, num_bytes); });
   }
 
   event prefetch(const void *ptr, std::size_t num_bytes, event dependency) {
@@ -616,9 +560,7 @@ public:
   }
 
   event prefetch_host(const void *ptr, std::size_t num_bytes) {
-    return this->submit([&](sycl::handler &cgh) {
-      cgh.prefetch_host(ptr, num_bytes);
-    });
+    return this->submit([&](sycl::handler &cgh) { cgh.prefetch_host(ptr, num_bytes); });
   }
 
   event prefetch_host(const void *ptr, std::size_t num_bytes, event dependency) {
@@ -637,9 +579,8 @@ public:
   }
 
   event mem_advise(const void *addr, std::size_t num_bytes, int advice) {
-    return this->submit([&](sycl::handler &cgh) {
-      cgh.mem_advise(addr, num_bytes, advice);
-    });
+    return this->submit(
+        [&](sycl::handler &cgh) { cgh.mem_advise(addr, num_bytes, advice); });
   }
 
   event mem_advise(const void *addr, std::size_t num_bytes, int advice,
@@ -660,12 +601,11 @@ public:
 
   template<class InteropFunction>
   event hipSYCL_enqueue_custom_operation(InteropFunction op) {
-    return this->submit([&](sycl::handler &cgh) {
-      cgh.hipSYCL_enqueue_custom_operation(op);
-    });
+    return this->submit(
+        [&](sycl::handler &cgh) { cgh.hipSYCL_enqueue_custom_operation(op); });
   }
 
-  template <class InteropFunction>
+  template<class InteropFunction>
   event hipSYCL_enqueue_custom_operation(InteropFunction op, event dependency) {
     return this->submit([&](sycl::handler &cgh) {
       cgh.depends_on(dependency);
@@ -673,10 +613,9 @@ public:
     });
   }
 
-  template <class InteropFunction>
-  event
-  hipSYCL_enqueue_custom_operation(InteropFunction op,
-                                   const std::vector<event> &dependencies) {
+  template<class InteropFunction>
+  event hipSYCL_enqueue_custom_operation(InteropFunction           op,
+                                         const std::vector<event> &dependencies) {
     return this->submit([&](sycl::handler &cgh) {
       cgh.depends_on(dependencies);
       cgh.hipSYCL_enqueue_custom_operation(op);
@@ -686,25 +625,25 @@ public:
 
 private:
   template<int Dim>
-  void apply_preferred_group_size(const property_list& prop_list, handler& cgh) {
-    if(prop_list.has_property<property::command_group::hipSYCL_prefer_group_size<Dim>>()){
+  void apply_preferred_group_size(const property_list &prop_list, handler &cgh) {
+    if (prop_list
+            .has_property<property::command_group::hipSYCL_prefer_group_size<Dim>>()) {
       sycl::range<Dim> preferred_group_size =
           prop_list
-              .get_property<
-                  property::command_group::hipSYCL_prefer_group_size<Dim>>()
+              .get_property<property::command_group::hipSYCL_prefer_group_size<Dim>>()
               .size;
       cgh.set_preferred_group_size(preferred_group_size);
     }
   }
 
-  template <class Cgf>
+  template<class Cgf>
   rt::dag_node_ptr execute_submission(Cgf cgf, handler &cgh) {
     if (is_in_order()) {
       auto previous = _previous_submission.lock();
-      if(previous)
+      if (previous)
         cgh.depends_on(event{previous, _handler});
     }
-    
+
     cgf(cgh);
 
     rt::dag_node_ptr node = this->extract_dag_node(cgh);
@@ -713,8 +652,8 @@ private:
     }
     return node;
   }
-      
-  bool is_device_in_context(const device &dev, const context &ctx) const {    
+
+  bool is_device_in_context(const device &dev, const context &ctx) const {
     std::vector<device> devices = ctx.get_devices();
     for (const auto context_dev : devices) {
       if (context_dev == dev)
@@ -723,19 +662,18 @@ private:
     return false;
   }
 
-  rt::dag_node_ptr extract_dag_node(sycl::handler& cgh) {
-  
-    const std::vector<rt::dag_node_ptr>& dag_nodes =
-      cgh.get_cg_nodes();
+  rt::dag_node_ptr extract_dag_node(sycl::handler &cgh) {
 
-    if(dag_nodes.empty()) {
+    const std::vector<rt::dag_node_ptr> &dag_nodes = cgh.get_cg_nodes();
+
+    if (dag_nodes.empty()) {
       HIPSYCL_DEBUG_ERROR
           << "queue: Command queue evaluation did not result in the creation "
              "of events. Are there operations inside the command group?"
           << std::endl;
       return nullptr;
     }
-    if(dag_nodes.size() > 1) {
+    if (dag_nodes.size() > 1) {
       HIPSYCL_DEBUG_ERROR
           << "queue: Multiple events returned from command group evaluation; "
              "multiple operations in a single command group is not SYCL "
@@ -749,179 +687,151 @@ private:
   void init() {
     static std::atomic<std::size_t> node_group_id;
     _node_group_id = ++node_group_id;
-    
-    HIPSYCL_DEBUG_INFO << "queue: Constructed queue with node group id "
-                       << _node_group_id << std::endl;
+
+    HIPSYCL_DEBUG_INFO << "queue: Constructed queue with node group id " << _node_group_id
+                       << std::endl;
 
     _default_hints.add_hint(
         rt::make_execution_hint<rt::hints::node_group>(_node_group_id));
 
     _is_in_order = this->has_property<property::queue::in_order>();
-    _lock = std::make_shared<std::mutex>();
+    _lock        = std::make_shared<std::mutex>();
 
-    this->_hooks = detail::queue_submission_hooks_ptr{
-          new detail::queue_submission_hooks{}};
+    this->_hooks =
+        detail::queue_submission_hooks_ptr{new detail::queue_submission_hooks{}};
   }
 
 
-  detail::queue_submission_hooks_ptr get_hooks() const
-  {
-    return _hooks;
-  }
-  
+  detail::queue_submission_hooks_ptr get_hooks() const { return _hooks; }
+
   detail::queue_submission_hooks_ptr _hooks;
 
   rt::execution_hints _default_hints;
-  context _ctx;
-  async_handler _handler;
-  bool _is_in_order;
+  context             _ctx;
+  async_handler       _handler;
+  bool                _is_in_order;
 
   std::weak_ptr<rt::dag_node> _previous_submission;
   std::shared_ptr<std::mutex> _lock;
-  std::size_t _node_group_id;
+  std::size_t                 _node_group_id;
 };
 
-HIPSYCL_SPECIALIZE_GET_INFO(queue, context)
-{
+HIPSYCL_SPECIALIZE_GET_INFO(queue, context) {
   return get_context();
 }
 
-HIPSYCL_SPECIALIZE_GET_INFO(queue, device)
-{
+HIPSYCL_SPECIALIZE_GET_INFO(queue, device) {
   return get_device();
 }
 
-HIPSYCL_SPECIALIZE_GET_INFO(queue, reference_count)
-{
+HIPSYCL_SPECIALIZE_GET_INFO(queue, reference_count) {
   return 1;
 }
 
-HIPSYCL_SPECIALIZE_GET_INFO(queue, hipSYCL_node_group)
-{
+HIPSYCL_SPECIALIZE_GET_INFO(queue, hipSYCL_node_group) {
   return _node_group_id;
 }
 
-namespace detail{
+namespace detail {
 
 
 template<typename dataT, int dimensions, access::mode accessMode,
-            access::target accessTarget>
-class automatic_placeholder_requirement_impl
-{
+         access::target accessTarget>
+class automatic_placeholder_requirement_impl {
 public:
-  automatic_placeholder_requirement_impl(sycl::queue &q, 
-      sycl::accessor<dataT, dimensions, accessMode, accessTarget,
-                access::placeholder::true_t>* acc)
-    : _acc{acc}, _is_required{false}, _hooks{q.get_hooks()}
-  {
+  automatic_placeholder_requirement_impl(
+      sycl::queue &q, sycl::accessor<dataT, dimensions, accessMode, accessTarget,
+                                     access::placeholder::true_t> *acc)
+      : _acc{acc}, _is_required{false}, _hooks{q.get_hooks()} {
     acquire();
   }
 
-  void reacquire()
-  {
-    if(!_is_required)
+  void reacquire() {
+    if (!_is_required)
       acquire();
   }
 
-  void release()
-  {
-    if(_is_required)
+  void release() {
+    if (_is_required)
       _hooks->remove(_hook_id);
     _is_required = false;
   }
 
-  ~automatic_placeholder_requirement_impl()
-  {
-    if(_is_required)
+  ~automatic_placeholder_requirement_impl() {
+    if (_is_required)
       release();
   }
 
   bool is_required() const { return _is_required; }
-  
+
 private:
-  void acquire()
-  {
+  void acquire() {
     auto acc = _acc;
-    _hook_id = _hooks->add([acc] (sycl::handler& cgh) mutable{
-      cgh.require(*acc);
-    });
+    _hook_id = _hooks->add([acc](sycl::handler &cgh) mutable { cgh.require(*acc); });
 
     _is_required = true;
   }
 
   bool _is_required;
 
-  sycl::accessor<dataT, dimensions, accessMode, accessTarget,
-                                  access::placeholder::true_t>* _acc;
+  sycl::accessor<dataT, dimensions, accessMode, accessTarget, access::placeholder::true_t>
+      *_acc;
 
-  std::size_t _hook_id;
+  std::size_t                        _hook_id;
   detail::queue_submission_hooks_ptr _hooks;
 };
 
-}
+} // namespace detail
 
 namespace vendor {
 namespace hipsycl {
 
 template<typename dataT, int dimensions, access::mode accessMode,
-            access::target accessTarget>
-class automatic_placeholder_requirement
-{
+         access::target accessTarget>
+class automatic_placeholder_requirement {
 public:
-  using impl_type = detail::automatic_placeholder_requirement_impl<
-    dataT,dimensions,accessMode,accessTarget>;
+  using impl_type =
+      detail::automatic_placeholder_requirement_impl<dataT, dimensions, accessMode,
+                                                     accessTarget>;
 
-  automatic_placeholder_requirement(queue &q, 
-      accessor<dataT, dimensions, accessMode, accessTarget,
-                access::placeholder::true_t>& acc)
-  {
+  automatic_placeholder_requirement(queue &                                q,
+                                    accessor<dataT, dimensions, accessMode, accessTarget,
+                                             access::placeholder::true_t> &acc) {
     _impl = std::make_unique<impl_type>(q, &acc);
   }
 
   automatic_placeholder_requirement(std::unique_ptr<impl_type> impl)
-  : _impl{std::move(impl)}
-  {}
+      : _impl{std::move(impl)} {}
 
-  void reacquire()
-  {
-    _impl->reacquire();
-  }
+  void reacquire() { _impl->reacquire(); }
 
-  void release()
-  {
-    _impl->release();
-  }
+  void release() { _impl->release(); }
 
-  bool is_required() const
-  {
-    return _impl->is_required();
-  }
+  bool is_required() const { return _impl->is_required(); }
 
 private:
   std::unique_ptr<impl_type> _impl;
 };
 
 template<typename dataT, int dimensions, access::mode accessMode,
-            access::target accessTarget>
-inline auto automatic_require(queue &q, 
-    accessor<dataT, dimensions, accessMode, accessTarget,access::placeholder::true_t>& acc)
-{
-  using requirement_type = automatic_placeholder_requirement<
-    dataT, dimensions, accessMode, accessTarget>;
+         access::target accessTarget>
+inline auto automatic_require(queue &                                q,
+                              accessor<dataT, dimensions, accessMode, accessTarget,
+                                       access::placeholder::true_t> &acc) {
+  using requirement_type =
+      automatic_placeholder_requirement<dataT, dimensions, accessMode, accessTarget>;
 
   using impl_type = typename requirement_type::impl_type;
 
   return requirement_type{std::make_unique<impl_type>(q, &acc)};
 }
 
-} // hipsycl
-} // vendor
+} // namespace hipsycl
+} // namespace vendor
 
 
-
-}// namespace sycl
-}// namespace hipsycl
-
+} // namespace sycl
+} // namespace hipsycl
 
 
 #endif

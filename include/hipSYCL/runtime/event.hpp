@@ -34,16 +34,15 @@
 namespace hipsycl {
 namespace rt {
 
-class dag_node_event
-{
+class dag_node_event {
 public:
   virtual bool is_complete() const = 0;
-  virtual void wait() = 0;
+  virtual void wait()              = 0;
   virtual ~dag_node_event() {}
-}; 
+};
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 
 #endif

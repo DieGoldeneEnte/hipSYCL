@@ -44,35 +44,32 @@ BOOST_AUTO_TEST_CASE(task_graph_synchronization) {
   cl::sycl::buffer<int, 1> buf_b{num_elements};
   cl::sycl::buffer<int, 1> buf_c{num_elements};
 
-  q1.submit([&](cl::sycl::handler& cgh) {
+  q1.submit([&](cl::sycl::handler &cgh) {
     auto acc_a = buf_a.get_access<mode::discard_write>(cgh);
-    cgh.parallel_for<class tdag_sync_init_a>(cl::sycl::range<1>{num_elements},
-      [=](cl::sycl::id<1> tid) {
-        acc_a[tid] = static_cast<int>(tid.get(0));
-      });
+    cgh.parallel_for<class tdag_sync_init_a>(
+        cl::sycl::range<1>{num_elements},
+        [=](cl::sycl::id<1> tid) { acc_a[tid] = static_cast<int>(tid.get(0)); });
   });
 
-  q2.submit([&](cl::sycl::handler& cgh) {
+  q2.submit([&](cl::sycl::handler &cgh) {
     auto acc_a = buf_a.get_access<mode::read>(cgh);
     auto acc_b = buf_b.get_access<mode::discard_write>(cgh);
-    cgh.parallel_for<class tdag_sync_init_b>(cl::sycl::range<1>{num_elements},
-      [=](cl::sycl::id<1> tid) {
-        acc_b[tid] = acc_a[tid];
-      });
+    cgh.parallel_for<class tdag_sync_init_b>(
+        cl::sycl::range<1>{num_elements},
+        [=](cl::sycl::id<1> tid) { acc_b[tid] = acc_a[tid]; });
   });
 
-  q3.submit([&](cl::sycl::handler& cgh) {
+  q3.submit([&](cl::sycl::handler &cgh) {
     auto acc_a = buf_a.get_access<mode::read>(cgh);
     auto acc_b = buf_b.get_access<mode::read>(cgh);
     auto acc_c = buf_c.get_access<mode::discard_write>(cgh);
-    cgh.parallel_for<class tdag_sync_add_a_b>(cl::sycl::range<1>{num_elements},
-      [=](cl::sycl::id<1> tid) {
-        acc_c[tid] = acc_a[tid] + acc_b[tid];
-      });
+    cgh.parallel_for<class tdag_sync_add_a_b>(
+        cl::sycl::range<1>{num_elements},
+        [=](cl::sycl::id<1> tid) { acc_c[tid] = acc_a[tid] + acc_b[tid]; });
   });
 
   auto result = buf_c.get_access<mode::read>();
-  for(size_t i = num_elements; i < num_elements; ++i) {
+  for (size_t i = num_elements; i < num_elements; ++i) {
     BOOST_REQUIRE(result[i] == 2 * i);
   }
 }

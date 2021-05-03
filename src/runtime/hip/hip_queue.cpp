@@ -42,23 +42,22 @@ namespace {
 
 void host_synchronization_callback(hipStream_t stream, hipError_t status,
                                    void *userData) {
-  
+
   assert(userData);
-  dag_node_ptr* node = static_cast<dag_node_ptr*>(userData);
-  
-  if(status != hipSuccess) {
+  dag_node_ptr *node = static_cast<dag_node_ptr *>(userData);
+
+  if (status != hipSuccess) {
     register_error(__hipsycl_here(),
                    error_info{"hip_queue callback: HIP returned error code.",
                               error_code{"HIP", status}});
-  }
-  else {
+  } else {
     (*node)->wait();
   }
   delete node;
 }
 
 
-}
+} // namespace
 
 
 void hip_queue::activate_device() const {
@@ -76,14 +75,15 @@ hip_queue::hip_queue(device_id dev) : _dev{dev} {
   }
 }
 
-hipStream_t hip_queue::get_stream() const { return _stream; }
+hipStream_t hip_queue::get_stream() const {
+  return _stream;
+}
 
 hip_queue::~hip_queue() {
   auto err = hipStreamDestroy(_stream);
   if (err != hipSuccess) {
-    register_error(__hipsycl_here(),
-                   error_info{"hip_queue: Couldn't destroy stream",
-                              error_code{"HIP", err}});
+    register_error(__hipsycl_here(), error_info{"hip_queue: Couldn't destroy stream",
+                                                error_code{"HIP", err}});
   }
 }
 
@@ -95,29 +95,27 @@ std::shared_ptr<dag_node_event> hip_queue::insert_event() {
   hipError_t err = hipEventCreate(&evt);
 
   if (err != hipSuccess) {
-    register_error(
-        __hipsycl_here(),
-        error_info{"hip_queue: Couldn't create event", error_code{"HIP", err}});
-    
+    register_error(__hipsycl_here(), error_info{"hip_queue: Couldn't create event",
+                                                error_code{"HIP", err}});
+
     return nullptr;
   }
 
   err = hipEventRecord(evt, this->get_stream());
 
   if (err != hipSuccess) {
-    register_error(
-        __hipsycl_here(),
-        error_info{"hip_queue: Couldn't record event", error_code{"HIP", err}});
+    register_error(__hipsycl_here(), error_info{"hip_queue: Couldn't record event",
+                                                error_code{"HIP", err}});
     return nullptr;
   }
 
   return std::make_shared<hip_node_event>(_dev, evt);
 }
 
-result hip_queue::submit_memcpy(const memcpy_operation & op, dag_node_ptr) {
+result hip_queue::submit_memcpy(const memcpy_operation &op, dag_node_ptr) {
 
   device_id source_dev = op.source().get_device();
-  device_id dest_dev = op.dest().get_device();
+  device_id dest_dev   = op.dest().get_device();
 
   assert(op.source().get_access_ptr());
   assert(op.dest().get_access_ptr());
@@ -125,8 +123,7 @@ result hip_queue::submit_memcpy(const memcpy_operation & op, dag_node_ptr) {
   hipMemcpyKind copy_kind = hipMemcpyHostToDevice;
 
   if (source_dev.get_full_backend_descriptor().sw_platform == api_platform::hip) {
-    if (dest_dev.get_full_backend_descriptor().sw_platform ==
-        api_platform::hip) {
+    if (dest_dev.get_full_backend_descriptor().sw_platform == api_platform::hip) {
       assert(source_dev.get_full_backend_descriptor().hw_platform ==
                  dest_dev.get_full_backend_descriptor().hw_platform &&
              "Attempted to execute explicit device<->device copy operation "
@@ -136,13 +133,12 @@ result hip_queue::submit_memcpy(const memcpy_operation & op, dag_node_ptr) {
     } else if (dest_dev.get_full_backend_descriptor().hw_platform ==
                hardware_platform::cpu) {
       copy_kind = hipMemcpyDeviceToHost;
-      
+
     } else
       assert(false && "Unknown copy destination platform");
   } else if (source_dev.get_full_backend_descriptor().hw_platform ==
              hardware_platform::cpu) {
-    if (dest_dev.get_full_backend_descriptor().sw_platform ==
-        api_platform::hip) {
+    if (dest_dev.get_full_backend_descriptor().sw_platform == api_platform::hip) {
       copy_kind = hipMemcpyHostToDevice;
     } else
       assert(false && "Unknown copy destination platform");
@@ -168,53 +164,47 @@ result hip_queue::submit_memcpy(const memcpy_operation & op, dag_node_ptr) {
       op.source().get_access_offset() == id<3>{} &&
       op.dest().get_access_offset() == id<3>{})
     dimension = 1;
-  
+
   assert(dimension >= 1 && dimension <= 3);
 
   hipError_t err = hipSuccess;
   if (dimension == 1) {
 
-    err = hipMemcpyAsync(
-        op.dest().get_access_ptr(), op.source().get_access_ptr(),
-        op.get_num_transferred_bytes(), copy_kind, get_stream());
-    
+    err = hipMemcpyAsync(op.dest().get_access_ptr(), op.source().get_access_ptr(),
+                         op.get_num_transferred_bytes(), copy_kind, get_stream());
+
   } else if (dimension == 2) {
-    err = hipMemcpy2DAsync(
-        op.dest().get_access_ptr(),
-        extract_from_range3<2>(op.dest().get_allocation_shape())[1] *
-            op.dest().get_element_size(),
-        op.source().get_access_ptr(),
-        extract_from_range3<2>(op.source().get_allocation_shape())[1] *
-            op.source().get_element_size(),
-        extract_from_range3<2>(op.get_num_transferred_elements())[1] *
-            op.source().get_element_size(),
-        extract_from_range3<2>(op.get_num_transferred_elements())[0], copy_kind,
-        get_stream());
+    err = hipMemcpy2DAsync(op.dest().get_access_ptr(),
+                           extract_from_range3<2>(op.dest().get_allocation_shape())[1] *
+                               op.dest().get_element_size(),
+                           op.source().get_access_ptr(),
+                           extract_from_range3<2>(op.source().get_allocation_shape())[1] *
+                               op.source().get_element_size(),
+                           extract_from_range3<2>(op.get_num_transferred_elements())[1] *
+                               op.source().get_element_size(),
+                           extract_from_range3<2>(op.get_num_transferred_elements())[0],
+                           copy_kind, get_stream());
   } else {
     hipMemcpy3DParms params = {0};
-    params.srcPtr = make_hipPitchedPtr(op.source().get_access_ptr(),
-                                       op.source().get_allocation_shape()[2] *
-                                           op.source().get_element_size(),
-                                       op.source().get_allocation_shape()[2],
-                                       op.source().get_allocation_shape()[1]);
-    params.dstPtr = make_hipPitchedPtr(op.dest().get_access_ptr(),
-                                       op.dest().get_allocation_shape()[2] *
-                                           op.dest().get_element_size(),
-                                       op.dest().get_allocation_shape()[2],
-                                       op.dest().get_allocation_shape()[1]);
-    params.extent = {op.get_num_transferred_elements()[2] *
-                         op.source().get_element_size(),
-                     op.get_num_transferred_elements()[1],
-                     op.get_num_transferred_elements()[0]};
+    params.srcPtr           = make_hipPitchedPtr(
+        op.source().get_access_ptr(),
+        op.source().get_allocation_shape()[2] * op.source().get_element_size(),
+        op.source().get_allocation_shape()[2], op.source().get_allocation_shape()[1]);
+    params.dstPtr = make_hipPitchedPtr(
+        op.dest().get_access_ptr(),
+        op.dest().get_allocation_shape()[2] * op.dest().get_element_size(),
+        op.dest().get_allocation_shape()[2], op.dest().get_allocation_shape()[1]);
+    params.extent = {
+        op.get_num_transferred_elements()[2] * op.source().get_element_size(),
+        op.get_num_transferred_elements()[1], op.get_num_transferred_elements()[0]};
     params.kind = copy_kind;
 
     err = hipMemcpy3DAsync(&params, get_stream());
   }
 
   if (err != hipSuccess) {
-    return make_error(__hipsycl_here(),
-                      error_info{"hip_queue: Couldn't submit memcpy",
-                                 error_code{"HIP", err}});
+    return make_error(__hipsycl_here(), error_info{"hip_queue: Couldn't submit memcpy",
+                                                   error_code{"HIP", err}});
   }
 
   return make_success();
@@ -223,35 +213,35 @@ result hip_queue::submit_memcpy(const memcpy_operation & op, dag_node_ptr) {
 result hip_queue::submit_kernel(const kernel_operation &op, dag_node_ptr node) {
 
   this->activate_device();
-  rt::backend_kernel_launcher *l =
-      op.get_launcher().find_launcher(backend_id::hip);
-  
+  rt::backend_kernel_launcher *l = op.get_launcher().find_launcher(backend_id::hip);
+
   if (!l)
-    return make_error(__hipsycl_here(), error_info{"Could not obtain backend kernel launcher"});
-  
+    return make_error(__hipsycl_here(),
+                      error_info{"Could not obtain backend kernel launcher"});
+
   l->set_params(this);
   l->invoke(node.get());
 
   return make_success();
 }
 
-result hip_queue::submit_prefetch(const prefetch_operation& op, dag_node_ptr) {
+result hip_queue::submit_prefetch(const prefetch_operation &op, dag_node_ptr) {
 
 #ifndef HIPSYCL_RT_NO_HIP_MANAGED_MEMORY
   hipError_t err = hipSuccess;
-  
+
   if (op.get_target().is_host()) {
-    err = hipMemPrefetchAsync(op.get_pointer(), op.get_num_bytes(),
-                              hipCpuDeviceId, get_stream());
+    err = hipMemPrefetchAsync(op.get_pointer(), op.get_num_bytes(), hipCpuDeviceId,
+                              get_stream());
   } else {
-    err = hipMemPrefetchAsync(op.get_pointer(), op.get_num_bytes(),
-                              _dev.get_id(), get_stream());
+    err = hipMemPrefetchAsync(op.get_pointer(), op.get_num_bytes(), _dev.get_id(),
+                              get_stream());
   }
 
   if (err != hipSuccess) {
-    return make_error(__hipsycl_here(),
-                      error_info{"hip_queue: hipMemPrefetchAsync() failed",
-                                 error_code{"HIP", err}});
+    return make_error(
+        __hipsycl_here(),
+        error_info{"hip_queue: hipMemPrefetchAsync() failed", error_code{"HIP", err}});
   }
 #else
   // HIP does not yet support prefetching functions
@@ -265,13 +255,12 @@ result hip_queue::submit_prefetch(const prefetch_operation& op, dag_node_ptr) {
 
 result hip_queue::submit_memset(const memset_operation &op, dag_node_ptr) {
 
-  hipError_t err = hipMemsetAsync(op.get_pointer(), op.get_pattern(),
-                                  op.get_num_bytes(), get_stream());
+  hipError_t err = hipMemsetAsync(op.get_pointer(), op.get_pattern(), op.get_num_bytes(),
+                                  get_stream());
 
   if (err != hipSuccess) {
-    return make_error(__hipsycl_here(),
-                      error_info{"hip_queue: hipMemsetAsync() failed",
-                                 error_code{"HIP", err}});
+    return make_error(__hipsycl_here(), error_info{"hip_queue: hipMemsetAsync() failed",
+                                                   error_code{"HIP", err}});
   }
 
   return make_success();
@@ -282,12 +271,12 @@ result hip_queue::submit_memset(const memset_operation &op, dag_node_ptr) {
 result hip_queue::submit_queue_wait_for(std::shared_ptr<dag_node_event> evt) {
   assert(dynamic_is<hip_node_event>(evt.get()));
 
-  hip_node_event* hip_evt = cast<hip_node_event>(evt.get());
-  auto err = hipStreamWaitEvent(_stream, hip_evt->get_event(), 0);
+  hip_node_event *hip_evt = cast<hip_node_event>(evt.get());
+  auto            err     = hipStreamWaitEvent(_stream, hip_evt->get_event(), 0);
   if (err != hipSuccess) {
-    return make_error(__hipsycl_here(),
-                      error_info{"hip_queue: hipStreamWaitEvent() failed",
-                                 error_code{"HIP", err}});
+    return make_error(
+        __hipsycl_here(),
+        error_info{"hip_queue: hipStreamWaitEvent() failed", error_code{"HIP", err}});
   }
 
   return make_success();
@@ -295,33 +284,33 @@ result hip_queue::submit_queue_wait_for(std::shared_ptr<dag_node_event> evt) {
 
 result hip_queue::submit_external_wait_for(dag_node_ptr node) {
 
-  dag_node_ptr* user_data = new dag_node_ptr;
+  dag_node_ptr *user_data = new dag_node_ptr;
   assert(user_data);
   *user_data = node;
 
-  auto err = 
-      hipStreamAddCallback(_stream, host_synchronization_callback,
-                           reinterpret_cast<void *>(user_data), 0);
+  auto err = hipStreamAddCallback(_stream, host_synchronization_callback,
+                                  reinterpret_cast<void *>(user_data), 0);
 
   if (err != hipSuccess) {
-    return make_error(__hipsycl_here(),
-                   error_info{"hip_queue: Couldn't submit stream callback",
-                              error_code{"HIP", err}});
+    return make_error(
+        __hipsycl_here(),
+        error_info{"hip_queue: Couldn't submit stream callback", error_code{"HIP", err}});
   }
-  
+
   return make_success();
 }
 
-device_id hip_queue::get_device() const { return _dev; }
+device_id hip_queue::get_device() const {
+  return _dev;
+}
 
 void *hip_queue::get_native_type() const {
-  return static_cast<void*>(get_stream());
+  return static_cast<void *>(get_stream());
 }
 
 module_invoker *hip_queue::get_module_invoker() {
   return nullptr;
 }
 
-}
-}
-
+} // namespace rt
+} // namespace hipsycl

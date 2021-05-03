@@ -54,23 +54,20 @@ ze_backend::ze_backend() {
   ze_result_t err = zeInit(0);
 
   if (err != ZE_RESULT_SUCCESS) {
-    print_warning(__hipsycl_here(),
-                  error_info{"ze_backend: Call to zeInit() failed",
-                            error_code{"ze", static_cast<int>(err)}});
+    print_warning(__hipsycl_here(), error_info{"ze_backend: Call to zeInit() failed",
+                                               error_code{"ze", static_cast<int>(err)}});
   }
 
   _hardware_manager = std::make_unique<ze_hardware_manager>();
-  for(std::size_t i = 0; i < _hardware_manager->get_num_devices(); ++i) {
-    _allocators.push_back(ze_allocator{
-        static_cast<ze_hardware_context *>(_hardware_manager->get_device(i)),
-        _hardware_manager.get()});
+  for (std::size_t i = 0; i < _hardware_manager->get_num_devices(); ++i) {
+    _allocators.push_back(
+        ze_allocator{static_cast<ze_hardware_context *>(_hardware_manager->get_device(i)),
+                     _hardware_manager.get()});
   }
 
-  _executor = std::make_unique<multi_queue_executor>(
-      *this, [this](device_id dev) {
-        return std::make_unique<ze_queue>(this->_hardware_manager.get(),
-                                          dev.get_id());
-      });
+  _executor = std::make_unique<multi_queue_executor>(*this, [this](device_id dev) {
+    return std::make_unique<ze_queue>(this->_hardware_manager.get(), dev.get_id());
+  });
 }
 
 api_platform ze_backend::get_api_platform() const {
@@ -84,12 +81,12 @@ hardware_platform ze_backend::get_hardware_platform() const {
 backend_id ze_backend::get_unique_backend_id() const {
   return backend_id::level_zero;
 }
-  
-backend_hardware_manager* ze_backend::get_hardware_manager() const {
+
+backend_hardware_manager *ze_backend::get_hardware_manager() const {
   return _hardware_manager.get();
 }
 
-backend_executor* ze_backend::get_executor(device_id dev) const {
+backend_executor *ze_backend::get_executor(device_id dev) const {
   return _executor.get();
 }
 
@@ -103,5 +100,5 @@ std::string ze_backend::get_name() const {
   return "Level Zero";
 }
 
-}
-}
+} // namespace rt
+} // namespace hipsycl

@@ -44,52 +44,50 @@ class ze_queue;
 
 class ze_module_invoker : public module_invoker {
 public:
-  ze_module_invoker(ze_queue* queue)
-  : _queue{queue} {}
+  ze_module_invoker(ze_queue *queue) : _queue{queue} {}
 
-  virtual result
-  submit_kernel(module_id_t id, const std::string &module_variant,
-                const std::string *module_image, const rt::range<3> &num_groups,
-                const rt::range<3>& group_size, unsigned local_mem_size,
-                void **args, std::size_t* arg_sizes, std::size_t num_args,
-                const std::string &kernel_name_tag,
-                const std::string &kernel_body_name) override;
+  virtual result submit_kernel(module_id_t id, const std::string &module_variant,
+                               const std::string * module_image,
+                               const rt::range<3> &num_groups,
+                               const rt::range<3> &group_size, unsigned local_mem_size,
+                               void **args, std::size_t *arg_sizes, std::size_t num_args,
+                               const std::string &kernel_name_tag,
+                               const std::string &kernel_body_name) override;
+
 private:
-  ze_queue* _queue;
+  ze_queue *_queue;
 };
 
 class ze_module {
 public:
   ze_module(ze_context_handle_t ctx, ze_device_handle_t dev, module_id_t id,
-            const std::string& variant, const std::string *module_image);
+            const std::string &variant, const std::string *module_image);
 
   ~ze_module();
-  
-  ze_module(const ze_module&) = delete;
-  ze_module& operator=(const ze_module&) = delete;
+
+  ze_module(const ze_module &) = delete;
+  ze_module &operator=(const ze_module &) = delete;
 
   ze_module_handle_t get_handle() const;
-  module_id_t get_id() const;
+  module_id_t        get_id() const;
   ze_device_handle_t get_device() const;
-  result get_build_status() const;
-  const std::string& get_variant() const;
+  result             get_build_status() const;
+  const std::string &get_variant() const;
 
-  result obtain_kernel(const std::string& name, ze_kernel_handle_t& out) const;
-  result obtain_kernel(const std::string &name,
-                       const std::string &fallback_name,
+  result obtain_kernel(const std::string &name, ze_kernel_handle_t &out) const;
+  result obtain_kernel(const std::string &name, const std::string &fallback_name,
                        ze_kernel_handle_t &out) const;
 
 private:
-
-  result _build_status;
-  module_id_t _id;
-  std::string _variant;
-  ze_device_handle_t _dev;
-  ze_module_handle_t _handle;
+  result                                                          _build_status;
+  module_id_t                                                     _id;
+  std::string                                                     _variant;
+  ze_device_handle_t                                              _dev;
+  ze_module_handle_t                                              _handle;
   mutable std::vector<std::pair<std::string, ze_kernel_handle_t>> _kernels;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

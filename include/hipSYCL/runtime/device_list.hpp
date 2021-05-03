@@ -50,30 +50,28 @@ public:
   }
 
   void add(const unique_device_list &other) {
-    other.for_each_device([this](rt::device_id dev) {
-      add(dev);
-    });
+    other.for_each_device([this](rt::device_id dev) { add(dev); });
   }
 
-  template <class F> void for_each_device(F f) const {
+  template<class F>
+  void for_each_device(F f) const {
     for (const device_id &dev : _devices) {
       f(dev);
     }
   }
 
-  template <class F> void for_each_backend(F f) const {
+  template<class F>
+  void for_each_backend(F f) const {
     for (const backend_id &b : _backends) {
       f(b);
     }
   }
 
-  friend bool operator==(const unique_device_list &a,
-                         const unique_device_list &b) {
+  friend bool operator==(const unique_device_list &a, const unique_device_list &b) {
     return a._devices == b._devices;
   }
 
-  friend bool operator!=(const unique_device_list &a,
-                         const unique_device_list &b) {
+  friend bool operator!=(const unique_device_list &a, const unique_device_list &b) {
     return !(a == b);
   }
 
@@ -84,39 +82,40 @@ public:
       if (application::get_backend(b).get_hardware_platform() == plat)
         ++count;
     });
-    
+
     return count;
   }
 
   std::size_t get_num_backends() const { return _backends.size(); }
 
   using backend_iterator = std::vector<backend_id>::const_iterator;
-  using device_iterator = std::vector<device_id>::const_iterator;
+  using device_iterator  = std::vector<device_id>::const_iterator;
 
   backend_iterator backends_begin() const { return _backends.begin(); }
   backend_iterator backends_end() const { return _backends.end(); }
-  device_iterator devices_begin() const { return _devices.begin(); }
-  device_iterator devices_end() const { return _devices.end(); }
+  device_iterator  devices_begin() const { return _devices.begin(); }
+  device_iterator  devices_end() const { return _devices.end(); }
 
-  template <class UnaryPredicate>
+  template<class UnaryPredicate>
   device_iterator find_first_device(UnaryPredicate p) const {
     return std::find_if(devices_begin(), devices_end(), p);
   }
 
-  template <class UnaryPredicate>
+  template<class UnaryPredicate>
   backend_iterator find_first_backend(UnaryPredicate p) const {
     return std::find_if(backends_begin(), backends_end(), p);
   }
 
-  bool contains_device(const device_id& dev) const {
+  bool contains_device(const device_id &dev) const {
     return std::find(_devices.begin(), _devices.end(), dev) != _devices.end();
   }
+
 private:
-  std::vector<device_id> _devices;
+  std::vector<device_id>  _devices;
   std::vector<backend_id> _backends;
 };
 
-}
+} // namespace rt
 } // namespace hipsycl
 
 #endif

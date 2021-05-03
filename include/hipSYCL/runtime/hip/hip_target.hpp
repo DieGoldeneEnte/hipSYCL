@@ -28,8 +28,7 @@
 #ifndef HIPSYCL_HIP_TARGET_HPP
 #define HIPSYCL_HIP_TARGET_HPP
 
-#if !defined(HIPSYCL_RT_HIP_TARGET_CUDA) &&                                    \
-    !defined(HIPSYCL_RT_HIP_TARGET_ROCM) &&                                    \
+#if !defined(HIPSYCL_RT_HIP_TARGET_CUDA) && !defined(HIPSYCL_RT_HIP_TARGET_ROCM) && \
     !defined(HIPSYCL_RT_HIP_TARGET_HIPCPU)
 
 #define HIPSYCL_RT_HIP_TARGET_ROCM

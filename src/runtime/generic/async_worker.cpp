@@ -34,35 +34,29 @@
 namespace hipsycl {
 namespace rt {
 
-worker_thread::worker_thread()
-    : _continue{true}
-{
-  _worker_thread = std::thread{[this](){ work(); } };
+worker_thread::worker_thread() : _continue{true} {
+  _worker_thread = std::thread{[this]() { work(); }};
 }
 
 
-worker_thread::~worker_thread()
-{
+worker_thread::~worker_thread() {
   halt();
 
   assert(_enqueued_operations.empty());
 }
 
-void worker_thread::wait()
-{
+void worker_thread::wait() {
   std::unique_lock<std::mutex> lock(_mutex);
-  if(!_enqueued_operations.empty())
-  {
+  if (!_enqueued_operations.empty()) {
     // Before going to sleep, wake up the other thread to avoid deadlocks
     _condition_wait.notify_one();
     // Wait until no operation is pending
-    _condition_wait.wait(lock, [this]{return _enqueued_operations.empty();});
+    _condition_wait.wait(lock, [this] { return _enqueued_operations.empty(); });
   }
 }
 
 
-void worker_thread::halt()
-{
+void worker_thread::halt() {
   wait();
 
   {
@@ -70,18 +64,16 @@ void worker_thread::halt()
     _continue = false;
     _condition_wait.notify_one();
   }
-  if(_worker_thread.joinable())
+  if (_worker_thread.joinable())
     _worker_thread.join();
 }
 
-void worker_thread::work()
-{
+void worker_thread::work() {
   // This is the main function executed by the worker thread.
   // The loop is executed as long as there are enqueued operations,
   // (_is_operation_pending) or we should wait for new operations
   // (_continue).
-  while(_continue || _enqueued_operations.size() > 0)
-  {
+  while (_continue || _enqueued_operations.size() > 0) {
     {
       std::unique_lock<std::mutex> lock(_mutex);
 
@@ -89,21 +81,18 @@ void worker_thread::work()
       // for the queue to get empty
       _condition_wait.notify_one();
       // Wait until we have work, or until _continue becomes false
-      _condition_wait.wait(lock,
-                           [this](){
-        return _enqueued_operations.size()>0 || !_continue;
-      });
+      _condition_wait.wait(
+          lock, [this]() { return _enqueued_operations.size() > 0 || !_continue; });
     }
 
     // In any way, process the pending operations
 
-    async_function operation = [](){};
+    async_function operation = []() {};
 
     {
       std::lock_guard<std::mutex> lock(_mutex);
 
-      if(!_enqueued_operations.empty())
-      {
+      if (!_enqueued_operations.empty()) {
         operation = _enqueued_operations.front();
         _enqueued_operations.pop();
       }
@@ -112,12 +101,10 @@ void worker_thread::work()
     operation();
 
     _condition_wait.notify_one();
-
   }
 }
 
-void worker_thread::operator()(worker_thread::async_function f)
-{
+void worker_thread::operator()(worker_thread::async_function f) {
   std::unique_lock<std::mutex> lock(_mutex);
 
   _enqueued_operations.push(f);
@@ -126,12 +113,11 @@ void worker_thread::operator()(worker_thread::async_function f)
   _condition_wait.notify_one();
 }
 
-std::size_t worker_thread::queue_size() const
-{
+std::size_t worker_thread::queue_size() const {
   std::lock_guard<std::mutex> lock(_mutex);
   return _enqueued_operations.size();
 }
 
 
-}
-}
+} // namespace rt
+} // namespace hipsycl

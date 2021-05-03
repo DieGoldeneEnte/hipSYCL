@@ -35,11 +35,10 @@ namespace rt {
 /// The cuda_device_manager acts as a wrapper for this functionality.
 /// It is implemented as a per-thread singleton and assumes that
 /// no external calls to cudaSetDevice() are made by the user.
-class cuda_device_manager
-{
+class cuda_device_manager {
 public:
   void activate_device(int device_id);
-  int get_active_device() const;
+  int  get_active_device() const;
 
   static cuda_device_manager &get() {
     static thread_local cuda_device_manager instance;
@@ -52,7 +51,7 @@ private:
   cuda_device_manager();
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

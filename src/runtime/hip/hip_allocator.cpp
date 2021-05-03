@@ -33,19 +33,16 @@ namespace hipsycl {
 namespace rt {
 
 hip_allocator::hip_allocator(backend_descriptor desc, int hip_device)
-    : _backend_descriptor{desc}, _dev{hip_device}
-{}
-      
-void *hip_allocator::allocate(size_t min_alignment, size_t size_bytes)
-{
+    : _backend_descriptor{desc}, _dev{hip_device} {}
+
+void *hip_allocator::allocate(size_t min_alignment, size_t size_bytes) {
   void *ptr;
-  auto err = hipSetDevice(_dev);
-  err = hipMalloc(&ptr, size_bytes);
+  auto  err = hipSetDevice(_dev);
+  err       = hipMalloc(&ptr, size_bytes);
 
   if (err != hipSuccess) {
     register_error(__hipsycl_here(),
-                   error_info{"hip_allocator: hipMalloc() failed",
-                              error_code{"HIP", err},
+                   error_info{"hip_allocator: hipMalloc() failed", error_code{"HIP", err},
                               error_type::memory_allocation_error});
     return nullptr;
   }
@@ -53,18 +50,16 @@ void *hip_allocator::allocate(size_t min_alignment, size_t size_bytes)
   return ptr;
 }
 
-void *hip_allocator::allocate_optimized_host(size_t min_alignment,
-                                             size_t bytes) {
+void *hip_allocator::allocate_optimized_host(size_t min_alignment, size_t bytes) {
   void *ptr;
-  auto err = hipSetDevice(_dev);
+  auto  err = hipSetDevice(_dev);
 
   err = hipHostMalloc(&ptr, bytes, hipHostMallocDefault);
 
   if (err != hipSuccess) {
-    register_error(__hipsycl_here(),
-                   error_info{"hip_allocator: hipHostMalloc() failed",
-                              error_code{"HIP", err},
-                              error_type::memory_allocation_error});
+    register_error(__hipsycl_here(), error_info{"hip_allocator: hipHostMalloc() failed",
+                                                error_code{"HIP", err},
+                                                error_type::memory_allocation_error});
     return nullptr;
   }
   return ptr;
@@ -73,31 +68,29 @@ void *hip_allocator::allocate_optimized_host(size_t min_alignment,
 void hip_allocator::free(void *mem) {
 
   pointer_info info;
-  result query_result = query_pointer(mem, info);
+  result       query_result = query_pointer(mem, info);
 
   if (!query_result.is_success()) {
     register_error(query_result);
     return;
   }
-  
+
   hipError_t err;
   if (info.is_optimized_host)
     err = hipHostFree(mem);
   else
     err = hipFree(mem);
-  
+
   if (err != hipSuccess) {
     register_error(__hipsycl_here(),
-                   error_info{"hip_allocator: hipFree() failed",
-                              error_code{"HIP", err},
+                   error_info{"hip_allocator: hipFree() failed", error_code{"HIP", err},
                               error_type::memory_allocation_error});
   }
 }
 
-void * hip_allocator::allocate_usm(size_t bytes)
-{
+void *hip_allocator::allocate_usm(size_t bytes) {
   void *ptr;
-  auto err = hipMallocManaged(&ptr, bytes);
+  auto  err = hipMallocManaged(&ptr, bytes);
   if (err != hipSuccess) {
     register_error(__hipsycl_here(),
                    error_info{"hip_allocator: hipMallocManaged() failed",
@@ -109,15 +102,13 @@ void * hip_allocator::allocate_usm(size_t bytes)
   return ptr;
 }
 
-bool hip_allocator::is_usm_accessible_from(backend_descriptor b) const
-{
+bool hip_allocator::is_usm_accessible_from(backend_descriptor b) const {
   // TODO: Formulate this better - this assumes that either CUDA+CPU or
   // ROCm + CPU are active at the same time
   return true;
 }
 
-result hip_allocator::query_pointer(const void *ptr, pointer_info &out) const
-{
+result hip_allocator::query_pointer(const void *ptr, pointer_info &out) const {
   hipPointerAttribute_t attribs;
 
   auto err = hipPointerGetAttributes(&attribs, ptr);
@@ -127,18 +118,16 @@ result hip_allocator::query_pointer(const void *ptr, pointer_info &out) const
       return make_error(
           __hipsycl_here(),
           error_info{"hip_allocator: query_pointer(): pointer is unknown by backend",
-                     error_code{"HIP", err},
-                     error_type::invalid_parameter_error});
+                     error_code{"HIP", err}, error_type::invalid_parameter_error});
     else
-      return make_error(
-          __hipsycl_here(),
-          error_info{"hip_allocator: query_pointer(): query failed",
-                     error_code{"HIP", err}});
+      return make_error(__hipsycl_here(),
+                        error_info{"hip_allocator: query_pointer(): query failed",
+                                   error_code{"HIP", err}});
   }
 
-  out.dev = rt::device_id{_backend_descriptor, attribs.device};
+  out.dev                  = rt::device_id{_backend_descriptor, attribs.device};
   out.is_from_host_backend = false;
-  out.is_optimized_host = attribs.memoryType == hipMemoryTypeHost;
+  out.is_optimized_host    = attribs.memoryType == hipMemoryTypeHost;
 #ifndef HIPSYCL_RT_NO_HIP_MANAGED_MEMORY
   out.is_usm = attribs.isManaged;
 #else
@@ -148,27 +137,24 @@ result hip_allocator::query_pointer(const void *ptr, pointer_info &out) const
   // hipMallocManaged().
   out.is_usm = attribs.memoryType == hipMemoryTypeUnified;
 #endif
-  
+
   return make_success();
 }
 
 result hip_allocator::mem_advise(const void *addr, std::size_t num_bytes,
-                                int advise) const {
+                                 int advise) const {
 #ifndef HIPSYCL_RT_NO_HIP_MANAGED_MEMORY
-  hipError_t err = hipMemAdvise(addr, num_bytes,
-                                static_cast<hipMemoryAdvise>(advise), _dev);
-  if(err != hipSuccess) {
-    return make_error(
-      __hipsycl_here(),
-      error_info{"hip_allocator: hipMemAdvise() failed", error_code{"HIP", err}}
-    );
+  hipError_t err =
+      hipMemAdvise(addr, num_bytes, static_cast<hipMemoryAdvise>(advise), _dev);
+  if (err != hipSuccess) {
+    return make_error(__hipsycl_here(), error_info{"hip_allocator: hipMemAdvise() failed",
+                                                   error_code{"HIP", err}});
   }
 #else
-  HIPSYCL_DEBUG_WARNING << "hip_allocator: Ignoring mem_advise() hint"
-                        << std::endl;
+  HIPSYCL_DEBUG_WARNING << "hip_allocator: Ignoring mem_advise() hint" << std::endl;
 #endif
   return make_success();
 }
 
-}
-}
+} // namespace rt
+} // namespace hipsycl

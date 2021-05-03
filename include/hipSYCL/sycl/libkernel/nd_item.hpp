@@ -53,18 +53,16 @@ using host_barrier_type = void;
 #else
 using host_barrier_type = std::function<void()>;
 #endif
-}
+} // namespace detail
 
 class handler;
 
-template <int dimensions = 1>
-struct nd_item
-{
+template<int dimensions = 1>
+struct nd_item {
   /* -- common interface members -- */
 
   HIPSYCL_KERNEL_TARGET
-  id<dimensions> get_global_id() const
-  {
+  id<dimensions> get_global_id() const {
 #ifdef HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
     return detail::get_global_id<dimensions>() + (*_offset);
 #else
@@ -73,8 +71,7 @@ struct nd_item
   }
 
   HIPSYCL_KERNEL_TARGET
-  size_t get_global_id(int dimension) const
-  {
+  size_t get_global_id(int dimension) const {
 #ifdef HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
     return detail::get_global_id<dimensions>(dimension) + _offset->get(dimension);
 #else
@@ -82,62 +79,41 @@ struct nd_item
 #endif
   }
 
-  [[deprecated]]
-  HIPSYCL_KERNEL_TARGET
-  size_t get_global(int dimension) const
-  {
-    return this->get_global_id(dimension);
-  }
+  [[deprecated]] HIPSYCL_KERNEL_TARGET
+  size_t get_global(int dimension) const { return this->get_global_id(dimension); }
 
-  [[deprecated]]
-  HIPSYCL_KERNEL_TARGET
-  id<dimensions> get_global() const
-  {
-    return this->get_global_id();
-  }
+  [[deprecated]] HIPSYCL_KERNEL_TARGET
+  id<dimensions> get_global() const { return this->get_global_id(); }
 
   HIPSYCL_KERNEL_TARGET
-  size_t get_global_linear_id() const
-  {
+  size_t get_global_linear_id() const {
     return detail::linear_id<dimensions>::get(get_global_id(), get_global_range());
   }
 
-  HIPSYCL_KERNEL_TARGET friend bool operator ==(const nd_item<dimensions>& lhs, const nd_item<dimensions>& rhs)
-  {
-    #if defined(HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO)
-      return  lhs._offset == rhs._offset;
-    #else
-      return  lhs._group_id == rhs._group_id &&
-              lhs._offset == rhs._offset &&
-              lhs._local_id == rhs._local_id &&
-              lhs._global_id == rhs._global_id &&
-              lhs._num_groups == rhs._num_groups &&
-              lhs._local_range == rhs._local_range;
-    #endif
-  }
-
-  HIPSYCL_KERNEL_TARGET friend bool operator !=(const nd_item<dimensions>& lhs, const nd_item<dimensions>& rhs)
-  {
-    return !(lhs==rhs);
-  }
-
-  [[deprecated]]
   HIPSYCL_KERNEL_TARGET
-  id<dimensions> get_local() const
-  {
-    return this->get_local_id();
-  }
-
-  [[deprecated]] 
-  HIPSYCL_KERNEL_TARGET
-  size_t get_local(int dimension) const
-  {
-    return this->get_local_id(dimension);
+  friend bool operator==(const nd_item<dimensions> &lhs, const nd_item<dimensions> &rhs) {
+#if defined(HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO)
+    return lhs._offset == rhs._offset;
+#else
+    return lhs._group_id == rhs._group_id && lhs._offset == rhs._offset &&
+           lhs._local_id == rhs._local_id && lhs._global_id == rhs._global_id &&
+           lhs._num_groups == rhs._num_groups && lhs._local_range == rhs._local_range;
+#endif
   }
 
   HIPSYCL_KERNEL_TARGET
-  size_t get_local_id(int dimension) const
-  {
+  friend bool operator!=(const nd_item<dimensions> &lhs, const nd_item<dimensions> &rhs) {
+    return !(lhs == rhs);
+  }
+
+  [[deprecated]] HIPSYCL_KERNEL_TARGET
+  id<dimensions> get_local() const { return this->get_local_id(); }
+
+  [[deprecated]] HIPSYCL_KERNEL_TARGET
+  size_t get_local(int dimension) const { return this->get_local_id(dimension); }
+
+  HIPSYCL_KERNEL_TARGET
+  size_t get_local_id(int dimension) const {
 #ifdef HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
     return detail::get_local_id<dimensions>(dimension);
 #else
@@ -146,8 +122,7 @@ struct nd_item
   }
 
   HIPSYCL_KERNEL_TARGET
-  id<dimensions> get_local_id() const
-  {
+  id<dimensions> get_local_id() const {
 #ifdef HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
     return detail::get_local_id<dimensions>();
 #else
@@ -156,24 +131,22 @@ struct nd_item
   }
 
   HIPSYCL_KERNEL_TARGET
-  size_t get_local_linear_id() const
-  {
+  size_t get_local_linear_id() const {
     return detail::linear_id<dimensions>::get(get_local_id(), get_local_range());
   }
 
   HIPSYCL_KERNEL_TARGET
-  group<dimensions> get_group() const
-  {
+  group<dimensions> get_group() const {
 #ifdef HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
     return group<dimensions>{};
 #else
-    return group<dimensions>{_group_id, _local_range, _num_groups, _group_barrier, get_local_id(), _local_memory_ptr};
+    return group<dimensions>{_group_id,      _local_range,   _num_groups,
+                             _group_barrier, get_local_id(), _local_memory_ptr};
 #endif
   }
 
   HIPSYCL_KERNEL_TARGET
-  size_t get_group(int dimension) const
-  {
+  size_t get_group(int dimension) const {
 #ifdef HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
     return detail::get_group_id<dimensions>(dimension);
 #else
@@ -182,8 +155,7 @@ struct nd_item
   }
 
   HIPSYCL_KERNEL_TARGET
-  size_t get_group_linear_id() const
-  {
+  size_t get_group_linear_id() const {
 #ifdef HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
     return detail::linear_id<dimensions>::get(detail::get_group_id<dimensions>(),
                                               detail::get_grid_size<dimensions>());
@@ -193,14 +165,10 @@ struct nd_item
   }
 
   HIPSYCL_KERNEL_TARGET
-  sub_group get_sub_group() const
-  {
-    return sub_group{};
-  }
+  sub_group get_sub_group() const { return sub_group{}; }
 
   HIPSYCL_KERNEL_TARGET
-  range<dimensions> get_global_range() const
-  {
+  range<dimensions> get_global_range() const {
 #ifdef HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
     return detail::get_global_size<dimensions>();
 #else
@@ -209,8 +177,7 @@ struct nd_item
   }
 
   HIPSYCL_KERNEL_TARGET
-  size_t get_global_range(int dimension) const
-  {
+  size_t get_global_range(int dimension) const {
 #ifdef HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
     return detail::get_global_size<dimensions>(dimension);
 #else
@@ -219,8 +186,7 @@ struct nd_item
   }
 
   HIPSYCL_KERNEL_TARGET
-  range<dimensions> get_local_range() const
-  {
+  range<dimensions> get_local_range() const {
 #ifdef HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
     return detail::get_local_size<dimensions>();
 #else
@@ -229,18 +195,16 @@ struct nd_item
   }
 
   HIPSYCL_KERNEL_TARGET
-  size_t get_local_range(int dimension) const
-  {
+  size_t get_local_range(int dimension) const {
 #ifdef HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
     return detail::get_local_size<dimensions>(dimension);
 #else
     return this->_local_range[dimension];
 #endif
   }
-  
+
   HIPSYCL_KERNEL_TARGET
-  range<dimensions> get_group_range() const
-  {
+  range<dimensions> get_group_range() const {
 #ifdef HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
     return detail::get_grid_size<dimensions>();
 #else
@@ -249,8 +213,7 @@ struct nd_item
   }
 
   HIPSYCL_KERNEL_TARGET
-  size_t get_group_range(int dimension) const
-  {
+  size_t get_group_range(int dimension) const {
 #ifdef HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
     return detail::get_grid_size<dimensions>(dimension);
 #else
@@ -259,31 +222,21 @@ struct nd_item
   }
 
   HIPSYCL_KERNEL_TARGET
-  id<dimensions> get_offset() const
-  {
-    return *_offset;
-  }
+  id<dimensions> get_offset() const { return *_offset; }
 
   HIPSYCL_KERNEL_TARGET
-  nd_range<dimensions> get_nd_range() const
-  {
+  nd_range<dimensions> get_nd_range() const {
 #ifdef HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO
     return nd_range<dimensions>{detail::get_global_size<dimensions>(),
-                                detail::get_local_size<dimensions>(),
-                                get_offset()};
+                                detail::get_local_size<dimensions>(), get_offset()};
 #else
-    return nd_range<dimensions>{
-      this->_num_groups * this->_local_range,
-      this->_local_range,
-      this->get_offset()
-    };
+    return nd_range<dimensions>{this->_num_groups * this->_local_range,
+                                this->_local_range, this->get_offset()};
 #endif
   }
 
   HIPSYCL_KERNEL_TARGET
-  void barrier(access::fence_space space =
-      access::fence_space::global_and_local) const
-  {
+  void barrier(access::fence_space space = access::fence_space::global_and_local) const {
 #ifdef SYCL_DEVICE_ONLY
     detail::local_device_barrier(space);
 #else
@@ -291,75 +244,60 @@ struct nd_item
 #endif
   }
 
-  template <access::mode accessMode = access::mode::read_write>
+  template<access::mode accessMode = access::mode::read_write>
   HIPSYCL_KERNEL_TARGET
-  void mem_fence(access::fence_space accessSpace =
-      access::fence_space::global_and_local) const
-  {
+  void mem_fence(
+      access::fence_space accessSpace = access::fence_space::global_and_local) const {
     detail::mem_fence<accessMode>(accessSpace);
   }
 
-  template <typename dataT>
+  template<typename dataT>
   HIPSYCL_KERNEL_TARGET
-  device_event async_work_group_copy(local_ptr<dataT> dest,
-                                     global_ptr<dataT> src, size_t numElements) const
-  {
+  device_event async_work_group_copy(local_ptr<dataT> dest, global_ptr<dataT> src,
+                                     size_t numElements) const {
     return get_group().async_work_group_copy(dest, src, numElements);
   }
 
-  template <typename dataT>
+  template<typename dataT>
   HIPSYCL_KERNEL_TARGET
-  device_event async_work_group_copy(global_ptr<dataT> dest,
-                                     local_ptr<dataT> src, size_t numElements) const
-  {
+  device_event async_work_group_copy(global_ptr<dataT> dest, local_ptr<dataT> src,
+                                     size_t numElements) const {
     return get_group().async_work_group_copy(dest, src, numElements);
   }
 
-  template <typename dataT>
+  template<typename dataT>
   HIPSYCL_KERNEL_TARGET
-  device_event async_work_group_copy(local_ptr<dataT> dest,
-                                     global_ptr<dataT> src, size_t numElements, size_t srcStride) const
-  {
-    return get_group().async_work_group_copy(dest,
-                                      src, numElements, srcStride);
+  device_event async_work_group_copy(local_ptr<dataT> dest, global_ptr<dataT> src,
+                                     size_t numElements, size_t srcStride) const {
+    return get_group().async_work_group_copy(dest, src, numElements, srcStride);
   }
 
-  template <typename dataT>
+  template<typename dataT>
   HIPSYCL_KERNEL_TARGET
-  device_event async_work_group_copy(global_ptr<dataT> dest,
-                                     local_ptr<dataT> src, size_t numElements, size_t destStride) const
-  {
+  device_event async_work_group_copy(global_ptr<dataT> dest, local_ptr<dataT> src,
+                                     size_t numElements, size_t destStride) const {
     return get_group().async_work_group_copy(dest, src, numElements, destStride);
   }
 
-  template <typename... eventTN>
+  template<typename... eventTN>
   HIPSYCL_KERNEL_TARGET
-  void wait_for(eventTN... events) const
-  {
-    get_group().wait_for(events...);
-  }
+  void wait_for(eventTN... events) const { get_group().wait_for(events...); }
 
-  
+
 #if defined(HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO)
   HIPSYCL_KERNEL_TARGET
-  nd_item(const id<dimensions>* offset)
-    : _offset{offset}
-  {}
+  nd_item(const id<dimensions> *offset) : _offset{offset} {}
 #else
   HIPSYCL_KERNEL_TARGET
-  nd_item(id<dimensions>* offset, 
-          id<dimensions> group_id, id<dimensions> local_id, 
+  nd_item(id<dimensions> *offset, id<dimensions> group_id, id<dimensions> local_id,
           range<dimensions> local_range, range<dimensions> num_groups,
-          detail::host_barrier_type* host_group_barrier = nullptr,
-          void* local_memory_ptr = nullptr)
-    : _offset{offset}, 
-      _group_id{group_id}, 
-      _local_id{local_id}, 
-      _local_range{local_range},
-      _num_groups{num_groups},
-      _global_id{group_id * local_range + local_id},
-      _local_memory_ptr(local_memory_ptr)
-  {
+          detail::host_barrier_type *host_group_barrier = nullptr,
+          void *                     local_memory_ptr   = nullptr)
+      : _offset{offset}, _group_id{group_id}, _local_id{local_id},
+        _local_range{local_range}, _num_groups{num_groups}, _global_id{group_id *
+                                                                           local_range +
+                                                                       local_id},
+        _local_memory_ptr(local_memory_ptr) {
 #ifndef SYCL_DEVICE_ONLY
     _group_barrier = host_group_barrier;
 #endif
@@ -367,19 +305,19 @@ struct nd_item
 #endif
 
 private:
-  const id<dimensions>* _offset;
+  const id<dimensions> *_offset;
 
 #if !defined(HIPSYCL_ONDEMAND_ITERATION_SPACE_INFO)
-  const id<dimensions> _group_id;
-  const id<dimensions> _local_id;
+  const id<dimensions>    _group_id;
+  const id<dimensions>    _local_id;
   const range<dimensions> _local_range;
   const range<dimensions> _num_groups;
-  const id<dimensions> _global_id;
-  void *_local_memory_ptr;
+  const id<dimensions>    _global_id;
+  void *                  _local_memory_ptr;
 #endif
 
 #ifndef SYCL_DEVICE_ONLY
-  detail::host_barrier_type* _group_barrier;
+  detail::host_barrier_type *_group_barrier;
 #endif
 };
 

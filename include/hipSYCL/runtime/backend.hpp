@@ -44,56 +44,51 @@ class backend_allocator;
 class backend_hardware_manager;
 class hw_model;
 
-class backend
-{
+class backend {
 public:
-  virtual api_platform get_api_platform() const = 0;
+  virtual api_platform      get_api_platform() const      = 0;
   virtual hardware_platform get_hardware_platform() const = 0;
-  virtual backend_id get_unique_backend_id() const = 0;
+  virtual backend_id        get_unique_backend_id() const = 0;
 
-  virtual backend_hardware_manager* get_hardware_manager() const = 0;
-  virtual backend_executor* get_executor(device_id dev) const = 0;
-  virtual backend_allocator *get_allocator(device_id dev) const = 0;
+  virtual backend_hardware_manager *get_hardware_manager() const       = 0;
+  virtual backend_executor *        get_executor(device_id dev) const  = 0;
+  virtual backend_allocator *       get_allocator(device_id dev) const = 0;
 
   virtual std::string get_name() const = 0;
 
   virtual ~backend() {}
 
   backend_descriptor get_backend_descriptor() const {
-    return backend_descriptor{this->get_hardware_platform(),
-                              this->get_api_platform()};
+    return backend_descriptor{this->get_hardware_platform(), this->get_api_platform()};
   }
 };
 
-class backend_manager
-{
+class backend_manager {
 public:
-  using backend_list_type =
-      std::vector<std::unique_ptr<backend>>;
+  using backend_list_type = std::vector<std::unique_ptr<backend>>;
 
   backend_manager();
   ~backend_manager();
-  
-  backend* get(backend_id) const;
-  hw_model& hardware_model();
-  const hw_model& hardware_model() const;
+
+  backend *       get(backend_id) const;
+  hw_model &      hardware_model();
+  const hw_model &hardware_model() const;
 
   template<class F>
-  void for_each_backend(F f)
-  {
-    for(auto& b : _backends){
+  void for_each_backend(F f) {
+    for (auto &b : _backends) {
       f(b.get());
     }
   }
 
 private:
-  backend_loader _loader;
+  backend_loader    _loader;
   backend_list_type _backends;
 
   std::unique_ptr<hw_model> _hw_model;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

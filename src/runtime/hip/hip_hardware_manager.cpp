@@ -43,18 +43,16 @@ hip_hardware_manager::hip_hardware_manager(hardware_platform hw_platform)
   if (err != hipSuccess) {
     num_devices = 0;
 
-    if(err != hipErrorNoDevice){
-      print_warning(
-          __hipsycl_here(),
-          error_info{"hip_hardware_manager: Could not obtain number of devices",
-                    error_code{"HIP", err}});
+    if (err != hipErrorNoDevice) {
+      print_warning(__hipsycl_here(),
+                    error_info{"hip_hardware_manager: Could not obtain number of devices",
+                               error_code{"HIP", err}});
     }
   }
-  
+
   for (int dev = 0; dev < num_devices; ++dev) {
     _devices.push_back(hip_hardware_context{dev});
   }
-
 }
 
 
@@ -63,7 +61,7 @@ std::size_t hip_hardware_manager::get_num_devices() const {
 }
 
 hardware_context *hip_hardware_manager::get_device(std::size_t index) {
-  if (index >= _devices.size()){
+  if (index >= _devices.size()) {
     register_error(__hipsycl_here(),
                    error_info{"hip_hardware_manager: Attempt to access invalid "
                               "device detected."});
@@ -74,7 +72,7 @@ hardware_context *hip_hardware_manager::get_device(std::size_t index) {
 }
 
 device_id hip_hardware_manager::get_device_id(std::size_t index) const {
-  if (index >= _devices.size()){
+  if (index >= _devices.size()) {
     register_error(__hipsycl_here(),
                    error_info{"hip_hardware_manager: Attempt to access invalid "
                               "device detected."});
@@ -90,10 +88,9 @@ hip_hardware_context::hip_hardware_context(int dev) : _dev{dev} {
   auto err = hipGetDeviceProperties(&_properties, dev);
 
   if (err != hipSuccess) {
-    register_error(
-        __hipsycl_here(),
-        error_info{"hip_hardware_manager: Could not query device properties ",
-                   error_code{"HIP", err}});
+    register_error(__hipsycl_here(),
+                   error_info{"hip_hardware_manager: Could not query device properties ",
+                              error_code{"HIP", err}});
   }
 }
 
@@ -130,7 +127,7 @@ std::string hip_hardware_context::get_vendor_name() const {
 #elif defined(HIPSYCL_RT_HIP_TARGET_HIPCPU)
   return "hipCPU";
 #else
-  #error Unknwon HIP backend target
+#error Unknwon HIP backend target
 #endif
 }
 
@@ -192,8 +189,7 @@ bool hip_hardware_context::has(device_support_aspect aspect) const {
   std::terminate();
 }
 
-std::size_t
-hip_hardware_context::get_property(device_uint_property prop) const {
+std::size_t hip_hardware_context::get_property(device_uint_property prop) const {
   switch (prop) {
   case device_uint_property::max_compute_units:
     return _properties.multiProcessorCount;
@@ -333,11 +329,10 @@ hip_hardware_context::get_property(device_uint_property prop) const {
 }
 
 std::vector<std::size_t>
-hip_hardware_context::get_property(device_uint_list_property prop) const {
+    hip_hardware_context::get_property(device_uint_list_property prop) const {
   switch (prop) {
   case device_uint_list_property::sub_group_sizes:
-    return std::vector<std::size_t>{
-        static_cast<std::size_t>(_properties.warpSize)};
+    return std::vector<std::size_t>{static_cast<std::size_t>(_properties.warpSize)};
     break;
   }
   assert(false && "Invalid device property");
@@ -349,12 +344,11 @@ std::string hip_hardware_context::get_driver_version() const {
 
   auto err = hipDriverGetVersion(&driver_version);
   if (err != hipSuccess) {
-    register_error(
-        __hipsycl_here(),
-        error_info{"hip_hardware_manager: Querying driver version failed",
-                   error_code{"HIP", err}});
+    register_error(__hipsycl_here(),
+                   error_info{"hip_hardware_manager: Querying driver version failed",
+                              error_code{"HIP", err}});
   }
-  
+
   return std::to_string(driver_version);
 }
 
@@ -363,5 +357,5 @@ std::string hip_hardware_context::get_profile() const {
 }
 
 
-}
-}
+} // namespace rt
+} // namespace hipsycl

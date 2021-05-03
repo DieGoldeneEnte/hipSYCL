@@ -45,20 +45,23 @@ using test_dimensions = boost::mpl::list_c<int, 1, 2, 3>;
 
 
 template<int dimensions, template<int D> class T>
-void assert_array_equality(const T<dimensions>& a, const T<dimensions>& b) {
-  if(dimensions >= 1) BOOST_REQUIRE(a[0] == b[0]);
-  if(dimensions >= 2) BOOST_REQUIRE(a[1] == b[1]);
-  if(dimensions == 3) BOOST_REQUIRE(a[2] == b[2]);
+void assert_array_equality(const T<dimensions> &a, const T<dimensions> &b) {
+  if (dimensions >= 1)
+    BOOST_REQUIRE(a[0] == b[0]);
+  if (dimensions >= 2)
+    BOOST_REQUIRE(a[1] == b[1]);
+  if (dimensions == 3)
+    BOOST_REQUIRE(a[2] == b[2]);
 }
 
-template <template<int D> class T, int dimensions>
-auto make_test_value(const T<1>& a, const T<2>& b, const T<3>& c) {
+template<template<int D> class T, int dimensions>
+auto make_test_value(const T<1> &a, const T<2> &b, const T<3> &c) {
   return std::get<dimensions - 1>(std::make_tuple(a, b, c));
 }
 
 // Helper type to construct unique kernel names for all instantiations of
 // a templated test case.
-template<typename T, int dimensions, typename extra=T>
+template<typename T, int dimensions, typename extra = T>
 struct kernel_name {};
 
 #endif

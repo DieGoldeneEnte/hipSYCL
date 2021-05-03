@@ -37,8 +37,8 @@ BOOST_AUTO_TEST_CASE(queue_wait) {
   sycl::queue q1;
   sycl::queue q2;
 
-  auto evt1 = q1.single_task([=](){});
-  auto evt2 = q2.single_task([=](){});
+  auto evt1 = q1.single_task([=]() {});
+  auto evt2 = q2.single_task([=]() {});
 
   BOOST_CHECK(q1.get_info<sycl::info::queue::hipSYCL_node_group>() !=
               q2.get_info<sycl::info::queue::hipSYCL_node_group>());

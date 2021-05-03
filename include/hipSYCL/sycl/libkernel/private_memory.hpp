@@ -40,24 +40,16 @@ namespace sycl {
 #ifdef SYCL_DEVICE_ONLY
 
 template<typename T, int Dimensions = 1>
-class private_memory
-{
+class private_memory {
 public:
   HIPSYCL_KERNEL_TARGET
-  private_memory(const group<Dimensions>&)
-  {}
+  private_memory(const group<Dimensions> &) {}
 
   HIPSYCL_KERNEL_TARGET
-  T& operator()(const h_item<Dimensions>&)
-  {
-    return _data;
-  }
+  T &operator()(const h_item<Dimensions> &) { return _data; }
 
   HIPSYCL_KERNEL_TARGET
-  T& operator()(const logical_item<Dimensions>&)
-  {
-    return _data;
-  }
+  T &operator()(const logical_item<Dimensions> &) { return _data; }
 
 private:
   T _data;
@@ -66,38 +58,33 @@ private:
 #else
 
 template<typename T, int Dimensions = 1>
-class private_memory
-{
+class private_memory {
 public:
   HIPSYCL_KERNEL_TARGET
-  private_memory(const group<Dimensions>& grp)
-  : _data{new T [grp.get_local_range().size()]}
-  {}
+  private_memory(const group<Dimensions> &grp)
+      : _data{new T[grp.get_local_range().size()]} {}
 
   HIPSYCL_KERNEL_TARGET
-  T& operator()(const h_item<Dimensions>& idx)
-  {
+  T &operator()(const h_item<Dimensions> &idx) {
     return get(idx.get_local_id(), idx.get_local_range());
   }
 
   HIPSYCL_KERNEL_TARGET
-  T& operator()(const logical_item<Dimensions>& idx)
-  {
+  T &operator()(const logical_item<Dimensions> &idx) {
     return get(idx.get_local_id(), idx.get_local_range());
   }
 
 private:
-  std::unique_ptr<T []> _data;
+  std::unique_ptr<T[]> _data;
 
   HIPSYCL_KERNEL_TARGET
-  T& get(id<Dimensions> id, range<Dimensions> local_range)
-  {
+  T &get(id<Dimensions> id, range<Dimensions> local_range) {
     return _data.get()[detail::linear_id<Dimensions>::get(id, local_range)];
   }
 };
 #endif
 
-}
-}
+} // namespace sycl
+} // namespace hipsycl
 
 #endif

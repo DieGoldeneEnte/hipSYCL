@@ -36,7 +36,7 @@ namespace hipsycl {
 namespace sycl {
 namespace info {
 
-enum class event: int
+enum class event : int
 {
   command_execution_status,
   reference_count
@@ -57,12 +57,13 @@ enum class event_profiling : int
 };
 
 
-HIPSYCL_PARAM_TRAIT_RETURN_VALUE(event, event::command_execution_status, event_command_status);
+HIPSYCL_PARAM_TRAIT_RETURN_VALUE(event, event::command_execution_status,
+                                 event_command_status);
 HIPSYCL_PARAM_TRAIT_RETURN_VALUE(event, event::reference_count, detail::u_int);
 
-}
-}
-}
+} // namespace info
+} // namespace sycl
+} // namespace hipsycl
 
 
 #endif

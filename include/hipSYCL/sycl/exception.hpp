@@ -44,32 +44,21 @@ class context;
 
 class exception {
 public:
-  exception(const std::string& message)
-  : _msg{message}
-  {}
+  exception(const std::string &message) : _msg{message} {}
 
-  exception(const rt::result& details)
-    : _msg{details.what()}, _error_details{details}
-  {}
+  exception(const rt::result &details) : _msg{details.what()}, _error_details{details} {}
 
-  const char *what() const
-  {
-    return _msg.c_str();
-  }
+  const char *what() const { return _msg.c_str(); }
 
-  bool has_context() const
-  {
-    return false;
-  }
+  bool has_context() const { return false; }
 
   // Implementation in context.hpp
   context get_context() const;
 
 private:
   string_class _msg;
-  rt::result _error_details;
+  rt::result   _error_details;
 };
-
 
 
 class unimplemented : public exception {

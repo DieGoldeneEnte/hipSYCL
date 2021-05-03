@@ -35,16 +35,17 @@ namespace hipsycl {
 namespace sycl {
 namespace info {
 
-template <typename T, T Param>
+template<typename T, T Param>
 struct param_traits {};
 
 #define HIPSYCL_PARAM_TRAIT_RETURN_VALUE(T, param, ret_value) \
-  template<> \
-  struct param_traits<T, param> \
-  { using return_type = ret_value; };
+  template<>                                                  \
+  struct param_traits<T, param> {                             \
+    using return_type = ret_value;                            \
+  };
 
-}
-}
-}
+} // namespace info
+} // namespace sycl
+} // namespace hipsycl
 
 #endif

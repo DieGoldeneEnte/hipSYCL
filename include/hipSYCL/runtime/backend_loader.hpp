@@ -47,7 +47,7 @@ HIPSYCL_PLUGIN_API_EXPORT
 hipsycl::rt::backend *hipsycl_backend_plugin_create();
 
 HIPSYCL_PLUGIN_API_EXPORT
-const char* hipsycl_backend_plugin_get_name();
+const char *hipsycl_backend_plugin_get_name();
 
 
 namespace hipsycl {
@@ -58,21 +58,20 @@ public:
   ~backend_loader();
 
   void query_backends();
-  
+
   std::size_t get_num_backends() const;
   std::string get_backend_name(std::size_t index) const;
-  bool has_backend(const std::string &name) const;
+  bool        has_backend(const std::string &name) const;
 
   backend *create(std::size_t index) const;
   backend *create(const std::string &name) const;
 
 private:
-  using handle_t = void*;
+  using handle_t = void *;
   std::vector<std::pair<std::string, handle_t>> _handles;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif
-

@@ -34,23 +34,22 @@
 namespace hipsycl {
 namespace rt {
 
-omp_allocator::omp_allocator(const device_id &my_device)
-    : _my_device{my_device} {}
+omp_allocator::omp_allocator(const device_id &my_device) : _my_device{my_device} {}
 
 void *omp_allocator::allocate(size_t min_alignment, size_t size_bytes) {
 #ifndef _WIN32
   // posix requires alignment to be a multiple of sizeof(void*)
-  if (min_alignment < sizeof(void*))
+  if (min_alignment < sizeof(void *))
     return malloc(size_bytes);
 #else
   min_alignment = std::max(min_alignment, 1ULL);
 #endif
 
-  if(size_bytes % min_alignment != 0)
+  if (size_bytes % min_alignment != 0)
     return nullptr;
 
-  // ToDo: Mac OS CI has a problem with std::aligned_alloc
-  // but it's unclear if it's a Mac, or libc++, or toolchain issue
+    // ToDo: Mac OS CI has a problem with std::aligned_alloc
+    // but it's unclear if it's a Mac, or libc++, or toolchain issue
 #ifdef __APPLE__
   return aligned_alloc(min_alignment, size_bytes);
 #elif !defined(_WIN32)
@@ -61,8 +60,7 @@ void *omp_allocator::allocate(size_t min_alignment, size_t size_bytes) {
 #endif
 }
 
-void *omp_allocator::allocate_optimized_host(size_t min_alignment,
-                                             size_t bytes) {
+void *omp_allocator::allocate_optimized_host(size_t min_alignment, size_t bytes) {
   return this->allocate(min_alignment, bytes);
 };
 
@@ -74,34 +72,33 @@ void omp_allocator::free(void *mem) {
 #endif
 }
 
-void* omp_allocator::allocate_usm(size_t bytes) {
+void *omp_allocator::allocate_usm(size_t bytes) {
   return this->allocate(0, bytes);
 }
 
 bool omp_allocator::is_usm_accessible_from(backend_descriptor b) const {
-  if(b.hw_platform == hardware_platform::cpu) {
+  if (b.hw_platform == hardware_platform::cpu) {
     return true;
   }
   return false;
 }
 
 result omp_allocator::query_pointer(const void *ptr, pointer_info &out) const {
-  
+
   // For a host device, USM is the same as host memory?
-  out.is_optimized_host = true;
-  out.is_usm = true;
+  out.is_optimized_host    = true;
+  out.is_usm               = true;
   out.is_from_host_backend = true;
-  out.dev = _my_device;
+  out.dev                  = _my_device;
 
   return make_success();
 }
 
 result omp_allocator::mem_advise(const void *addr, std::size_t num_bytes,
                                  int advise) const {
-  HIPSYCL_DEBUG_WARNING << "omp_allocator: Ignoring mem_advise() hint"
-                        << std::endl;
+  HIPSYCL_DEBUG_WARNING << "omp_allocator: Ignoring mem_advise() hint" << std::endl;
   return make_success();
 }
 
-}
-}
+} // namespace rt
+} // namespace hipsycl

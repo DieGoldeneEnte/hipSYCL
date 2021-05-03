@@ -35,23 +35,18 @@ namespace hipsycl {
 namespace rt {
 
 class backend_manager;
-class hw_model
-{
+class hw_model {
 public:
-  hw_model(backend_manager* backends)
-  : _memcpy_model{std::make_unique<memcpy_model>(backends)}
-  {}
+  hw_model(backend_manager *backends)
+      : _memcpy_model{std::make_unique<memcpy_model>(backends)} {}
 
-  memcpy_model *get_memcpy_model() const
-  {
-    return _memcpy_model.get();
-  }
+  memcpy_model *get_memcpy_model() const { return _memcpy_model.get(); }
 
 private:
   std::unique_ptr<memcpy_model> _memcpy_model;
 };
 
-}
-}
+} // namespace rt
+} // namespace hipsycl
 
 #endif

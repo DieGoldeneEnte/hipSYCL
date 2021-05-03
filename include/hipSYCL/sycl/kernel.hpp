@@ -37,8 +37,7 @@ namespace hipsycl {
 namespace sycl {
 
 // This class is mostly a dummy implementation
-class kernel 
-{
+class kernel {
 private:
   friend class program;
   // The default object is not valid because there is no
@@ -46,103 +45,95 @@ private:
   kernel();
 
   context _ctx;
+
 public:
-  template<class Kernel_type>  
-  kernel(Kernel_type clKernel, const context& syclContext)
-  : _ctx{syclContext}
-  {}
-  
+  template<class Kernel_type>
+  kernel(Kernel_type clKernel, const context &syclContext) : _ctx{syclContext} {}
+
   /* -- common interface members -- */
-  
+
   //cl_kernel get() const;
 
-  bool is_host() const
-  {
-    return _ctx.is_host();
-  }
+  bool is_host() const { return _ctx.is_host(); }
 
-  context get_context() const
-  {
-    return _ctx;
-  }
+  context get_context() const { return _ctx; }
 
   program get_program() const;
-  
-  template <info::kernel param>
-  typename info::param_traits<info::kernel, param>::return_type 
-  get_info() const;
 
-  template <info::kernel_work_group param>
+  template<info::kernel param>
+  typename info::param_traits<info::kernel, param>::return_type get_info() const;
+
+  template<info::kernel_work_group param>
   typename info::param_traits<info::kernel_work_group, param>::return_type
-  get_work_group_info(const device &dev) const;
+      get_work_group_info(const device &dev) const;
 };
 
-HIPSYCL_SPECIALIZE_GET_INFO(kernel, function_name)
-{ return "<implicitly mangled kernel name>"; }
-
-HIPSYCL_SPECIALIZE_GET_INFO(kernel, num_args)
-{ return 0; }
-
-HIPSYCL_SPECIALIZE_GET_INFO(kernel, context)
-{ return get_context(); }
-
-HIPSYCL_SPECIALIZE_GET_INFO(kernel, program)
-{ return get_program(); }
-
-HIPSYCL_SPECIALIZE_GET_INFO(kernel, reference_count)
-{ return 1; }
-
-HIPSYCL_SPECIALIZE_GET_INFO(kernel, attributes)
-{ return ""; }
-
-#define HIPSYCL_SPECIALIZE_KERNEL_GET_WORK_GROUP_INFO(specialization)\
-  template<> \
-  inline typename info::param_traits< \
-        info::kernel_work_group, \
-        info::kernel_work_group::specialization>::return_type \
-  kernel::get_work_group_info<info::kernel_work_group::specialization>(const device& dev) const
-
-HIPSYCL_SPECIALIZE_KERNEL_GET_WORK_GROUP_INFO(global_work_size)
-{
-  // ToDO
-  return range<3>{0,0,0};
+HIPSYCL_SPECIALIZE_GET_INFO(kernel, function_name) {
+  return "<implicitly mangled kernel name>";
 }
 
-HIPSYCL_SPECIALIZE_KERNEL_GET_WORK_GROUP_INFO(work_group_size)
-{
+HIPSYCL_SPECIALIZE_GET_INFO(kernel, num_args) {
+  return 0;
+}
+
+HIPSYCL_SPECIALIZE_GET_INFO(kernel, context) {
+  return get_context();
+}
+
+HIPSYCL_SPECIALIZE_GET_INFO(kernel, program) {
+  return get_program();
+}
+
+HIPSYCL_SPECIALIZE_GET_INFO(kernel, reference_count) {
+  return 1;
+}
+
+HIPSYCL_SPECIALIZE_GET_INFO(kernel, attributes) {
+  return "";
+}
+
+#define HIPSYCL_SPECIALIZE_KERNEL_GET_WORK_GROUP_INFO(specialization)                   \
+  template<>                                                                            \
+  inline                                                                                \
+      typename info::param_traits<info::kernel_work_group,                              \
+                                  info::kernel_work_group::specialization>::return_type \
+      kernel::get_work_group_info<info::kernel_work_group::specialization>(             \
+          const device &dev) const
+
+HIPSYCL_SPECIALIZE_KERNEL_GET_WORK_GROUP_INFO(global_work_size) {
+  // ToDO
+  return range<3>{0, 0, 0};
+}
+
+HIPSYCL_SPECIALIZE_KERNEL_GET_WORK_GROUP_INFO(work_group_size) {
   return dev.get_info<info::device::max_work_group_size>();
 }
 
-HIPSYCL_SPECIALIZE_KERNEL_GET_WORK_GROUP_INFO(compile_work_group_size)
-{
-  return range<3>{0,0,0};
+HIPSYCL_SPECIALIZE_KERNEL_GET_WORK_GROUP_INFO(compile_work_group_size) {
+  return range<3>{0, 0, 0};
 }
 
-HIPSYCL_SPECIALIZE_KERNEL_GET_WORK_GROUP_INFO(preferred_work_group_size_multiple)
-{
+HIPSYCL_SPECIALIZE_KERNEL_GET_WORK_GROUP_INFO(preferred_work_group_size_multiple) {
   // ToDo
   return 128;
 }
 
-HIPSYCL_SPECIALIZE_KERNEL_GET_WORK_GROUP_INFO(private_mem_size)
-{
+HIPSYCL_SPECIALIZE_KERNEL_GET_WORK_GROUP_INFO(private_mem_size) {
   // ToDo
   return 0;
 }
 
 
-template <typename kernelT>
-inline kernel program::get_kernel() const
-{
+template<typename kernelT>
+inline kernel program::get_kernel() const {
   return kernel{"dummy-parameter", _ctx};
 }
 
-inline kernel program::get_kernel(string_class kernelName) const
-{
+inline kernel program::get_kernel(string_class kernelName) const {
   return kernel{"dummy-parameter", _ctx};
 }
 
-}
-}
+} // namespace sycl
+} // namespace hipsycl
 
 #endif

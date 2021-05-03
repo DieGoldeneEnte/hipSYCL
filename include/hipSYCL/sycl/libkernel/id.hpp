@@ -47,81 +47,64 @@ class range;
 template<int dimensions, bool with_offset>
 struct item;
 
-template <int dimensions = 1>
+template<int dimensions = 1>
 struct id {
 
   HIPSYCL_UNIVERSAL_TARGET
-  id()
-    : _data{}
-  {}
+  id() : _data{} {}
 
   /* The following constructor is only available in the id class
    * specialization where: dimensions==1 */
-  template<int D = dimensions,
-           typename = std::enable_if_t<D == 1>>
+  template<int D = dimensions, typename = std::enable_if_t<D == 1>>
   HIPSYCL_UNIVERSAL_TARGET
-  id(size_t dim0)
-    : _data{dim0}
-  {}
+  id(size_t dim0) : _data{dim0} {}
 
   /* The following constructor is only available in the id class
    * specialization where: dimensions==2 */
-  template<int D = dimensions,
-           typename = std::enable_if_t<D == 2>>
+  template<int D = dimensions, typename = std::enable_if_t<D == 2>>
   HIPSYCL_UNIVERSAL_TARGET
-  id(size_t dim0, size_t dim1)
-    : _data{dim0, dim1}
-  {}
+  id(size_t dim0, size_t dim1) : _data{dim0, dim1} {}
 
   /* The following constructor is only available in the id class
    * specialization where: dimensions==3 */
-  template<int D = dimensions,
-           typename = std::enable_if_t<D == 3>>
+  template<int D = dimensions, typename = std::enable_if_t<D == 3>>
   HIPSYCL_UNIVERSAL_TARGET
-  id(size_t dim0, size_t dim1, size_t dim2)
-    : _data{dim0, dim1, dim2}
-  {}
+  id(size_t dim0, size_t dim1, size_t dim2) : _data{dim0, dim1, dim2} {}
 
   /* -- common interface members -- */
 
   HIPSYCL_UNIVERSAL_TARGET
-  friend bool operator==(const id<dimensions>& lhs, const id<dimensions>& rhs){
+  friend bool operator==(const id<dimensions> &lhs, const id<dimensions> &rhs) {
     return lhs._data == rhs._data;
   }
-  
+
   HIPSYCL_UNIVERSAL_TARGET
-  friend bool operator!=(const id<dimensions>& lhs, const id<dimensions>& rhs){
+  friend bool operator!=(const id<dimensions> &lhs, const id<dimensions> &rhs) {
     return lhs._data != rhs._data;
   }
 
   HIPSYCL_UNIVERSAL_TARGET
   id(const range<dimensions> &range) {
-    for(std::size_t i = 0; i < dimensions; ++i)
+    for (std::size_t i = 0; i < dimensions; ++i)
       this->_data[i] = range[i];
   }
 
   template<bool with_offset>
   HIPSYCL_UNIVERSAL_TARGET
   id(const item<dimensions, with_offset> &item) {
-    for(std::size_t i = 0; i < dimensions; ++i)
+    for (std::size_t i = 0; i < dimensions; ++i)
       this->_data[i] = item.get_id(i);
   }
 
   HIPSYCL_UNIVERSAL_TARGET
-  size_t get(int dimension) const {
-    return this->_data[dimension];
-  }
+  size_t get(int dimension) const { return this->_data[dimension]; }
 
   HIPSYCL_UNIVERSAL_TARGET
-  size_t& operator[](int dimension) {
-    return this->_data[dimension];
-  }
+  size_t &operator[](int dimension) { return this->_data[dimension]; }
 
   HIPSYCL_UNIVERSAL_TARGET
-  size_t operator[](int dimension) const {
-    return this->_data[dimension];
-  }
-/*
+  size_t operator[](int dimension) const { return this->_data[dimension]; }
+  /*
   template <int D = dimensions, typename = std::enable_if_t<D == 1>>
   HIPSYCL_UNIVERSAL_TARGET
   operator size_t() const {
@@ -130,13 +113,14 @@ struct id {
   */
   // Implementation of id<dimensions> operatorOP(const size_t &rhs) const;
   // OP is: +, -, *, /, %, <<, >>, &, |, ˆ, &&, ||, <, >, <=, >=
-#define HIPSYCL_ID_BINARY_OP_OUT_OF_PLACE(op) \
-  HIPSYCL_UNIVERSAL_TARGET  \
-  friend id<dimensions> operator op(const id<dimensions> &lhs, const id<dimensions> &rhs) { \
-    id<dimensions> result; \
-    for(std::size_t i = 0; i < dimensions; ++i) \
+#define HIPSYCL_ID_BINARY_OP_OUT_OF_PLACE(op)                                   \
+  HIPSYCL_UNIVERSAL_TARGET                                                      \
+  friend id<dimensions> operator op(const id<dimensions> &lhs,                  \
+                                    const id<dimensions> &rhs) {                \
+    id<dimensions> result;                                                      \
+    for (std::size_t i = 0; i < dimensions; ++i)                                \
       result._data[i] = static_cast<std::size_t>(lhs._data[i] op rhs._data[i]); \
-    return result; \
+    return result;                                                              \
   }
 
   HIPSYCL_ID_BINARY_OP_OUT_OF_PLACE(+)
@@ -156,14 +140,13 @@ struct id {
   HIPSYCL_ID_BINARY_OP_OUT_OF_PLACE(<=)
   HIPSYCL_ID_BINARY_OP_OUT_OF_PLACE(>=)
 
-#define HIPSYCL_ID_BINARY_OP_OUT_OF_PLACE_SIZE_T(op) \
-  HIPSYCL_UNIVERSAL_TARGET \
-  friend id<dimensions> operator op(const id<dimensions> &lhs, \
-                             const std::size_t &rhs){ \
-    id<dimensions> result; \
-    for(std::size_t i = 0; i < dimensions; ++i) \
-      result._data[i] = static_cast<std::size_t>(lhs._data[i] op rhs); \
-    return result; \
+#define HIPSYCL_ID_BINARY_OP_OUT_OF_PLACE_SIZE_T(op)                                     \
+  HIPSYCL_UNIVERSAL_TARGET                                                               \
+  friend id<dimensions> operator op(const id<dimensions> &lhs, const std::size_t &rhs) { \
+    id<dimensions> result;                                                               \
+    for (std::size_t i = 0; i < dimensions; ++i)                                         \
+      result._data[i] = static_cast<std::size_t>(lhs._data[i] op rhs);                   \
+    return result;                                                                       \
   }
 
   HIPSYCL_ID_BINARY_OP_OUT_OF_PLACE_SIZE_T(+)
@@ -186,12 +169,12 @@ struct id {
 
   // Implementation of id<dimensions> &operatorOP(const id<dimensions> &rhs);
   // OP is: +=, -=, *=, /=, %=, <<=, >>=, &=, |=, ˆ=
-#define HIPSYCL_ID_BINARY_OP_IN_PLACE(op) \
-  HIPSYCL_UNIVERSAL_TARGET \
-  friend id<dimensions>& operator op(id<dimensions> &lhs, const id<dimensions> &rhs) { \
-    for(std::size_t i = 0; i < dimensions; ++i) \
-      lhs._data[i] op rhs._data[i]; \
-    return lhs; \
+#define HIPSYCL_ID_BINARY_OP_IN_PLACE(op)                                              \
+  HIPSYCL_UNIVERSAL_TARGET                                                             \
+  friend id<dimensions> &operator op(id<dimensions> &lhs, const id<dimensions> &rhs) { \
+    for (std::size_t i = 0; i < dimensions; ++i)                                       \
+      lhs._data[i] op rhs._data[i];                                                    \
+    return lhs;                                                                        \
   }
 
   HIPSYCL_ID_BINARY_OP_IN_PLACE(+=)
@@ -205,12 +188,12 @@ struct id {
   HIPSYCL_ID_BINARY_OP_IN_PLACE(|=)
   HIPSYCL_ID_BINARY_OP_IN_PLACE(^=)
 
-#define HIPSYCL_ID_BINARY_OP_IN_PLACE_SIZE_T(op) \
-  HIPSYCL_UNIVERSAL_TARGET \
-  friend id<dimensions>& operator op(id<dimensions> &lhs, const std::size_t &rhs) { \
-    for(std::size_t i = 0; i < dimensions; ++i) \
-      lhs._data[i] op rhs; \
-    return lhs; \
+#define HIPSYCL_ID_BINARY_OP_IN_PLACE_SIZE_T(op)                                    \
+  HIPSYCL_UNIVERSAL_TARGET                                                          \
+  friend id<dimensions> &operator op(id<dimensions> &lhs, const std::size_t &rhs) { \
+    for (std::size_t i = 0; i < dimensions; ++i)                                    \
+      lhs._data[i] op rhs;                                                          \
+    return lhs;                                                                     \
   }
 
   HIPSYCL_ID_BINARY_OP_IN_PLACE_SIZE_T(+=)
@@ -224,13 +207,13 @@ struct id {
   HIPSYCL_ID_BINARY_OP_IN_PLACE_SIZE_T(|=)
   HIPSYCL_ID_BINARY_OP_IN_PLACE_SIZE_T(^=)
 
-#define HIPSYCL_ID_BINARY_OP_SIZE_T(op) \
-  HIPSYCL_UNIVERSAL_TARGET \
+#define HIPSYCL_ID_BINARY_OP_SIZE_T(op)                                             \
+  HIPSYCL_UNIVERSAL_TARGET                                                          \
   friend id<dimensions> operator op(const size_t &lhs, const id<dimensions> &rhs) { \
-    id<dimensions> result; \
-    for(std::size_t i = 0; i < dimensions; ++i) \
-      result[i] = lhs op rhs[i]; \
-    return result; \
+    id<dimensions> result;                                                          \
+    for (std::size_t i = 0; i < dimensions; ++i)                                    \
+      result[i] = lhs op rhs[i];                                                    \
+    return result;                                                                  \
   }
 
   // OP is: +, -, *, /, %, <<, >>, &, |, ˆ
@@ -250,12 +233,12 @@ private:
 };
 
 // Deduction guides
-id(size_t) -> id<1>;
-id(size_t, size_t) -> id<2>;
-id(size_t, size_t, size_t) -> id<3>;
+id(size_t)->id<1>;
+id(size_t, size_t)->id<2>;
+id(size_t, size_t, size_t)->id<3>;
 
 namespace detail {
-namespace id{
+namespace id {
 
 template<int dimensions>
 HIPSYCL_UNIVERSAL_TARGET
@@ -263,18 +246,21 @@ inline sycl::id<dimensions> construct_from_first_n(size_t x, size_t y, size_t z)
 
 template<>
 HIPSYCL_UNIVERSAL_TARGET
-inline sycl::id<3> construct_from_first_n(size_t x, size_t y, size_t z)
-{ return sycl::id<3>{x,y,z}; }
+inline sycl::id<3> construct_from_first_n(size_t x, size_t y, size_t z) {
+  return sycl::id<3>{x, y, z};
+}
 
 template<>
 HIPSYCL_UNIVERSAL_TARGET
-inline sycl::id<2> construct_from_first_n(size_t x, size_t y, size_t z)
-{ return sycl::id<2>{x,y}; }
+inline sycl::id<2> construct_from_first_n(size_t x, size_t y, size_t z) {
+  return sycl::id<2>{x, y};
+}
 
 template<>
 HIPSYCL_UNIVERSAL_TARGET
-inline sycl::id<1> construct_from_first_n(size_t x, size_t y, size_t z)
-{ return sycl::id<1>{x}; }
+inline sycl::id<1> construct_from_first_n(size_t x, size_t y, size_t z) {
+  return sycl::id<1>{x};
+}
 
 
 } // namespace id

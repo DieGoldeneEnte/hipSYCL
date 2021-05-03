@@ -33,7 +33,8 @@
 namespace hipsycl {
 namespace sycl {
 
-enum class aspect {
+enum class aspect
+{
   cpu,
   gpu,
   accelerator,
@@ -55,32 +56,32 @@ enum class aspect {
   usm_system_allocations
 };
 
-template <aspect Aspect> struct any_device_has : public std::true_type {};
-template <aspect Aspect> struct all_devices_have : public std::false_type {};
+template<aspect Aspect>
+struct any_device_has : public std::true_type {};
+template<aspect Aspect>
+struct all_devices_have : public std::false_type {};
 
 // We always have a CPU device that is host debuggable
-template <>
+template<>
 struct any_device_has<aspect::host_debuggable> : public std::true_type {};
 
 // Images are unsupported
-template <>
+template<>
 struct any_device_has<aspect::image> : public std::false_type {};
 
 // All backends in hipSYCL must support at least explicit USM by design
-template <>
-struct all_devices_have<aspect::usm_device_allocations>
-    : public std::true_type {};
-template <>
-struct all_devices_have<aspect::usm_atomic_host_allocations>
-    : public std::true_type {};
+template<>
+struct all_devices_have<aspect::usm_device_allocations> : public std::true_type {};
+template<>
+struct all_devices_have<aspect::usm_atomic_host_allocations> : public std::true_type {};
 
-template <aspect A>
+template<aspect A>
 inline constexpr bool any_device_has_v = any_device_has<A>::value;
 
-template <aspect A>
+template<aspect A>
 inline constexpr bool all_devices_have_v = all_devices_have<A>::value;
 
-}
-}
+} // namespace sycl
+} // namespace hipsycl
 
 #endif

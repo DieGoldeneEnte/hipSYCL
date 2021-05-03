@@ -38,49 +38,35 @@
 namespace hipsycl {
 namespace sycl {
 
-#if HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP ||                                    \
-    HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_CUDA
-class sub_group
-{
+#if HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_HIP || HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_CUDA
+class sub_group {
 public:
-  using id_type = sycl::id<1>;
-  using range_type = sycl::range<1>;
-  using linear_id_type = uint32_t;
+  using id_type           = sycl::id<1>;
+  using range_type        = sycl::range<1>;
+  using linear_id_type    = uint32_t;
   using linear_range_type = uint32_t;
 
-  static constexpr int dimensions = 1;
+  static constexpr int          dimensions  = 1;
   static constexpr memory_scope fence_scope = memory_scope::sub_group;
 
 
   HIPSYCL_KERNEL_TARGET
-  id_type get_local_id() const {
-    return id_type{get_local_linear_id()};
-  }
+  id_type get_local_id() const { return id_type{get_local_linear_id()}; }
 
   HIPSYCL_KERNEL_TARGET
-  linear_id_type get_local_linear_id() const {
-    return local_tid() & get_warp_mask();
-  }
+  linear_id_type get_local_linear_id() const { return local_tid() & get_warp_mask(); }
 
   HIPSYCL_KERNEL_TARGET
-  range_type get_local_range() const {
-    return warpSize;
-  }
+  range_type get_local_range() const { return warpSize; }
 
   HIPSYCL_KERNEL_TARGET
-  linear_range_type get_local_linear_range() const {
-    return warpSize;
-  }
-  
-  HIPSYCL_KERNEL_TARGET
-  range_type get_max_local_range() const {
-    return get_local_range();
-  }
+  linear_range_type get_local_linear_range() const { return warpSize; }
 
   HIPSYCL_KERNEL_TARGET
-  id_type get_group_id() const {
-    return id_type{get_group_linear_id()};
-  }
+  range_type get_max_local_range() const { return get_local_range(); }
+
+  HIPSYCL_KERNEL_TARGET
+  id_type get_group_id() const { return id_type{get_group_linear_id()}; }
 
   HIPSYCL_KERNEL_TARGET
   linear_id_type get_group_linear_id() const {
@@ -95,31 +81,26 @@ public:
   }
 
   HIPSYCL_KERNEL_TARGET
-  range_type get_group_range() const {
-    return range_type{get_group_linear_range()};
-  }
+  range_type get_group_range() const { return range_type{get_group_linear_range()}; }
 
   HIPSYCL_KERNEL_TARGET
-  range_type get_max_group_range() const {
-    return get_group_range();
-  }
+  range_type get_max_group_range() const { return get_group_range(); }
 
   template<class F>
   HIPSYCL_KERNEL_TARGET
-  void single_item(F f){
-    if(get_local_id() == 0) f();
+  void single_item(F f) {
+    if (get_local_id() == 0)
+      f();
   }
 
   HIPSYCL_KERNEL_TARGET
-  bool leader() const {
-    return get_local_linear_id() == 0;
-  }
+  bool leader() const { return get_local_linear_id() == 0; }
+
 private:
   HIPSYCL_KERNEL_TARGET
   int local_tid() const {
-    int tid = __hipsycl_lid_x 
-            + __hipsycl_lid_y * __hipsycl_lsize_x 
-            + __hipsycl_lid_z * __hipsycl_lsize_x * __hipsycl_lsize_y;
+    int tid = __hipsycl_lid_x + __hipsycl_lid_y * __hipsycl_lsize_x +
+              __hipsycl_lid_z * __hipsycl_lsize_x * __hipsycl_lsize_y;
     return tid;
   }
 
@@ -130,22 +111,19 @@ private:
   }
 };
 #elif HIPSYCL_LIBKERNEL_IS_DEVICE_PASS_SPIRV
-class sub_group
-{
+class sub_group {
 public:
-  using id_type = sycl::id<1>;
-  using range_type = sycl::range<1>;
-  using linear_id_type = uint32_t;
+  using id_type           = sycl::id<1>;
+  using range_type        = sycl::range<1>;
+  using linear_id_type    = uint32_t;
   using linear_range_type = uint32_t;
 
-  static constexpr int dimensions = 1;
+  static constexpr int          dimensions  = 1;
   static constexpr memory_scope fence_scope = memory_scope::sub_group;
 
 
   HIPSYCL_KERNEL_TARGET
-  id_type get_local_id() const {
-    return id_type{get_local_linear_id()};
-  }
+  id_type get_local_id() const { return id_type{get_local_linear_id()}; }
 
   HIPSYCL_KERNEL_TARGET
   linear_id_type get_local_linear_id() const {
@@ -153,14 +131,10 @@ public:
   }
 
   HIPSYCL_KERNEL_TARGET
-  range_type get_local_range() const {
-    return range_type{get_local_linear_range()};
-  }
+  range_type get_local_range() const { return range_type{get_local_linear_range()}; }
 
   HIPSYCL_KERNEL_TARGET
-  linear_range_type get_local_linear_range() const {
-    return __spirv_BuiltInSubgroupSize;
-  }
+  linear_range_type get_local_linear_range() const { return __spirv_BuiltInSubgroupSize; }
 
   HIPSYCL_KERNEL_TARGET
   range_type get_max_local_range() const {
@@ -168,24 +142,16 @@ public:
   }
 
   HIPSYCL_KERNEL_TARGET
-  id_type get_group_id() const {
-    return id_type{get_group_linear_id()};
-  }
+  id_type get_group_id() const { return id_type{get_group_linear_id()}; }
 
   HIPSYCL_KERNEL_TARGET
-  linear_id_type get_group_linear_id() const {
-    return __spirv_BuiltInSubgroupId;
-  }
+  linear_id_type get_group_linear_id() const { return __spirv_BuiltInSubgroupId; }
 
   HIPSYCL_KERNEL_TARGET
-  linear_range_type get_group_linear_range() const {
-    return __spirv_BuiltInNumSubgroups;
-  }
+  linear_range_type get_group_linear_range() const { return __spirv_BuiltInNumSubgroups; }
 
   HIPSYCL_KERNEL_TARGET
-  range_type get_group_range() const {
-    return __spirv_BuiltInNumSubgroups;
-  }
+  range_type get_group_range() const { return __spirv_BuiltInNumSubgroups; }
 
   HIPSYCL_KERNEL_TARGET
   range_type get_max_group_range() const {
@@ -195,68 +161,50 @@ public:
 
   template<class F>
   HIPSYCL_KERNEL_TARGET
-  void single_item(F f){
-    if(get_local_linear_id() == 0) f();
+  void single_item(F f) {
+    if (get_local_linear_id() == 0)
+      f();
   }
 
   HIPSYCL_KERNEL_TARGET
-  bool leader() const {
-    return true;
-  }
+  bool leader() const { return true; }
 };
 #else
 // On host, sub groups are always of size 1
-class sub_group
-{
+class sub_group {
 public:
-  using id_type = sycl::id<1>;
-  using range_type = sycl::range<1>;
-  using linear_id_type = uint32_t;
+  using id_type           = sycl::id<1>;
+  using range_type        = sycl::range<1>;
+  using linear_id_type    = uint32_t;
   using linear_range_type = uint32_t;
-  
-  static constexpr int dimensions = 1;
+
+  static constexpr int          dimensions  = 1;
   static constexpr memory_scope fence_scope = memory_scope::sub_group;
 
 
   HIPSYCL_KERNEL_TARGET
-  id_type get_local_id() const {
-    return id_type{0};
-  }
+  id_type get_local_id() const { return id_type{0}; }
 
   HIPSYCL_KERNEL_TARGET
-  linear_id_type get_local_linear_id() const {
-    return 0;
-  }
+  linear_id_type get_local_linear_id() const { return 0; }
 
   HIPSYCL_KERNEL_TARGET
-  range_type get_local_range() const {
-    return range_type{1};
-  }
+  range_type get_local_range() const { return range_type{1}; }
 
   HIPSYCL_KERNEL_TARGET
-  linear_range_type get_local_linear_range() const {
-    return 1;
-  }
+  linear_range_type get_local_linear_range() const { return 1; }
 
   HIPSYCL_KERNEL_TARGET
-  range_type get_max_local_range() const {
-    return range_type{1};
-  }
+  range_type get_max_local_range() const { return range_type{1}; }
 
   HIPSYCL_KERNEL_TARGET
-  id_type get_group_id() const {
-    return id_type{_item_linear_id};
-  }
+  id_type get_group_id() const { return id_type{_item_linear_id}; }
 
   HIPSYCL_KERNEL_TARGET
-  linear_id_type get_group_linear_id() const {
-    return _item_linear_id;
-  }
+  linear_id_type get_group_linear_id() const { return _item_linear_id; }
 
   HIPSYCL_KERNEL_TARGET
-  linear_range_type get_group_linear_range() const {
-    return _group_size;
-  }
+  linear_range_type get_group_linear_range() const { return _group_size; }
 
   HIPSYCL_KERNEL_TARGET
   range_type get_group_range() const {
@@ -266,20 +214,14 @@ public:
   }
 
   HIPSYCL_KERNEL_TARGET
-  range_type get_max_group_range() const {
-    return _group_size;
-  }
+  range_type get_max_group_range() const { return _group_size; }
 
   template<class F>
   HIPSYCL_KERNEL_TARGET
-  void single_item(F f){
-    f();
-  }
+  void single_item(F f) { f(); }
 
   HIPSYCL_KERNEL_TARGET
-  bool leader() const {
-    return true;
-  }
+  bool leader() const { return true; }
 
 private:
   std::size_t _item_linear_id;
@@ -287,7 +229,7 @@ private:
 };
 #endif
 
-}
-}
+} // namespace sycl
+} // namespace hipsycl
 
 #endif
